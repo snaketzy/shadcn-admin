@@ -107,8 +107,8 @@ export function TasksTable({ data }: DataTableProps) {
   return (
     <div
       className={cn(
-        'max-sm:has-[div[role="toolbar"]]:mb-16', // Add margin bottom to the table on mobile when the toolbar is visible
-        'flex flex-1 flex-col gap-4'
+        'max-sm:has-[div[role="toolbar"]]:mb-16',
+        'flex flex-1 flex-col gap-4 overflow-hidden'
       )}
     >
       <DataTableToolbar
@@ -127,70 +127,72 @@ export function TasksTable({ data }: DataTableProps) {
           },
         ]}
       />
-      <div className='overflow-hidden rounded-md border'>
-        <Table className='min-w-xl'>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className={cn(
-                        header.column.columnDef.meta?.className,
-                        header.column.columnDef.meta?.thClassName
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        cell.column.columnDef.meta?.className,
-                        cell.column.columnDef.meta?.tdClassName
-                      )}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+      <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
+        <div className='flex-1 overflow-auto'>
+          <Table className='min-w-xl'>
+            <TableHeader className='sticky top-0 z-10 bg-background'>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        className={cn(
+                          header.column.columnDef.meta?.className,
+                          header.column.columnDef.meta?.thClassName
+                        )}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    )
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className='h-24 text-center'
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          cell.column.columnDef.meta?.className,
+                          cell.column.columnDef.meta?.tdClassName
+                        )}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className='h-24 text-center'
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-      <DataTablePagination table={table} className='mt-auto' />
+      <DataTablePagination table={table} className='mt-auto flex-shrink-0' />
       <DataTableBulkActions table={table} />
     </div>
   )
