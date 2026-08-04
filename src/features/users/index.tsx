@@ -29,9 +29,9 @@ export function Users() {
       <Main fixed className='flex flex-1 flex-col gap-4 sm:gap-6 overflow-hidden'>
         <div className='flex flex-shrink-0 flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>船队列表</h2>
             <p className='text-muted-foreground'>
-              Manage your users and their roles here.
+              在此管理您的船队信息和角色权限。
             </p>
           </div>
           <UsersPrimaryButtons />

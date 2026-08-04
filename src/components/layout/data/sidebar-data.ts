@@ -21,6 +21,7 @@ import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
+  BookOpen,
 } from 'lucide-react'
 import { ClerkLogo } from '@/assets/clerk-logo'
 import { type SidebarData } from '../types'
@@ -74,9 +75,14 @@ export const sidebarData: SidebarData = {
           icon: MessagesSquare,
         },
         {
-          title: 'Users',
+          title: '船队列表',
           url: '/users',
           icon: Users,
+        },
+        {
+          title: '字典',
+          url: '/dictionaries',
+          icon: BookOpen,
         },
         {
           title: 'Secured by Clerk',
