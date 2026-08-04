@@ -109,7 +109,7 @@ describe('SearchProvider and CommandMenu', () => {
 
     await openCommandPalette(screen)
 
-    await userEvent.click(screen.getByText('Tasks'))
+    await userEvent.click(screen.getByText('询价列表'))
 
     expect(mocks.navigate).toHaveBeenCalledWith({ to: '/tasks' })
     await expect
