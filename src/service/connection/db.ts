@@ -44,6 +44,7 @@ const poolConfig: PoolOptions = {
   keepAliveInitialDelay: 0,
 }
 
+const currentDatabase = process.env.DB_NAME ?? ''
 const pool = mysql.createPool(poolConfig)
 
 export async function query<T = RowDataPacket[]>(
@@ -64,6 +65,58 @@ export async function execute(
 
 export function getPool() {
   return pool
+}
+
+export interface TableColumn {
+  field: string
+  type: string
+  null: boolean
+  key: string
+  default: unknown
+  extra: string
+}
+
+export interface TableInfo {
+  database: string
+  table: string
+  columns: TableColumn[]
+  columnCount: number
+  primaryKeys: string[]
+}
+
+export async function describeTable(tableName: string): Promise<TableInfo> {
+  const raw = await query<
+    Array<{
+      Field: string
+      Type: string
+      Null: string
+      Key: string
+      Default: unknown
+      Extra: string
+    }>
+  >(`DESCRIBE \`${tableName}\``)
+  const columns: TableColumn[] = raw.map((row) => ({
+    field: row.Field,
+    type: row.Type,
+    null: row.Null === 'YES',
+    key: row.Key,
+    default: row.Default,
+    extra: row.Extra,
+  }))
+  const primaryKeys = columns.filter((c) => c.key === 'PRI').map((c) => c.field)
+  return {
+    database: currentDatabase,
+    table: tableName,
+    columns,
+    columnCount: columns.length,
+    primaryKeys,
+  }
+}
+
+export async function listTables(): Promise<string[]> {
+  const rows = await query<Record<string, string>[]>('SHOW TABLES')
+  const key = Object.keys(rows[0] ?? {})[0] ?? ''
+  return rows.map((row) => row[key]).filter(Boolean)
 }
 
 export async function closePool(): Promise<void> {
