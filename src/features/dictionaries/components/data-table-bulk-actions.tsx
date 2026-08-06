@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { type Table } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { sleep } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -20,11 +18,10 @@ export function DataTableBulkActions<TData>({
   table,
 }: DataTableBulkActionsProps<TData>) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const selectedRows = table.getFilteredSelectedRowModel().rows
 
   return (
     <>
-      <BulkActionsToolbar table={table} entityName='字典'>
+      <BulkActionsToolbar table={table} entityName='dictionary'>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -32,15 +29,15 @@ export function DataTableBulkActions<TData>({
               size='icon'
               onClick={() => setShowDeleteConfirm(true)}
               className='size-8'
-              aria-label='删除所选字典'
-              title='删除所选字典'
+              aria-label='Delete selected dictionaries'
+              title='Delete selected dictionaries'
             >
               <Trash2 />
-              <span className='sr-only'>删除所选字典</span>
+              <span className='sr-only'>Delete selected dictionaries</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>删除所选字典</p>
+            <p>Delete selected dictionaries</p>
           </TooltipContent>
         </Tooltip>
       </BulkActionsToolbar>

@@ -9,7 +9,6 @@ import { DictionariesDialogs } from './components/dictionaries-dialogs'
 import { DictionariesPrimaryButtons } from './components/dictionaries-primary-buttons'
 import { DictionariesProvider } from './components/dictionaries-provider'
 import { DictionariesTable } from './components/dictionaries-table'
-import { dictionaries } from './data/dictionaries'
 
 const route = getRouteApi('/_authenticated/dictionaries/')
 
@@ -31,12 +30,12 @@ export function Dictionaries() {
           <div>
             <h2 className='text-2xl font-bold tracking-tight'>字典</h2>
             <p className='text-muted-foreground'>
-              在此管理您的字典信息。
+              在此管理系统字典数据（case_dict 表），包括字典分组、键名和键值。
             </p>
           </div>
           <DictionariesPrimaryButtons />
         </div>
-        <DictionariesTable data={dictionaries} search={search} navigate={navigate} />
+        <DictionariesTable search={search} navigate={navigate} />
       </Main>
 
       <DictionariesDialogs />

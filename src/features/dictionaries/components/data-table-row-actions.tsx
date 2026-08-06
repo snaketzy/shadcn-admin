@@ -10,11 +10,11 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { type Dictionary } from '../data/schema'
+import { type CaseDictType } from '../data/schema'
 import { useDictionaries } from './dictionaries-provider'
 
 type DataTableRowActionsProps = {
-  row: Row<Dictionary>
+  row: Row<CaseDictType>
 }
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
@@ -38,7 +38,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               setOpen('edit')
             }}
           >
-            编辑
+            Edit
             <DropdownMenuShortcut>
               <UserPen size={16} />
             </DropdownMenuShortcut>
@@ -51,7 +51,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             }}
             className='text-red-500!'
           >
-            删除
+            Delete
             <DropdownMenuShortcut>
               <Trash2 size={16} />
             </DropdownMenuShortcut>

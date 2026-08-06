@@ -7,12 +7,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { type Dictionary } from '../data/schema'
+import { type CaseDictType } from '../data/schema'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteCaseDict } from '../api/client'
+import { toast } from 'sonner'
 
 type DictionaryDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: Dictionary
+  currentRow: CaseDictType
 }
 
 export function DictionariesDeleteDialog({
@@ -21,20 +24,37 @@ export function DictionariesDeleteDialog({
   currentRow,
 }: DictionaryDeleteDialogProps) {
   const [value, setValue] = useState('')
+  const queryClient = useQueryClient()
 
-  const handleDelete = () => {
-    if (value.trim() !== currentRow.key) return
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteCaseDict(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case-dict'] })
+    },
+  })
 
-    onOpenChange(false)
-    showSubmittedData(currentRow, '以下字典已被删除：')
+  const handleDelete = async () => {
+    if (value.trim() !== currentRow.dict_group) return
+
+    const ok = await deleteMutation.mutateAsync(currentRow.dict_id)
+    if (ok) {
+      toast.success('字典已删除')
+      onOpenChange(false)
+      showSubmittedData(currentRow, 'The following dictionary has been deleted:')
+    } else {
+      toast.error('字典删除失败')
+    }
   }
 
   return (
     <ConfirmDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(s) => {
+        if (!s) setValue('')
+        onOpenChange(s)
+      }}
       form='dictionaries-delete-form'
-      disabled={value.trim() !== currentRow.key}
+      disabled={value.trim() !== currentRow.dict_group || deleteMutation.isPending}
       title={
         <span className='text-destructive'>
           <AlertTriangle
@@ -54,22 +74,21 @@ export function DictionariesDeleteDialog({
           className='space-y-4'
         >
           <p className='mb-2'>
-            您确定要删除字典{' '}
-            <span className='font-bold'>{currentRow.key}</span>（
-            <span className='font-bold'>{currentRow.value}</span>）吗？
+            您确定要删除 字典分组为{' '}
+            <span className='font-bold'>{currentRow.dict_group}</span> 的{' '}
+            <span className='font-bold'>{currentRow.dict_value}</span> 吗？
             <br />
-            所属分组：
-            <span className='font-bold'>{currentRow.group}</span>
-            。此操作不可撤销。
+            此操作不可撤销。
           </p>
 
           <Label className='my-2'>
-            请输入字典键名以确认删除：
+            请输入字典分组名称确认删除：
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={`请输入 "${currentRow.key}" 以确认删除`}
+              placeholder='请输入字典分组名称以确认删除。'
               autoFocus
+              disabled={deleteMutation.isPending}
             />
           </Label>
 
@@ -81,7 +100,7 @@ export function DictionariesDeleteDialog({
           </Alert>
         </form>
       }
-      confirmText='删除'
+      confirmText={deleteMutation.isPending ? '删除中...' : '删除'}
       destructive
     />
   )

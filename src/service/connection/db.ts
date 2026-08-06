@@ -8,6 +8,8 @@ import mysql, {
   type RowDataPacket,
 } from 'mysql2/promise'
 
+export type { ExecuteValues }
+
 type QueryResult = [RowDataPacket[] | ResultSetHeader, FieldPacket[]]
 
 function parseHostAndPort(hostname: string): { host: string; port?: number } {

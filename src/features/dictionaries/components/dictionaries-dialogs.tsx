@@ -15,7 +15,7 @@ export function DictionariesDialogs() {
       {currentRow && (
         <>
           <DictionariesActionDialog
-            key={`dictionary-edit-${currentRow.id}`}
+            key={`dictionary-edit-${currentRow.dict_id}`}
             open={open === 'edit'}
             onOpenChange={() => {
               setOpen('edit')
@@ -27,7 +27,7 @@ export function DictionariesDialogs() {
           />
 
           <DictionariesDeleteDialog
-            key={`dictionary-delete-${currentRow.id}`}
+            key={`dictionary-delete-${currentRow.dict_id}`}
             open={open === 'delete'}
             onOpenChange={() => {
               setOpen('delete')

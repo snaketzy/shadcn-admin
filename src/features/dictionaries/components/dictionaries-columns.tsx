@@ -1,13 +1,13 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { Badge } from '@/components/ui/badge'
-import { type Dictionary } from '../data/schema'
+import { type CaseDictType } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const dictionariesColumns: ColumnDef<Dictionary>[] = [
+export const dictionariesColumns: ColumnDef<CaseDictType>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -36,16 +36,16 @@ export const dictionariesColumns: ColumnDef<Dictionary>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'group',
+    accessorKey: 'dict_group',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='字典分组' />
     ),
     cell: ({ row }) => {
-      const group = row.getValue('group') as string
+      const group = row.getValue<string>('dict_group')
       return (
         <div className='ps-3'>
-          <Badge variant='secondary' className='font-medium'>
-            {group}
+          <Badge variant='outline'>
+            <LongText className='max-w-32'>{group}</LongText>
           </Badge>
         </div>
       )
@@ -57,33 +57,27 @@ export const dictionariesColumns: ColumnDef<Dictionary>[] = [
       ),
     },
     enableHiding: false,
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
-    },
   },
   {
-    accessorKey: 'key',
+    accessorKey: 'dict_key',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='字典键名' />
     ),
-    cell: ({ row }) => (
-      <LongText className='max-w-40'>{row.getValue('key')}</LongText>
-    ),
-    enableSorting: false,
+    cell: ({ row }) => <div>{String(row.getValue('dict_key'))}</div>,
+    enableSorting: true,
   },
   {
-    accessorKey: 'value',
+    accessorKey: 'dict_value',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='字典键值' />
     ),
     cell: ({ row }) => (
-      <LongText className='max-w-64'>{row.getValue('value')}</LongText>
+      <LongText className='max-w-72'>{row.getValue('dict_value')}</LongText>
     ),
     enableSorting: false,
   },
   {
     id: 'actions',
-    header: () => <span className='pe-2'>操作</span>,
     cell: DataTableRowActions,
   },
 ]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
   type SortingState,
   type VisibilityState,
@@ -12,8 +12,9 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
-import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
+import { type NavigateFn } from '@/hooks/use-table-url-state'
 import {
+  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -21,53 +22,120 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { groupOptions } from '../data/data'
-import { type Dictionary } from '../data/schema'
+import { useQuery } from '@tanstack/react-query'
+import { fetchCaseDictAll, fetchCaseDictGroups } from '../api/client'
+import { type CaseDictType } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { dictionariesColumns as columns } from './dictionaries-columns'
 
 type DataTableProps = {
-  data: Dictionary[]
   search: Record<string, unknown>
   navigate: NavigateFn
 }
 
-export function DictionariesTable({ data, search, navigate }: DataTableProps) {
+export function DictionariesTable({ search, navigate }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
 
-  const {
-    columnFilters,
-    onColumnFiltersChange,
-    pagination,
-    onPaginationChange,
-    ensurePageInRange,
-  } = useTableUrlState({
-    search,
-    navigate,
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: false },
-    columnFilters: [
-      { columnId: 'username', searchKey: 'username', type: 'string' },
-      { columnId: 'status', searchKey: 'status', type: 'array' },
-      { columnId: 'role', searchKey: 'role', type: 'array' },
-    ],
+  const { data: allRowsData, isLoading } = useQuery({
+    queryKey: ['case-dict'],
+    queryFn: fetchCaseDictAll,
   })
+  const allRows: CaseDictType[] = allRowsData ?? []
 
+  const { data: groupsData } = useQuery({
+    queryKey: ['case-dict-groups'],
+    queryFn: fetchCaseDictGroups,
+  })
+  const groups: string[] = groupsData ?? []
+
+  const groupFilter: string[] = useMemo(
+    () => (Array.isArray((search as any).dictGroup) ? (search as any).dictGroup : []),
+    [search]
+  )
+  const nameFilter: string = useMemo(
+    () => ((search as any).dictValue as string) ?? '',
+    [search]
+  )
+
+  const filteredData: CaseDictType[] = useMemo(() => {
+    let result = allRows
+    if (groupFilter.length > 0) {
+      result = result.filter((r) => groupFilter.includes(r.dict_group))
+    }
+    if (nameFilter.trim() !== '') {
+      const q = nameFilter.trim().toLowerCase()
+      result = result.filter(
+        (r) =>
+          String(r.dict_value).toLowerCase().includes(q) ||
+          String(r.dict_key).toLowerCase().includes(q) ||
+          String(r.dict_group).toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [allRows, groupFilter, nameFilter])
+
+  const page = Number((search as any).page ?? 1)
+  const pageSize = Number((search as any).pageSize ?? 10)
+
+  const pagination = useMemo(
+    () => ({ pageIndex: Math.max(0, page - 1), pageSize }),
+    [page, pageSize]
+  )
+
+  const totalPageCount = Math.max(1, Math.ceil(filteredData.length / pageSize))
+
+  const onPaginationChange = (
+    updater: React.SetStateAction<{ pageIndex: number; pageSize: number }>
+  ) => {
+    const next =
+      typeof updater === 'function' ? updater(pagination) : updater
+    navigate({
+      search: (prev: any) => ({
+        ...(prev ?? {}),
+        page: next.pageIndex + 1,
+        pageSize: next.pageSize,
+      }),
+      replace: true,
+    })
+  }
+
+  useEffect(() => {
+    if (pagination.pageIndex >= totalPageCount && totalPageCount > 0) {
+      navigate({
+        search: (prev: any) => ({
+          ...(prev ?? {}),
+          page: totalPageCount,
+        }),
+        replace: true,
+      })
+    }
+  }, [pagination.pageIndex, totalPageCount, navigate])
+
+  const filters = useMemo(
+    () => [
+      {
+        columnId: 'dict_group',
+        title: '字典分组',
+        options: groups.map((g) => ({ label: g, value: g })),
+      },
+    ],
+    [groups]
+  )
+
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     state: {
       sorting,
       pagination,
       rowSelection,
-      columnFilters,
       columnVisibility,
     },
     enableRowSelection: true,
     onPaginationChange,
-    onColumnFiltersChange,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
@@ -77,11 +145,8 @@ export function DictionariesTable({ data, search, navigate }: DataTableProps) {
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: false,
   })
-
-  useEffect(() => {
-    ensurePageInRange(table.getPageCount())
-  }, [table, ensurePageInRange])
 
   return (
     <div
@@ -92,19 +157,13 @@ export function DictionariesTable({ data, search, navigate }: DataTableProps) {
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='按字典键名/键值筛选...'
-        searchKey='key'
-        filters={[
-          {
-            columnId: 'group',
-            title: '字典分组',
-            options: groupOptions.map((g) => ({ ...g })),
-          },
-        ]}
+        searchPlaceholder='按字典键值/键名/分组筛选...'
+        searchKey='dict_value'
+        filters={filters}
       />
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
-        <div className='relative w-full flex-1 overflow-auto'>
-          <table className='w-full caption-bottom text-sm min-w-xl'>
+        <div className='flex-1 overflow-auto'>
+          <Table>
             <TableHeader className='sticky top-0 z-10 bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='group/row'>
@@ -132,7 +191,16 @@ export function DictionariesTable({ data, search, navigate }: DataTableProps) {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className='h-24 text-center'
+                  >
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -167,7 +235,7 @@ export function DictionariesTable({ data, search, navigate }: DataTableProps) {
                 </TableRow>
               )}
             </TableBody>
-          </table>
+          </Table>
         </div>
       </div>
       <DataTablePagination table={table} className='mt-auto flex-shrink-0' />

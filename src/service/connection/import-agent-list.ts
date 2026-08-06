@@ -2,7 +2,7 @@
 import * as XLSX from 'xlsx'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { closePool, describeTable, execute, listTables, query } from './db'
+import { closePool, describeTable, execute, listTables, query, type ExecuteValues } from './db'
 
 const XLSX_PATH = path.resolve(
   process.cwd(),
@@ -119,7 +119,7 @@ function sanitizePhone(v: string | number | null): string | null {
 async function insertBatch(rows: AgentListRow[]): Promise<number> {
   if (rows.length === 0) return 0
   const placeholders = rows.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ')
-  const params: unknown[] = []
+  const params: (string | number | null)[] = []
   for (const r of rows) {
     params.push(
       r.agent_id,
@@ -142,7 +142,7 @@ async function insertBatch(rows: AgentListRow[]): Promise<number> {
      \`agent_incharge_name\`, \`agent_company_address\`,
      \`agent_incharge_phone\`, \`agent_incharge_email\`)
     VALUES ${placeholders}`
-  const result = await execute(sql, params)
+  const result = await execute(sql, params as ExecuteValues)
   return Number(result.affectedRows)
 }
 

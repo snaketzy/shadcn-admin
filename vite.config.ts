@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import { playwright } from '@vitest/browser-playwright'
+import { vitePluginCaseDictApi } from './vite-plugin-api'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,6 +16,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    vitePluginCaseDictApi(),
   ],
   resolve: {
     alias: {
@@ -30,7 +32,6 @@ export default defineConfig({
       instances: [{ browser: 'chromium' }],
     },
     coverage: {
-      // include: ['src/**/*.{js,jsx,ts,tsx}'], // Uncomment to expand the report to all src/**/* so untested modules appear as 0% coverage.
       exclude: [
         'src/components/ui/**',
         'src/assets/**',

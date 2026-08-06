@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { type Table } from '@tanstack/react-table'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { sleep } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteCaseDictBulk } from '../api/client'
+import { type CaseDictType } from '../data/schema'
 
 type DictionaryMultiDeleteDialogProps<TData> = {
   open: boolean
@@ -24,41 +26,54 @@ export function DictionariesMultiDeleteDialog<TData>({
   table,
 }: DictionaryMultiDeleteDialogProps<TData>) {
   const [value, setValue] = useState('')
+  const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: number[]) => deleteCaseDictBulk(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case-dict'] })
+    },
+  })
 
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (value.trim() !== CONFIRM_WORD) {
-      toast.error(`请输入 "${CONFIRM_WORD}" 以确认。`)
+      toast.error(`Please type "${CONFIRM_WORD}" to confirm.`)
       return
     }
 
-    onOpenChange(false)
+    const ids = selectedRows.map((row) => (row.original as CaseDictType).dict_id)
 
-    toast.promise(sleep(2000), {
-      loading: '正在删除字典...',
-      success: () => {
-        setValue('')
-        table.resetRowSelection()
-        return `已删除 ${selectedRows.length} 个字典`
-      },
-      error: '错误',
-    })
+    try {
+      onOpenChange(false)
+      const n = await deleteMutation.mutateAsync(ids)
+      table.resetRowSelection()
+      toast.success(`Deleted ${n} dictionarie${n !== 1 ? 's' : ''}`)
+    } catch (err) {
+      toast.error('Error deleting dictionaries')
+    } finally {
+      setValue('')
+    }
   }
 
   return (
     <ConfirmDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(s) => {
+        if (!s) setValue('')
+        onOpenChange(s)
+      }}
       form='dictionaries-multi-delete-form'
-      disabled={value.trim() !== CONFIRM_WORD}
+      disabled={value.trim() !== CONFIRM_WORD || deleteMutation.isPending}
       title={
         <span className='text-destructive'>
           <AlertTriangle
             className='me-1 inline-block stroke-destructive'
             size={18}
           />{' '}
-          删除 {selectedRows.length} 个字典
+          Delete {selectedRows.length}{' '}
+          {selectedRows.length > 1 ? 'dictionaries' : 'dictionary'}
         </span>
       }
       desc={
@@ -71,29 +86,30 @@ export function DictionariesMultiDeleteDialog<TData>({
           className='space-y-4'
         >
           <p className='mb-2'>
-            您确定要删除所选字典吗？ <br />
-            此操作不可撤销。
+            Are you sure you want to delete the selected dictionaries? <br />
+            This action cannot be undone.
           </p>
 
           <Label className='my-4 flex flex-col items-start gap-1.5'>
-            <span className=''>请输入 "{CONFIRM_WORD}" 以确认：</span>
+            <span className=''>Confirm by typing "{CONFIRM_WORD}":</span>
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={`输入 "${CONFIRM_WORD}" 以确认。`}
+              placeholder={`Type "${CONFIRM_WORD}" to confirm.`}
               autoFocus
+              disabled={deleteMutation.isPending}
             />
           </Label>
 
           <Alert variant='destructive'>
-            <AlertTitle>警告！</AlertTitle>
+            <AlertTitle>Warning!</AlertTitle>
             <AlertDescription>
-              请谨慎操作，此操作无法撤销。
+              Please be careful, this operation can not be rolled back.
             </AlertDescription>
           </Alert>
         </form>
       }
-      confirmText='删除'
+      confirmText={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
       destructive
     />
   )

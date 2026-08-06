@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { closePool, describeTable, query } from './db'
+import { closePool, describeTable } from './db'
 import * as XLSX from 'xlsx'
 import * as fs from 'node:fs'
 import * as path from 'node:path'

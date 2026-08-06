@@ -22,19 +22,29 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { SelectDropdown } from '@/components/select-dropdown'
-import { groupOptions } from '../data/data'
-import { type Dictionary } from '../data/schema'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import {
+  createCaseDict,
+  updateCaseDict,
+} from '../api/client'
+import { type CaseDictType } from '../data/schema'
 
 const formSchema = z.object({
-  group: z.string().min(1, '字典分组是必填项。'),
-  key: z.string().min(1, '字典键名是必填项。'),
-  value: z.string().min(1, '字典键值是必填项。'),
+  dict_group: z.string().min(1, '字典分组是必填项。'),
+  dict_value: z.string().min(1, '字典键值是必填项。'),
+  dict_key: z
+    .string()
+    .min(1, '字典键名是必填项。')
+    .refine((s) => /^-?\d+$/.test(s.trim()), {
+      message: '字典键名必须为整数。',
+    }),
 })
+
 type DictionaryForm = z.infer<typeof formSchema>
 
 type DictionaryActionDialogProps = {
-  currentRow?: Dictionary
+  currentRow?: CaseDictType
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -45,25 +55,64 @@ export function DictionariesActionDialog({
   onOpenChange,
 }: DictionaryActionDialogProps) {
   const isEdit = !!currentRow
+  const queryClient = useQueryClient()
+
+  const createMutation = useMutation({
+    mutationFn: (p: { dict_group: string; dict_value: string; dict_key: number }) =>
+      createCaseDict(p),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case-dict'] })
+      queryClient.invalidateQueries({ queryKey: ['case-dict-groups'] })
+      toast.success('字典添加成功')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (vars: { id: number; payload: { dict_group: string; dict_value: string; dict_key: number } }) =>
+      updateCaseDict(vars.id, vars.payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case-dict'] })
+      queryClient.invalidateQueries({ queryKey: ['case-dict-groups'] })
+      toast.success('字典更新成功')
+    },
+  })
+
   const form = useForm<DictionaryForm>({
     resolver: zodResolver(formSchema),
     defaultValues: isEdit
       ? {
-          group: currentRow.group,
-          key: currentRow.key,
-          value: currentRow.value,
+          dict_group: currentRow.dict_group,
+          dict_value: currentRow.dict_value,
+          dict_key: String(currentRow.dict_key),
         }
       : {
-          group: '',
-          key: '',
-          value: '',
+          dict_group: '',
+          dict_value: '',
+          dict_key: '',
         },
   })
 
-  const onSubmit = (values: DictionaryForm) => {
-    form.reset()
-    showSubmittedData(values)
-    onOpenChange(false)
+  const onSubmit = async (values: DictionaryForm) => {
+    try {
+      const payload = {
+        dict_group: values.dict_group,
+        dict_value: values.dict_value,
+        dict_key: parseInt(values.dict_key.trim(), 10),
+      }
+      if (isEdit && currentRow) {
+        await updateMutation.mutateAsync({
+          id: currentRow.dict_id,
+          payload,
+        })
+      } else {
+        await createMutation.mutateAsync(payload)
+      }
+      form.reset()
+      showSubmittedData(payload)
+      onOpenChange(false)
+    } catch (err) {
+      toast.error(isEdit ? '字典更新失败' : '字典添加失败')
+    }
   }
 
   return (
@@ -82,7 +131,7 @@ export function DictionariesActionDialog({
             完成后点击保存。
           </DialogDescription>
         </DialogHeader>
-        <div className='max-h-[70vh] w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
+        <div className='h-auto w-[calc(100%+0.75rem)] py-1 pe-3'>
           <Form {...form}>
             <form
               id='dictionary-form'
@@ -91,37 +140,15 @@ export function DictionariesActionDialog({
             >
               <FormField
                 control={form.control}
-                name='group'
+                name='dict_group'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
                       字典分组
                     </FormLabel>
-                    <SelectDropdown
-                      defaultValue={field.value}
-                      onValueChange={field.onChange}
-                      placeholder='选择字典分组'
-                      className='col-span-4'
-                      items={groupOptions.map(({ label, value }) => ({
-                        label,
-                        value,
-                      }))}
-                    />
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='key'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      字典键名
-                    </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='例如：FOB、SHA'
+                        placeholder='请输入字典分组'
                         className='col-span-4'
                         autoComplete='off'
                         {...field}
@@ -133,7 +160,26 @@ export function DictionariesActionDialog({
               />
               <FormField
                 control={form.control}
-                name='value'
+                name='dict_key'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      字典键名
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='请输入字典键名（整数）'
+                        className='col-span-4'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='dict_value'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
@@ -141,7 +187,7 @@ export function DictionariesActionDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='例如：离岸价、上海港'
+                        placeholder='请输入字典键值'
                         className='col-span-4'
                         {...field}
                       />
@@ -154,8 +200,14 @@ export function DictionariesActionDialog({
           </Form>
         </div>
         <DialogFooter>
-          <Button type='submit' form='dictionary-form'>
-            保存更改
+          <Button
+            type='submit'
+            form='dictionary-form'
+            disabled={createMutation.isPending || updateMutation.isPending}
+          >
+            {(createMutation.isPending || updateMutation.isPending)
+              ? '保存中...'
+              : 'Save changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
