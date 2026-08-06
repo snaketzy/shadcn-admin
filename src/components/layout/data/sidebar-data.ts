@@ -52,7 +52,7 @@ export const sidebarData: SidebarData = {
       title: 'General',
       items: [
         {
-          title: 'Dashboard',
+          title: '工作台',
           url: '/',
           icon: LayoutDashboard,
         },
