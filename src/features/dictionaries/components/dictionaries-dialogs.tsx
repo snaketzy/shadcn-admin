@@ -1,6 +1,5 @@
 import { DictionariesActionDialog } from './dictionaries-action-dialog'
 import { DictionariesDeleteDialog } from './dictionaries-delete-dialog'
-import { DictionariesInviteDialog } from './dictionaries-invite-dialog'
 import { useDictionaries } from './dictionaries-provider'
 
 export function DictionariesDialogs() {
@@ -11,12 +10,6 @@ export function DictionariesDialogs() {
         key='dictionary-add'
         open={open === 'add'}
         onOpenChange={() => setOpen('add')}
-      />
-
-      <DictionariesInviteDialog
-        key='dictionary-invite'
-        open={open === 'invite'}
-        onOpenChange={() => setOpen('invite')}
       />
 
       {currentRow && (

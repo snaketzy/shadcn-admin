@@ -1,27 +1,16 @@
 import z from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 import { Dictionaries } from '@/features/dictionaries'
-import { roles } from '@/features/dictionaries/data/data'
+import { dictionaryGroups } from '@/features/dictionaries/data/schema'
 
 const dictionariesSearchSchema = z.object({
   page: z.number().optional().catch(1),
   pageSize: z.number().optional().catch(10),
-  status: z
-    .array(
-      z.union([
-        z.literal('active'),
-        z.literal('inactive'),
-        z.literal('invited'),
-        z.literal('suspended'),
-      ])
-    )
+  group: z
+    .array(z.enum(dictionaryGroups))
     .optional()
     .catch([]),
-  role: z
-    .array(z.enum(roles.map((r) => r.value as (typeof roles)[number]['value'])))
-    .optional()
-    .catch([]),
-  username: z.string().optional().catch(''),
+  key: z.string().optional().catch(''),
 })
 
 export const Route = createFileRoute('/_authenticated/dictionaries/')({

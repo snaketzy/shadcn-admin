@@ -1,10 +1,9 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { callTypes, roles } from '../data/data'
+import { Badge } from '@/components/ui/badge'
 import { type Dictionary } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
@@ -37,13 +36,20 @@ export const dictionariesColumns: ColumnDef<Dictionary>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'username',
+    accessorKey: 'group',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='字典名称' />
+      <DataTableColumnHeader column={column} title='字典分组' />
     ),
-    cell: ({ row }) => (
-      <LongText className='max-w-36 ps-3'>{row.getValue('username')}</LongText>
-    ),
+    cell: ({ row }) => {
+      const group = row.getValue('group') as string
+      return (
+        <div className='ps-3'>
+          <Badge variant='secondary' className='font-medium'>
+            {group}
+          </Badge>
+        </div>
+      )
+    },
     meta: {
       className: cn(
         'drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.1)] dark:drop-shadow-[0_1px_2px_rgb(255_255_255_/_0.1)]',
@@ -51,67 +57,33 @@ export const dictionariesColumns: ColumnDef<Dictionary>[] = [
       ),
     },
     enableHiding: false,
-  },
-  {
-    accessorKey: 'phoneNumber',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='联系电话' />
-    ),
-    cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
-    enableSorting: false,
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='状态' />
-    ),
-    cell: ({ row }) => {
-      const { status } = row.original
-      const badgeColor = callTypes.get(status)
-      return (
-        <div className='flex space-x-2'>
-          <Badge variant='outline' className={cn('capitalize', badgeColor)}>
-            {row.getValue('status')}
-          </Badge>
-        </div>
-      )
-    },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    enableHiding: false,
+  },
+  {
+    accessorKey: 'key',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='字典键名' />
+    ),
+    cell: ({ row }) => (
+      <LongText className='max-w-40'>{row.getValue('key')}</LongText>
+    ),
     enableSorting: false,
   },
   {
-    accessorKey: 'role',
+    accessorKey: 'value',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='角色' />
+      <DataTableColumnHeader column={column} title='字典键值' />
     ),
-    cell: ({ row }) => {
-      const { role } = row.original
-      const dictionaryType = roles.find(({ value }) => value === role)
-
-      if (!dictionaryType) {
-        return null
-      }
-
-      return (
-        <div className='flex items-center gap-x-2'>
-          {dictionaryType.icon && (
-            <dictionaryType.icon size={16} className='text-muted-foreground' />
-          )}
-          <span className='text-sm capitalize'>{row.getValue('role')}</span>
-        </div>
-      )
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
-    },
+    cell: ({ row }) => (
+      <LongText className='max-w-64'>{row.getValue('value')}</LongText>
+    ),
     enableSorting: false,
-    enableHiding: false,
   },
   {
     id: 'actions',
+    header: () => <span className='pe-2'>操作</span>,
     cell: DataTableRowActions,
   },
 ]

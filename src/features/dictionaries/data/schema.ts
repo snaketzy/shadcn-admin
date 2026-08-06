@@ -1,29 +1,24 @@
 import { z } from 'zod'
 
-const dictionaryStatusSchema = z.union([
-  z.literal('active'),
-  z.literal('inactive'),
-  z.literal('invited'),
-  z.literal('suspended'),
-])
-export type DictionaryStatus = z.infer<typeof dictionaryStatusSchema>
+export const dictionaryGroups = [
+  '业务类型',
+  '船舶状态',
+  '港口列表',
+  '货物类型',
+  '结算方式',
+  '货币单位',
+  '运输条款',
+  '包装方式',
+] as const
 
-const dictionaryTypeSchema = z.union([
-  z.literal('superadmin'),
-  z.literal('admin'),
-  z.literal('cashier'),
-  z.literal('manager'),
-])
+const dictionaryGroupSchema = z.enum(dictionaryGroups)
+export type DictionaryGroup = z.infer<typeof dictionaryGroupSchema>
 
 const _dictionarySchema = z.object({
   id: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
-  username: z.string(),
-  email: z.string(),
-  phoneNumber: z.string(),
-  status: dictionaryStatusSchema,
-  role: dictionaryTypeSchema,
+  group: dictionaryGroupSchema,
+  key: z.string(),
+  value: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

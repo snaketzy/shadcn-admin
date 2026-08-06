@@ -15,7 +15,6 @@ import {
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -128,8 +127,8 @@ export function TasksTable({ data }: DataTableProps) {
         ]}
       />
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
-        <div className='flex-1 overflow-auto'>
-          <Table className='min-w-xl'>
+        <div className='relative w-full flex-1 overflow-auto'>
+          <table className='w-full caption-bottom text-sm min-w-xl'>
             <TableHeader className='sticky top-0 z-10 bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -189,7 +188,7 @@ export function TasksTable({ data }: DataTableProps) {
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+          </table>
         </div>
       </div>
       <DataTablePagination table={table} className='mt-auto flex-shrink-0' />

@@ -14,7 +14,6 @@ import {
 import { cn } from '@/lib/utils'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -22,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { roles } from '../data/data'
+import { groupOptions } from '../data/data'
 import { type Dictionary } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { dictionariesColumns as columns } from './dictionaries-columns'
@@ -93,29 +92,19 @@ export function DictionariesTable({ data, search, navigate }: DataTableProps) {
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='按字典名称筛选...'
-        searchKey='username'
+        searchPlaceholder='按字典键名/键值筛选...'
+        searchKey='key'
         filters={[
           {
-            columnId: 'status',
-            title: '状态',
-            options: [
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' },
-              { label: 'Invited', value: 'invited' },
-              { label: 'Suspended', value: 'suspended' },
-            ],
-          },
-          {
-            columnId: 'role',
-            title: '角色',
-            options: roles.map((role) => ({ ...role })),
+            columnId: 'group',
+            title: '字典分组',
+            options: groupOptions.map((g) => ({ ...g })),
           },
         ]}
       />
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
-        <div className='flex-1 overflow-auto'>
-          <Table>
+        <div className='relative w-full flex-1 overflow-auto'>
+          <table className='w-full caption-bottom text-sm min-w-xl'>
             <TableHeader className='sticky top-0 z-10 bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='group/row'>
@@ -178,7 +167,7 @@ export function DictionariesTable({ data, search, navigate }: DataTableProps) {
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+          </table>
         </div>
       </div>
       <DataTablePagination table={table} className='mt-auto flex-shrink-0' />

@@ -14,7 +14,6 @@ import {
 import { cn } from '@/lib/utils'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -122,8 +121,8 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
         ]}
       />
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
-        <div className='flex-1 overflow-auto'>
-          <Table>
+        <div className='relative w-full flex-1 overflow-auto'>
+          <table className='w-full caption-bottom text-sm'>
             <TableHeader className='sticky top-0 z-10 bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='group/row'>
@@ -186,7 +185,7 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+          </table>
         </div>
       </div>
       <DataTablePagination table={table} className='mt-auto flex-shrink-0' />

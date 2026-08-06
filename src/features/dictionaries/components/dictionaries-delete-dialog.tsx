@@ -23,10 +23,10 @@ export function DictionariesDeleteDialog({
   const [value, setValue] = useState('')
 
   const handleDelete = () => {
-    if (value.trim() !== currentRow.username) return
+    if (value.trim() !== currentRow.key) return
 
     onOpenChange(false)
-    showSubmittedData(currentRow, 'The following dictionary has been deleted:')
+    showSubmittedData(currentRow, '以下字典已被删除：')
   }
 
   return (
@@ -34,7 +34,7 @@ export function DictionariesDeleteDialog({
       open={open}
       onOpenChange={onOpenChange}
       form='dictionaries-delete-form'
-      disabled={value.trim() !== currentRow.username}
+      disabled={value.trim() !== currentRow.key}
       title={
         <span className='text-destructive'>
           <AlertTriangle
@@ -54,21 +54,21 @@ export function DictionariesDeleteDialog({
           className='space-y-4'
         >
           <p className='mb-2'>
-            您确定要删除 <span className='font-bold'>{currentRow.username}</span> 吗？
+            您确定要删除字典{' '}
+            <span className='font-bold'>{currentRow.key}</span>（
+            <span className='font-bold'>{currentRow.value}</span>）吗？
             <br />
-            此操作将永久移除角色为{' '}
-            <span className='font-bold'>
-              {currentRow.role.toUpperCase()}
-            </span>{' '}
-            的字典。此操作不可撤销。
+            所属分组：
+            <span className='font-bold'>{currentRow.group}</span>
+            。此操作不可撤销。
           </p>
 
           <Label className='my-2'>
-            字典名称：
+            请输入字典键名以确认删除：
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder='请输入字典名称以确认删除。'
+              placeholder={`请输入 "${currentRow.key}" 以确认删除`}
               autoFocus
             />
           </Label>

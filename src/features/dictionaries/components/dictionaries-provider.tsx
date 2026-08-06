@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import { type Dictionary } from '../data/schema'
 
-type DictionariesDialogType = 'invite' | 'add' | 'edit' | 'delete'
+type DictionariesDialogType = 'add' | 'edit' | 'delete'
 
 type DictionariesContextType = {
   open: DictionariesDialogType | null

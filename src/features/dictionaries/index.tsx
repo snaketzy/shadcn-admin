@@ -31,7 +31,7 @@ export function Dictionaries() {
           <div>
             <h2 className='text-2xl font-bold tracking-tight'>字典</h2>
             <p className='text-muted-foreground'>
-              在此管理您的字典信息和角色权限。
+              在此管理您的字典信息。
             </p>
           </div>
           <DictionariesPrimaryButtons />
