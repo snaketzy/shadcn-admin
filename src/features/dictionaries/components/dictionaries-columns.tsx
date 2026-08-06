@@ -78,6 +78,7 @@ export const dictionariesColumns: ColumnDef<CaseDictType>[] = [
   },
   {
     id: 'actions',
+    header: () => <span className='pe-3 inline-block w-full text-end'>操作</span>,
     cell: DataTableRowActions,
   },
 ]
