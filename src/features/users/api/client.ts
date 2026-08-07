@@ -5,7 +5,36 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000,
 })
+
+api.interceptors.response.use(
+  (response) => {
+    const payload = response.data
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'success' in payload &&
+      payload.success === false
+    ) {
+      const msg =
+        typeof payload.message === 'string' ? payload.message : '请求失败'
+      return Promise.reject(new Error(msg))
+    }
+    return response
+  },
+  (error) => {
+    if (axios.isCancel(error)) return Promise.reject(error)
+    if (error.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+      return Promise.reject(new Error('请求超时，请稍后重试'))
+    }
+    const serverMsg = error?.response?.data?.message
+    if (typeof serverMsg === 'string' && serverMsg) {
+      return Promise.reject(new Error(serverMsg))
+    }
+    return Promise.reject(error)
+  }
+)
 
 export interface Vessel {
   vessel_id: number
