@@ -4,7 +4,7 @@ import { getCaseDictByKeyPrefix } from './case-dict-service'
 export interface OwnerListRow {
   owner_id: number
   owner_name: string
-  onwer_email: string | null
+  owner_email: string | null
   owner_phone: string | null
   owner_team: string | null
   owner_department: string | null
@@ -236,7 +236,7 @@ function normalizeRow(row: any): OwnerListRow {
   return {
     owner_id: Number(row.owner_id),
     owner_name: String(row.owner_name ?? ''),
-    onwer_email: row.onwer_email ? String(row.onwer_email) : null,
+    owner_email: row.owner_email ? String(row.owner_email) : null,
     owner_phone: row.owner_phone ? String(row.owner_phone) : null,
     owner_team: row.owner_team ? String(row.owner_team) : null,
     owner_department: row.owner_department ? String(row.owner_department) : null,

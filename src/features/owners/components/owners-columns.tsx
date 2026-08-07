@@ -94,12 +94,12 @@ export function getOwnersColumns(
       enableHiding: false,
     },
     {
-      accessorKey: 'onwer_email',
+      accessorKey: 'owner_email',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='船东邮箱' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('onwer_email') as string | null
+        const value = row.getValue('owner_email') as string | null
         return <div>{value ?? '-'}</div>
       },
       enableSorting: false,
