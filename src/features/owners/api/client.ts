@@ -47,10 +47,18 @@ export interface Owner {
   owner_rank: string | null
 }
 
+export interface OwnerDictEntry {
+  dict_key: string
+  dict_value: string
+}
+
 export interface OwnerGroupsResponse {
   teams: string[]
   departments: string[]
   ranks: string[]
+  teamDict: OwnerDictEntry[]
+  departmentDict: OwnerDictEntry[]
+  rankDict: OwnerDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -87,7 +95,7 @@ export async function fetchOwnerPaginated(params: {
 
 export async function fetchOwnerGroups(): Promise<OwnerGroupsResponse> {
   const res = await api.get<ApiEnvelope<OwnerGroupsResponse>>('/owner-list/groups')
-  return res.data.data ?? { teams: [], departments: [], ranks: [] }
+  return res.data.data ?? { teams: [], departments: [], ranks: [], teamDict: [], departmentDict: [], rankDict: [] }
 }
 
 export async function createOwner(payload: {

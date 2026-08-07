@@ -24,6 +24,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { type Owner } from '../data/schema'
 import { createOwner, updateOwner, fetchOwnerGroups } from '../api/client'
 
@@ -250,19 +257,23 @@ export function OwnersActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       船东小组
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船东小组'
-                        className='col-span-4'
-                        list='owner-team-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='owner-team-options'>
-                      {(groups?.teams ?? []).map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择船东小组' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.teamDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
@@ -275,19 +286,23 @@ export function OwnersActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       船东部门
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船东部门'
-                        className='col-span-4'
-                        list='owner-department-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='owner-department-options'>
-                      {(groups?.departments ?? []).map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择船东部门' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.departmentDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
@@ -320,19 +335,23 @@ export function OwnersActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       船东职级
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船东职级'
-                        className='col-span-4'
-                        list='owner-rank-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='owner-rank-options'>
-                      {(groups?.ranks ?? []).map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择船东职级' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.rankDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}

@@ -6,9 +6,41 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import { getBadgeColor } from '../data/data'
 import { type Owner } from '../data/schema'
+import { type OwnerDictEntry } from '../api/client'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export function getOwnersColumns(): ColumnDef<Owner>[] {
+type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
+
+function makeDictMap(dict: OwnerDictEntry[]): DictMap {
+  const keyMap = new Map<string, string>()
+  const valueMap = new Map<string, string>()
+  for (const d of dict) {
+    const k = String(d.dict_key).toUpperCase()
+    keyMap.set(k, d.dict_value)
+    valueMap.set(d.dict_value, d.dict_value)
+  }
+  return { keyMap, valueMap }
+}
+
+function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const rawStr = String(raw)
+  const byKey = keyMap.get(rawStr.toUpperCase())
+  if (byKey) return byKey
+  const byValue = valueMap.get(rawStr)
+  if (byValue) return byValue
+  return rawStr
+}
+
+export function getOwnersColumns(
+  teamDict: OwnerDictEntry[] = [],
+  departmentDict: OwnerDictEntry[] = [],
+  rankDict: OwnerDictEntry[] = []
+): ColumnDef<Owner>[] {
+  const teamMap = makeDictMap(teamDict)
+  const deptMap = makeDictMap(departmentDict)
+  const rankMap = makeDictMap(rankDict)
+
   return [
     {
       id: 'select',
@@ -62,12 +94,12 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
       enableHiding: false,
     },
     {
-      accessorKey: 'owner_email',
+      accessorKey: 'onwer_email',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='船东邮箱' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('owner_email') as string | null
+        const value = row.getValue('onwer_email') as string | null
         return <div>{value ?? '-'}</div>
       },
       enableSorting: false,
@@ -89,11 +121,12 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
         <DataTableColumnHeader column={column} title='船东小组' />
       ),
       cell: ({ row }) => {
-        const value = row.original.owner_team
-        if (!value) return <div>-</div>
+        const raw = row.original.owner_team
+        const label = resolveLabel(raw, teamMap)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(label))}>
+            {label}
           </Badge>
         )
       },
@@ -109,11 +142,12 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
         <DataTableColumnHeader column={column} title='船东部门' />
       ),
       cell: ({ row }) => {
-        const value = row.original.owner_department
-        if (!value) return <div>-</div>
+        const raw = row.original.owner_department
+        const label = resolveLabel(raw, deptMap)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(label))}>
+            {label}
           </Badge>
         )
       },
@@ -140,11 +174,12 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
         <DataTableColumnHeader column={column} title='船东职级' />
       ),
       cell: ({ row }) => {
-        const value = row.original.owner_rank
-        if (!value) return <div>-</div>
+        const raw = row.original.owner_rank
+        const label = resolveLabel(raw, rankMap)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(label))}>
+            {label}
           </Badge>
         )
       },

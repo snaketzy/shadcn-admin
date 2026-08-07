@@ -117,10 +117,13 @@ export function OwnersTable(_: DataTableProps) {
     queryKey: ['owner-list-groups'],
     queryFn: fetchOwnerGroups,
   })
-  const teams = groupsData?.teams ?? []
-  const departments = groupsData?.departments ?? []
-  const ranks = groupsData?.ranks ?? []
-  const columns = useMemo(() => getOwnersColumns(), [])
+  const teamDict = groupsData?.teamDict ?? []
+  const departmentDict = groupsData?.departmentDict ?? []
+  const rankDict = groupsData?.rankDict ?? []
+  const columns = useMemo(
+    () => getOwnersColumns(teamDict, departmentDict, rankDict),
+    [teamDict, departmentDict, rankDict]
+  )
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
@@ -316,25 +319,34 @@ export function OwnersTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
-            {teams.length > 0 && table.getColumn('owner_team') && (
+            {teamDict.length > 0 && table.getColumn('owner_team') && (
               <DataTableFacetedFilter
                 column={table.getColumn('owner_team')!}
                 title='船东小组'
-                options={teams.map((t) => ({ label: t, value: t }))}
+                options={teamDict.map((d) => ({
+                  label: d.dict_value,
+                  value: d.dict_key,
+                }))}
               />
             )}
-            {departments.length > 0 && table.getColumn('owner_department') && (
+            {departmentDict.length > 0 && table.getColumn('owner_department') && (
               <DataTableFacetedFilter
                 column={table.getColumn('owner_department')!}
                 title='船东部门'
-                options={departments.map((f) => ({ label: f, value: f }))}
+                options={departmentDict.map((d) => ({
+                  label: d.dict_value,
+                  value: d.dict_key,
+                }))}
               />
             )}
-            {ranks.length > 0 && table.getColumn('owner_rank') && (
+            {rankDict.length > 0 && table.getColumn('owner_rank') && (
               <DataTableFacetedFilter
                 column={table.getColumn('owner_rank')!}
                 title='船东职级'
-                options={ranks.map((f) => ({ label: f, value: f }))}
+                options={rankDict.map((d) => ({
+                  label: d.dict_value,
+                  value: d.dict_key,
+                }))}
               />
             )}
           </div>

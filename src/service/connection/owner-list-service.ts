@@ -1,9 +1,10 @@
 import { query, execute, type ExecuteValues } from './db'
+import { getCaseDictByKeyPrefix } from './case-dict-service'
 
 export interface OwnerListRow {
   owner_id: number
   owner_name: string
-  owner_email: string | null
+  onwer_email: string | null
   owner_phone: string | null
   owner_team: string | null
   owner_department: string | null
@@ -41,8 +42,11 @@ export async function getOwnerListGroups(): Promise<{
   teams: string[]
   departments: string[]
   ranks: string[]
+  teamDict: OwnerDictEntry[]
+  departmentDict: OwnerDictEntry[]
+  rankDict: OwnerDictEntry[]
 }> {
-  const [teams, departments, ranks] = await Promise.all([
+  const [teams, departments, ranks, teamRows, deptRows, rankRows] = await Promise.all([
     query<{ owner_team: string | null }[]>(
       'SELECT DISTINCT owner_team FROM `owner_list` WHERE owner_team IS NOT NULL AND owner_team <> \'\' ORDER BY owner_team'
     ),
@@ -52,11 +56,26 @@ export async function getOwnerListGroups(): Promise<{
     query<{ owner_rank: string | null }[]>(
       'SELECT DISTINCT owner_rank FROM `owner_list` WHERE owner_rank IS NOT NULL AND owner_rank <> \'\' ORDER BY owner_rank'
     ),
+    getCaseDictByKeyPrefix('G'),
+    getCaseDictByKeyPrefix('F'),
+    getCaseDictByKeyPrefix('H'),
   ])
   return {
     teams: teams.map((r) => r.owner_team!).filter(Boolean),
     departments: departments.map((r) => r.owner_department!).filter(Boolean),
     ranks: ranks.map((r) => r.owner_rank!).filter(Boolean),
+    teamDict: teamRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    departmentDict: deptRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    rankDict: rankRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
   }
 }
 
@@ -217,7 +236,7 @@ function normalizeRow(row: any): OwnerListRow {
   return {
     owner_id: Number(row.owner_id),
     owner_name: String(row.owner_name ?? ''),
-    owner_email: row.owner_email ? String(row.owner_email) : null,
+    onwer_email: row.onwer_email ? String(row.onwer_email) : null,
     owner_phone: row.owner_phone ? String(row.owner_phone) : null,
     owner_team: row.owner_team ? String(row.owner_team) : null,
     owner_department: row.owner_department ? String(row.owner_department) : null,
