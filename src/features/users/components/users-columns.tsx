@@ -80,6 +80,29 @@ export function getUsersColumns(
     enableSorting: false,
   },
   {
+    id: 'vessel_age',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='船龄' />
+    ),
+    cell: ({ row }) => {
+      const built = row.original.building_year
+      if (!built) return <div>-</div>
+      const builtDate = new Date(built)
+      if (Number.isNaN(builtDate.getTime())) return <div>-</div>
+      const today = new Date()
+      let age = today.getFullYear() - builtDate.getFullYear()
+      const monthDiff = today.getMonth() - builtDate.getMonth()
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < builtDate.getDate())
+      ) {
+        age--
+      }
+      return <div>{age < 0 ? '-' : `${age}年`}</div>
+    },
+    enableSorting: false,
+  },
+  {
     accessorKey: 'vessel_imo',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='IMO' />
