@@ -68,7 +68,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: '船队列表',
-          url: '/users',
+          url: '/vessel_list',
           icon: Users,
         },
         {

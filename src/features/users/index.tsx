@@ -11,7 +11,7 @@ import { UsersProvider } from './components/users-provider'
 import { UsersTable } from './components/users-table'
 import { users } from './data/users'
 
-const route = getRouteApi('/_authenticated/users/')
+const route = getRouteApi('/_authenticated/vessel_list/')
 
 export function Users() {
   const search = route.useSearch()
@@ -31,7 +31,7 @@ export function Users() {
           <div>
             <h2 className='text-2xl font-bold tracking-tight'>船队列表</h2>
             <p className='text-muted-foreground'>
-              在此管理您的船队信息和角色权限。
+              在此管理您的船队信息。
             </p>
           </div>
           <UsersPrimaryButtons />
