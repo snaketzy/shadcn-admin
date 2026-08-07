@@ -3,10 +3,8 @@ import { closePool, execute, query } from './db'
 
 const TABLE_NAME = 'vessel_list'
 const MAP: Array<{ from: string; to: string }> = [
-  { from: 'Hannah', to: '51' },
-  { from: 'Jerry', to: '52' },
-  { from: '1', to: '51' },
-  { from: '2', to: '52' },
+  { from: 'Hannah', to: '1' },
+  { from: 'Jerry', to: '2' },
 ]
 
 type CountRow = { cnt: number }

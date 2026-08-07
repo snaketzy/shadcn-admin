@@ -206,7 +206,7 @@ export function getUsersColumns(
       const label = value ? inchargeMap.get(value) ?? value : null
       return (
         <div className='pe-2 text-end'>
-          <LongText className='max-w-[44px]'>{label ?? '-'}</LongText>
+          <LongText className='max-w-[80px]'>{label ?? '-'}</LongText>
         </div>
       )
     },
@@ -215,11 +215,11 @@ export function getUsersColumns(
     },
     meta: {
       className: cn(
-        'sticky right-[88px] z-20 w-[50px] min-w-[50px] bg-background pe-0',
+        'sticky right-[88px] z-20 w-[100px] min-w-[100px] bg-background pe-0',
         'shadow-[inset_1px_0_0_hsl(var(--border))]'
       ),
       thClassName: cn(
-        'sticky top-0 right-[88px] z-40 w-[50px] min-w-[50px] bg-background pe-0',
+        'sticky top-0 right-[88px] z-40 w-[100px] min-w-[100px] bg-background pe-0',
         'shadow-[inset_1px_0_0_hsl(var(--border))]'
       ),
     },
