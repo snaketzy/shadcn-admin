@@ -12,8 +12,9 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
-import { type NavigateFn } from '@/hooks/use-table-url-state'
+import { useTableUrlState } from '@/hooks/use-table-url-state'
 import {
   TableBody,
   TableCell,
@@ -32,6 +33,8 @@ import { DataTableBulkActions } from './data-table-bulk-actions'
 import { usersColumns as columns } from './users-columns'
 import { fetchVesselAll, fetchVesselGroups } from '../api/client'
 import { Skeleton } from '@/components/ui/skeleton'
+
+const route = getRouteApi('/_authenticated/vessel_list/')
 
 const FIXED_COL_STYLES: Record<
   string,
@@ -107,12 +110,11 @@ const FIXED_COL_STYLES: Record<
   },
 }
 
-type DataTableProps = {
-  search: Record<string, unknown>
-  navigate: NavigateFn
-}
+type DataTableProps = Record<string, never>
 
-export function UsersTable({ search, navigate }: DataTableProps) {
+export function UsersTable(_: DataTableProps) {
+  const search = route.useSearch()
+  const navigate = route.useNavigate()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
@@ -136,24 +138,48 @@ export function UsersTable({ search, navigate }: DataTableProps) {
   const flags = groupsData?.flags ?? []
   const classes = groupsData?.classes ?? []
 
-  const vesselName: string = useMemo(
-    () => ((search as any).vesselName as string) ?? '',
+  const urlState = useTableUrlState({
+    search: search as Record<string, unknown>,
+    navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
+    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    columnFilters: [
+      { columnId: 'vessel_team', searchKey: 'vesselTeam', type: 'array' },
+      { columnId: 'vessel_flag', searchKey: 'vesselFlag', type: 'array' },
+      { columnId: 'vessel_class', searchKey: 'vesselClass', type: 'array' },
+    ],
+  })
+  const {
+    columnFilters,
+    onColumnFiltersChange,
+    pagination,
+    onPaginationChange,
+    ensurePageInRange,
+  } = urlState
+
+  const vesselName: string =
+    (search as unknown as { vesselName?: string }).vesselName ?? ''
+  const vesselIncharge: string =
+    (search as unknown as { vesselIncharge?: string }).vesselIncharge ?? ''
+
+  const vesselTeamFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselTeam)
+        ? ((search as any).vesselTeam as string[])
+        : [],
     [search]
   )
-  const vesselIncharge: string = useMemo(
-    () => ((search as any).vesselIncharge as string) ?? '',
+  const vesselFlagFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselFlag)
+        ? ((search as any).vesselFlag as string[])
+        : [],
     [search]
   )
-  const vesselTeamFilter: string[] = useMemo(
-    () => (Array.isArray((search as any).vesselTeam) ? (search as any).vesselTeam : []),
-    [search]
-  )
-  const vesselFlagFilter: string[] = useMemo(
-    () => (Array.isArray((search as any).vesselFlag) ? (search as any).vesselFlag : []),
-    [search]
-  )
-  const vesselClassFilter: string[] = useMemo(
-    () => (Array.isArray((search as any).vesselClass) ? (search as any).vesselClass : []),
+  const vesselClassFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselClass)
+        ? ((search as any).vesselClass as string[])
+        : [],
     [search]
   )
 
@@ -172,97 +198,54 @@ export function UsersTable({ search, navigate }: DataTableProps) {
       )
     }
     if (vesselTeamFilter.length > 0) {
-      result = result.filter((r) => vesselTeamFilter.includes(r.vessel_team ?? ''))
+      result = result.filter((r) =>
+        vesselTeamFilter.includes(r.vessel_team ?? '')
+      )
     }
     if (vesselFlagFilter.length > 0) {
-      result = result.filter((r) => vesselFlagFilter.includes(r.vessel_flag ?? ''))
+      result = result.filter((r) =>
+        vesselFlagFilter.includes(r.vessel_flag ?? '')
+      )
     }
     if (vesselClassFilter.length > 0) {
-      result = result.filter((r) => vesselClassFilter.includes(r.vessel_class ?? ''))
+      result = result.filter((r) =>
+        vesselClassFilter.includes(r.vessel_class ?? '')
+      )
     }
     return result
-  }, [allRows, vesselName, vesselIncharge, vesselTeamFilter, vesselFlagFilter, vesselClassFilter])
+  }, [
+    allRows,
+    vesselName,
+    vesselIncharge,
+    vesselTeamFilter,
+    vesselFlagFilter,
+    vesselClassFilter,
+  ])
 
-  const page = Number((search as any).page ?? 1)
-  const pageSize = Number((search as any).pageSize ?? 10)
-
-  const pagination = useMemo(
-    () => ({ pageIndex: Math.max(0, page - 1), pageSize }),
-    [page, pageSize]
-  )
-
-  const totalPageCount = Math.max(1, Math.ceil(filteredData.length / pageSize))
-
-  const onPaginationChange = (
-    updater: React.SetStateAction<{ pageIndex: number; pageSize: number }>
+  const handleTextFilterChange = (
+    type: 'vesselName' | 'vesselIncharge',
+    value: string
   ) => {
-    const next =
-      typeof updater === 'function' ? updater(pagination) : updater
     navigate({
       search: (prev: any) => ({
         ...(prev ?? {}),
-        page: next.pageIndex + 1,
-        pageSize: next.pageSize,
+        [type]: value || undefined,
+        page: undefined,
       }),
-      replace: true,
-    })
-  }
-
-  useEffect(() => {
-    if (pagination.pageIndex >= totalPageCount && totalPageCount > 0) {
-      navigate({
-        search: (prev: any) => ({
-          ...(prev ?? {}),
-          page: totalPageCount,
-        }),
-        replace: true,
-      })
-    }
-  }, [pagination.pageIndex, totalPageCount, navigate])
-
-  const columnFilters = useMemo(() => {
-    const result: Array<{ id: string; value: unknown }> = []
-    if (vesselTeamFilter.length > 0) {
-      result.push({ id: 'vessel_team', value: vesselTeamFilter })
-    }
-    if (vesselFlagFilter.length > 0) {
-      result.push({ id: 'vessel_flag', value: vesselFlagFilter })
-    }
-    if (vesselClassFilter.length > 0) {
-      result.push({ id: 'vessel_class', value: vesselClassFilter })
-    }
-    return result
-  }, [vesselTeamFilter, vesselFlagFilter, vesselClassFilter])
-
-  const onColumnFiltersChange = (
-    updater: React.SetStateAction<Array<{ id: string; value: unknown }>>
-  ) => {
-    const next =
-      typeof updater === 'function' ? updater(columnFilters) : updater
-    const nextMap = new Map(next.map((f) => [f.id, f.value]))
-    navigate({
-      search: (prev: any) => ({
-        ...(prev ?? {}),
-        vesselTeam: (nextMap.get('vessel_team') as string[]) ?? [],
-        vesselFlag: (nextMap.get('vessel_flag') as string[]) ?? [],
-        vesselClass: (nextMap.get('vessel_class') as string[]) ?? [],
-      }),
-      replace: true,
     })
   }
 
   const handleResetFilters = () => {
     navigate({
-      search: (prev: any) => ({
-        ...(prev ?? {}),
-        vesselName: '',
-        vesselIncharge: '',
-        vesselTeam: [],
-        vesselFlag: [],
-        vesselClass: [],
-        page: 1,
-      }),
-      replace: true,
+      search: {
+        page: undefined,
+        pageSize: undefined,
+        vesselName: undefined,
+        vesselIncharge: undefined,
+        vesselTeam: undefined,
+        vesselFlag: undefined,
+        vesselClass: undefined,
+      } as any,
     })
   }
 
@@ -291,6 +274,11 @@ export function UsersTable({ search, navigate }: DataTableProps) {
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: false,
   })
+
+  const pageCount = table.getPageCount()
+  useEffect(() => {
+    ensurePageInRange(pageCount)
+  }, [pageCount, ensurePageInRange])
 
   const isFiltered =
     columnFilters.length > 0 ||
@@ -332,30 +320,14 @@ export function UsersTable({ search, navigate }: DataTableProps) {
           <Input
             placeholder='按船名筛选...'
             value={vesselName}
-            onChange={(e) =>
-              navigate({
-                search: (prev: any) => ({
-                  ...(prev ?? {}),
-                  vesselName: e.target.value,
-                  page: 1,
-                }),
-                replace: true,
-              })
-            }
+            onChange={(e) => handleTextFilterChange('vesselName', e.target.value)}
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
             placeholder='按负责人筛选...'
             value={vesselIncharge}
             onChange={(e) =>
-              navigate({
-                search: (prev: any) => ({
-                  ...(prev ?? {}),
-                  vesselIncharge: e.target.value,
-                  page: 1,
-                }),
-                replace: true,
-              })
+              handleTextFilterChange('vesselIncharge', e.target.value)
             }
             className='h-8 w-37.5 lg:w-50'
           />

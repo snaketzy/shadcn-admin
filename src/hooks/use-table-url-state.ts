@@ -113,9 +113,21 @@ export function useTableUrlState(
   const pagination: PaginationState = useMemo(() => {
     const rawPage = (search as SearchRecord)[pageKey]
     const rawPageSize = (search as SearchRecord)[pageSizeKey]
-    const pageNum = typeof rawPage === 'number' ? rawPage : defaultPage
-    const pageSizeNum =
-      typeof rawPageSize === 'number' ? rawPageSize : defaultPageSize
+    const parsePositiveInt = (
+      v: unknown,
+      fallback: number
+    ): number => {
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        return Math.max(1, Math.floor(v))
+      }
+      if (typeof v === 'string' && v.trim() !== '') {
+        const n = Number(v)
+        if (Number.isFinite(n)) return Math.max(1, Math.floor(n))
+      }
+      return fallback
+    }
+    const pageNum = parsePositiveInt(rawPage, defaultPage)
+    const pageSizeNum = parsePositiveInt(rawPageSize, defaultPageSize)
     return { pageIndex: Math.max(0, pageNum - 1), pageSize: pageSizeNum }
   }, [search, pageKey, pageSizeKey, defaultPage, defaultPageSize])
 
