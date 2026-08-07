@@ -59,7 +59,7 @@ export async function getVesselListGroups(): Promise<{
     query<{ vessel_class: string | null }[]>(
       'SELECT DISTINCT vessel_class FROM `vessel_list` WHERE vessel_class IS NOT NULL AND vessel_class <> \'\' ORDER BY vessel_class'
     ),
-    getCaseDictByKeyPrefix('5'),
+    getCaseDictByKeyPrefix('E'),
   ])
   return {
     teams: teams.map((r) => r.vessel_team!).filter(Boolean),

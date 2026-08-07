@@ -13,7 +13,10 @@ export function getUsersColumns(
   inchargeDict: VesselDictEntry[] = []
 ): ColumnDef<Vessel>[] {
   const inchargeMap = new Map<string, string>(
-    inchargeDict.map((d) => [d.dict_key, d.dict_value])
+    inchargeDict.map((d) => [String(d.dict_key).toUpperCase(), d.dict_value])
+  )
+  const valueToLabel = new Map<string, string>(
+    inchargeDict.map((d) => [d.dict_value, d.dict_value])
   )
 
   return [
@@ -225,11 +228,21 @@ export function getUsersColumns(
       </div>
     ),
     cell: ({ row }) => {
-      const value = row.getValue('vessel_incharge') as string | null
-      const label = value ? inchargeMap.get(value) ?? value : null
+      const raw = row.getValue('vessel_incharge') as string | number | null
+      if (raw === null || raw === undefined || raw === '') {
+        return (
+          <div className='pe-2 text-end'>
+            <LongText className='max-w-[80px]'>-</LongText>
+          </div>
+        )
+      }
+      const rawStr = String(raw)
+      const byKey = inchargeMap.get(rawStr.toUpperCase())
+      const byValue = valueToLabel.get(rawStr)
+      const label = byKey ?? byValue ?? rawStr
       return (
         <div className='pe-2 text-end'>
-          <LongText className='max-w-[80px]'>{label ?? '-'}</LongText>
+          <LongText className='max-w-[80px]'>{label}</LongText>
         </div>
       )
     },

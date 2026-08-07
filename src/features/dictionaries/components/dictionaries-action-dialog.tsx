@@ -33,15 +33,18 @@ import { type CaseDictType } from '../data/schema'
 const formSchema = z.object({
   dict_group: z.string().min(1, '字典分组是必填项。'),
   dict_value: z.string().min(1, '字典键值是必填项。'),
-  dict_key: z
-    .string()
-    .min(1, '字典键名是必填项。')
-    .refine((s) => /^-?\d+$/.test(s.trim()), {
-      message: '字典键名必须为整数。',
-    }),
+  dict_key: z.string().min(1, '字典键名是必填项。'),
 })
 
 type DictionaryForm = z.infer<typeof formSchema>
+
+function toDictKey(v: string): string | number {
+  const trimmed = v.trim()
+  if (trimmed === '') return ''
+  const n = Number(trimmed)
+  if (Number.isFinite(n)) return n
+  return trimmed
+}
 
 type DictionaryActionDialogProps = {
   currentRow?: CaseDictType
@@ -58,7 +61,7 @@ export function DictionariesActionDialog({
   const queryClient = useQueryClient()
 
   const createMutation = useMutation({
-    mutationFn: (p: { dict_group: string; dict_value: string; dict_key: number }) =>
+    mutationFn: (p: { dict_group: string; dict_value: string; dict_key: string | number }) =>
       createCaseDict(p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-dict'] })
@@ -68,7 +71,7 @@ export function DictionariesActionDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: (vars: { id: number; payload: { dict_group: string; dict_value: string; dict_key: number } }) =>
+    mutationFn: (vars: { id: number; payload: { dict_group: string; dict_value: string; dict_key: string | number } }) =>
       updateCaseDict(vars.id, vars.payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-dict'] })
@@ -97,7 +100,7 @@ export function DictionariesActionDialog({
       const payload = {
         dict_group: values.dict_group,
         dict_value: values.dict_value,
-        dict_key: parseInt(values.dict_key.trim(), 10),
+        dict_key: toDictKey(values.dict_key),
       }
       if (isEdit && currentRow) {
         await updateMutation.mutateAsync({
@@ -168,7 +171,7 @@ export function DictionariesActionDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='请输入字典键名（整数）'
+                        placeholder='请输入字典键名'
                         className='col-span-4'
                         {...field}
                       />
