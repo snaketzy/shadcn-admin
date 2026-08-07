@@ -23,6 +23,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { type Vessel } from '../data/schema'
 import { createVessel, updateVessel, fetchVesselGroups } from '../api/client'
 import { useQuery } from '@tanstack/react-query'
@@ -433,13 +440,23 @@ export function UsersActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       负责人
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入负责人姓名'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择负责人' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.inchargeDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}

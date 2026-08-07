@@ -37,6 +37,15 @@ export async function getCaseDictByGroup(group: string): Promise<CaseDictRow[]> 
   return rows
 }
 
+export async function getCaseDictByKeyPrefix(prefix: string): Promise<CaseDictRow[]> {
+  if (prefix === '') return []
+  const rows = await query<CaseDictRow[]>(
+    "SELECT dict_id, dict_group, dict_value, dict_key FROM `case_dict` WHERE CAST(dict_key AS CHAR) LIKE ? ORDER BY dict_key",
+    [`${prefix}%`]
+  )
+  return rows
+}
+
 export async function getCaseDictPaginated(params: {
   page?: number
   pageSize?: number

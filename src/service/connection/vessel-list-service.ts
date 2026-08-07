@@ -1,4 +1,5 @@
 import { query, execute, type ExecuteValues } from './db'
+import { getCaseDictByKeyPrefix } from './case-dict-service'
 
 export interface VesselListRow {
   vessel_id: number
@@ -13,6 +14,11 @@ export interface VesselListRow {
   vessel_flag: string | null
   vessel_team: string | null
   vessel_incharge: string | null
+}
+
+export interface VesselDictEntry {
+  dict_key: string
+  dict_value: string
 }
 
 const SELECT_COLS = `
@@ -37,8 +43,13 @@ export async function getVesselListById(vesselId: number): Promise<VesselListRow
   return row ? normalizeRow(row) : null
 }
 
-export async function getVesselListGroups(): Promise<{ teams: string[]; flags: string[]; classes: string[] }> {
-  const [teams, flags, classes] = await Promise.all([
+export async function getVesselListGroups(): Promise<{
+  teams: string[]
+  flags: string[]
+  classes: string[]
+  inchargeDict: VesselDictEntry[]
+}> {
+  const [teams, flags, classes, inchargeRows] = await Promise.all([
     query<{ vessel_team: string | null }[]>(
       'SELECT DISTINCT vessel_team FROM `vessel_list` WHERE vessel_team IS NOT NULL AND vessel_team <> \'\' ORDER BY vessel_team'
     ),
@@ -48,11 +59,16 @@ export async function getVesselListGroups(): Promise<{ teams: string[]; flags: s
     query<{ vessel_class: string | null }[]>(
       'SELECT DISTINCT vessel_class FROM `vessel_list` WHERE vessel_class IS NOT NULL AND vessel_class <> \'\' ORDER BY vessel_class'
     ),
+    getCaseDictByKeyPrefix('5'),
   ])
   return {
     teams: teams.map((r) => r.vessel_team!).filter(Boolean),
     flags: flags.map((r) => r.vessel_flag!).filter(Boolean),
     classes: classes.map((r) => r.vessel_class!).filter(Boolean),
+    inchargeDict: inchargeRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
   }
 }
 

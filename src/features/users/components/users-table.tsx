@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { type Vessel } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-import { usersColumns as columns } from './users-columns'
+import { getUsersColumns } from './users-columns'
 import { fetchVesselAll, fetchVesselGroups } from '../api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -137,6 +137,11 @@ export function UsersTable(_: DataTableProps) {
   const teams = groupsData?.teams ?? []
   const flags = groupsData?.flags ?? []
   const classes = groupsData?.classes ?? []
+  const inchargeDict = groupsData?.inchargeDict ?? []
+  const columns = useMemo(
+    () => getUsersColumns(inchargeDict),
+    [inchargeDict]
+  )
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
@@ -146,6 +151,7 @@ export function UsersTable(_: DataTableProps) {
       { columnId: 'vessel_team', searchKey: 'vesselTeam', type: 'array' },
       { columnId: 'vessel_flag', searchKey: 'vesselFlag', type: 'array' },
       { columnId: 'vessel_class', searchKey: 'vesselClass', type: 'array' },
+      { columnId: 'vessel_incharge', searchKey: 'vesselIncharge', type: 'array' },
     ],
   })
   const {
@@ -158,8 +164,6 @@ export function UsersTable(_: DataTableProps) {
 
   const vesselName: string =
     (search as unknown as { vesselName?: string }).vesselName ?? ''
-  const vesselIncharge: string =
-    (search as unknown as { vesselIncharge?: string }).vesselIncharge ?? ''
 
   const vesselTeamFilter = useMemo(
     () =>
@@ -182,6 +186,13 @@ export function UsersTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const vesselInchargeFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselIncharge)
+        ? ((search as any).vesselIncharge as string[])
+        : [],
+    [search]
+  )
 
   const filteredData: Vessel[] = useMemo(() => {
     let result = allRows
@@ -189,12 +200,6 @@ export function UsersTable(_: DataTableProps) {
       const q = vesselName.trim().toLowerCase()
       result = result.filter((r) =>
         String(r.vessel_name).toLowerCase().includes(q)
-      )
-    }
-    if (vesselIncharge.trim() !== '') {
-      const q = vesselIncharge.trim().toLowerCase()
-      result = result.filter((r) =>
-        String(r.vessel_incharge ?? '').toLowerCase().includes(q)
       )
     }
     if (vesselTeamFilter.length > 0) {
@@ -212,18 +217,23 @@ export function UsersTable(_: DataTableProps) {
         vesselClassFilter.includes(r.vessel_class ?? '')
       )
     }
+    if (vesselInchargeFilter.length > 0) {
+      result = result.filter((r) =>
+        vesselInchargeFilter.includes(r.vessel_incharge ?? '')
+      )
+    }
     return result
   }, [
     allRows,
     vesselName,
-    vesselIncharge,
     vesselTeamFilter,
     vesselFlagFilter,
     vesselClassFilter,
+    vesselInchargeFilter,
   ])
 
   const handleTextFilterChange = (
-    type: 'vesselName' | 'vesselIncharge',
+    type: 'vesselName',
     value: string
   ) => {
     navigate({
@@ -282,8 +292,7 @@ export function UsersTable(_: DataTableProps) {
 
   const isFiltered =
     columnFilters.length > 0 ||
-    vesselName.trim() !== '' ||
-    vesselIncharge.trim() !== ''
+    vesselName.trim() !== ''
 
   if (isLoading) {
     return (
@@ -323,15 +332,17 @@ export function UsersTable(_: DataTableProps) {
             onChange={(e) => handleTextFilterChange('vesselName', e.target.value)}
             className='h-8 w-37.5 lg:w-62.5'
           />
-          <Input
-            placeholder='按负责人筛选...'
-            value={vesselIncharge}
-            onChange={(e) =>
-              handleTextFilterChange('vesselIncharge', e.target.value)
-            }
-            className='h-8 w-37.5 lg:w-50'
-          />
           <div className='flex gap-x-2'>
+            {inchargeDict.length > 0 && table.getColumn('vessel_incharge') && (
+              <DataTableFacetedFilter
+                column={table.getColumn('vessel_incharge')!}
+                title='负责人'
+                options={inchargeDict.map((d) => ({
+                  label: d.dict_value,
+                  value: d.dict_key,
+                }))}
+              />
+            )}
             {teams.length > 0 && table.getColumn('vessel_team') && (
               <DataTableFacetedFilter
                 column={table.getColumn('vessel_team')!}

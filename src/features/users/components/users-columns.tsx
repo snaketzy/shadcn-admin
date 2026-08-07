@@ -7,8 +7,16 @@ import { LongText } from '@/components/long-text'
 import { getBadgeColor } from '../data/data'
 import { type Vessel } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
+import { type VesselDictEntry } from '../api/client'
 
-export const usersColumns: ColumnDef<Vessel>[] = [
+export function getUsersColumns(
+  inchargeDict: VesselDictEntry[] = []
+): ColumnDef<Vessel>[] {
+  const inchargeMap = new Map<string, string>(
+    inchargeDict.map((d) => [d.dict_key, d.dict_value])
+  )
+
+  return [
   {
     id: 'select',
     header: ({ table }) => (
@@ -195,11 +203,15 @@ export const usersColumns: ColumnDef<Vessel>[] = [
     ),
     cell: ({ row }) => {
       const value = row.getValue('vessel_incharge') as string | null
+      const label = value ? inchargeMap.get(value) ?? value : null
       return (
         <div className='pe-2 text-end'>
-          <LongText className='max-w-[44px]'>{value ?? '-'}</LongText>
+          <LongText className='max-w-[44px]'>{label ?? '-'}</LongText>
         </div>
       )
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id))
     },
     meta: {
       className: cn(
@@ -229,4 +241,5 @@ export const usersColumns: ColumnDef<Vessel>[] = [
     enableHiding: false,
     enableSorting: false,
   },
-]
+  ]
+}
