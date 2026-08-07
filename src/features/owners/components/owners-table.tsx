@@ -117,8 +117,9 @@ export function OwnersTable(_: DataTableProps) {
     queryKey: ['owner-list-groups'],
     queryFn: fetchOwnerGroups,
   })
-  const countries = groupsData?.countries ?? []
-  const companies = groupsData?.companies ?? []
+  const teams = groupsData?.teams ?? []
+  const departments = groupsData?.departments ?? []
+  const ranks = groupsData?.ranks ?? []
   const columns = useMemo(() => getOwnersColumns(), [])
 
   const urlState = useTableUrlState({
@@ -126,8 +127,9 @@ export function OwnersTable(_: DataTableProps) {
     navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     columnFilters: [
-      { columnId: 'owner_company', searchKey: 'ownerCompany', type: 'array' },
-      { columnId: 'owner_country', searchKey: 'ownerCountry', type: 'array' },
+      { columnId: 'owner_team', searchKey: 'ownerTeam', type: 'array' },
+      { columnId: 'owner_department', searchKey: 'ownerDepartment', type: 'array' },
+      { columnId: 'owner_rank', searchKey: 'ownerRank', type: 'array' },
     ],
   })
   const {
@@ -140,20 +142,27 @@ export function OwnersTable(_: DataTableProps) {
 
   const ownerName: string =
     (search as unknown as { ownerName?: string }).ownerName ?? ''
-  const ownerContact: string =
-    (search as unknown as { ownerContact?: string }).ownerContact ?? ''
+  const contactSearch: string =
+    (search as unknown as { contactSearch?: string }).contactSearch ?? ''
 
-  const ownerCompanyFilter = useMemo(
+  const ownerTeamFilter = useMemo(
     () =>
-      Array.isArray((search as any).ownerCompany)
-        ? ((search as any).ownerCompany as string[])
+      Array.isArray((search as any).ownerTeam)
+        ? ((search as any).ownerTeam as string[])
         : [],
     [search]
   )
-  const ownerCountryFilter = useMemo(
+  const ownerDepartmentFilter = useMemo(
     () =>
-      Array.isArray((search as any).ownerCountry)
-        ? ((search as any).ownerCountry as string[])
+      Array.isArray((search as any).ownerDepartment)
+        ? ((search as any).ownerDepartment as string[])
+        : [],
+    [search]
+  )
+  const ownerRankFilter = useMemo(
+    () =>
+      Array.isArray((search as any).ownerRank)
+        ? ((search as any).ownerRank as string[])
         : [],
     [search]
   )
@@ -166,34 +175,41 @@ export function OwnersTable(_: DataTableProps) {
         String(r.owner_name).toLowerCase().includes(q)
       )
     }
-    if (ownerContact.trim() !== '') {
-      const q = ownerContact.trim().toLowerCase()
+    if (contactSearch.trim() !== '') {
+      const q = contactSearch.trim().toLowerCase()
       result = result.filter((r) =>
-        String(r.owner_contact ?? '').toLowerCase().includes(q) ||
-        String(r.owner_phone ?? '').toLowerCase().includes(q)
+        String(r.owner_email ?? '').toLowerCase().includes(q) ||
+        String(r.owner_phone ?? '').toLowerCase().includes(q) ||
+        String(r.owner_department_email ?? '').toLowerCase().includes(q)
       )
     }
-    if (ownerCompanyFilter.length > 0) {
+    if (ownerTeamFilter.length > 0) {
       result = result.filter((r) =>
-        ownerCompanyFilter.includes(r.owner_company ?? '')
+        ownerTeamFilter.includes(r.owner_team ?? '')
       )
     }
-    if (ownerCountryFilter.length > 0) {
+    if (ownerDepartmentFilter.length > 0) {
       result = result.filter((r) =>
-        ownerCountryFilter.includes(r.owner_country ?? '')
+        ownerDepartmentFilter.includes(r.owner_department ?? '')
+      )
+    }
+    if (ownerRankFilter.length > 0) {
+      result = result.filter((r) =>
+        ownerRankFilter.includes(r.owner_rank ?? '')
       )
     }
     return result
   }, [
     allRows,
     ownerName,
-    ownerContact,
-    ownerCompanyFilter,
-    ownerCountryFilter,
+    contactSearch,
+    ownerTeamFilter,
+    ownerDepartmentFilter,
+    ownerRankFilter,
   ])
 
   const handleTextFilterChange = (
-    type: 'ownerName' | 'ownerContact',
+    type: 'ownerName' | 'contactSearch',
     value: string
   ) => {
     navigate({
@@ -211,9 +227,10 @@ export function OwnersTable(_: DataTableProps) {
         page: undefined,
         pageSize: undefined,
         ownerName: undefined,
-        ownerContact: undefined,
-        ownerCompany: undefined,
-        ownerCountry: undefined,
+        contactSearch: undefined,
+        ownerTeam: undefined,
+        ownerDepartment: undefined,
+        ownerRank: undefined,
       } as any,
     })
   }
@@ -252,7 +269,7 @@ export function OwnersTable(_: DataTableProps) {
   const isFiltered =
     columnFilters.length > 0 ||
     ownerName.trim() !== '' ||
-    ownerContact.trim() !== ''
+    contactSearch.trim() !== ''
 
   if (isLoading) {
     return (
@@ -293,24 +310,31 @@ export function OwnersTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
-            placeholder='按联系人/电话筛选...'
-            value={ownerContact}
-            onChange={(e) => handleTextFilterChange('ownerContact', e.target.value)}
+            placeholder='按邮箱/电话筛选...'
+            value={contactSearch}
+            onChange={(e) => handleTextFilterChange('contactSearch', e.target.value)}
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
-            {companies.length > 0 && table.getColumn('owner_company') && (
+            {teams.length > 0 && table.getColumn('owner_team') && (
               <DataTableFacetedFilter
-                column={table.getColumn('owner_company')!}
-                title='公司'
-                options={companies.map((t) => ({ label: t, value: t }))}
+                column={table.getColumn('owner_team')!}
+                title='船东小组'
+                options={teams.map((t) => ({ label: t, value: t }))}
               />
             )}
-            {countries.length > 0 && table.getColumn('owner_country') && (
+            {departments.length > 0 && table.getColumn('owner_department') && (
               <DataTableFacetedFilter
-                column={table.getColumn('owner_country')!}
-                title='国家'
-                options={countries.map((f) => ({ label: f, value: f }))}
+                column={table.getColumn('owner_department')!}
+                title='船东部门'
+                options={departments.map((f) => ({ label: f, value: f }))}
+              />
+            )}
+            {ranks.length > 0 && table.getColumn('owner_rank') && (
+              <DataTableFacetedFilter
+                column={table.getColumn('owner_rank')!}
+                title='船东职级'
+                options={ranks.map((f) => ({ label: f, value: f }))}
               />
             )}
           </div>

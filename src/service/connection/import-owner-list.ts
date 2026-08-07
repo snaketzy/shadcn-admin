@@ -13,7 +13,7 @@ const BATCH_SIZE = 50
 
 type OwnerListRow = {
   owner_name: string | null
-  onwer_email: string | null
+  owner_email: string | null
   owner_phone: string | number | null
   owner_team: string | null
   owner_department: string | null
@@ -30,11 +30,19 @@ function readExcel(): OwnerListRow[] {
   const sheetName = workbook.SheetNames[0]
   if (!sheetName) throw new Error('Excel 中没有找到工作表')
   const sheet = workbook.Sheets[sheetName]
-  const rows = XLSX.utils.sheet_to_json<OwnerListRow>(sheet, {
+  const rawRows = XLSX.utils.sheet_to_json<any>(sheet, {
     defval: null,
     raw: true,
   })
-  return rows
+  return rawRows.map((r: any) => ({
+    owner_name: r.owner_name ?? null,
+    owner_email: r.owner_email ?? r.onwer_email ?? null,
+    owner_phone: r.owner_phone ?? null,
+    owner_team: r.owner_team ?? null,
+    owner_department: r.owner_department ?? null,
+    owner_department_email: r.owner_department_email ?? null,
+    owner_rank: r.owner_rank ?? null,
+  }))
 }
 
 async function ensureTableExists(): Promise<{ created: boolean }> {
@@ -44,7 +52,7 @@ async function ensureTableExists(): Promise<{ created: boolean }> {
     CREATE TABLE \`${TABLE_NAME}\` (
       \`owner_id\`                 INT            NOT NULL AUTO_INCREMENT COMMENT '负责人ID',
       \`owner_name\`               VARCHAR(128)   NULL     COMMENT '负责人姓名',
-      \`onwer_email\`              VARCHAR(255)   NULL     COMMENT '负责人邮箱（Excel 拼写 onwer，原样保留）',
+      \`owner_email\`              VARCHAR(255)   NULL     COMMENT '负责人邮箱',
       \`owner_phone\`              VARCHAR(64)    NULL     COMMENT '负责人电话',
       \`owner_team\`               VARCHAR(32)    NULL     COMMENT '所属组/小队',
       \`owner_department\`         VARCHAR(32)    NULL     COMMENT '部门代码',
@@ -67,7 +75,7 @@ async function upgradeTableSchema(): Promise<string[]> {
   const spec: Array<{ col: string; def: string }> = [
     { col: 'owner_id',               def: 'INT NOT NULL AUTO_INCREMENT COMMENT \'负责人ID\'' },
     { col: 'owner_name',             def: 'VARCHAR(128) NULL COMMENT \'负责人姓名\'' },
-    { col: 'onwer_email',            def: 'VARCHAR(255) NULL COMMENT \'负责人邮箱（Excel 拼写 onwer，原样保留）\'' },
+    { col: 'owner_email',            def: 'VARCHAR(255) NULL COMMENT \'负责人邮箱\'' },
     { col: 'owner_phone',            def: 'VARCHAR(64) NULL COMMENT \'负责人电话\'' },
     { col: 'owner_team',             def: 'VARCHAR(32) NULL COMMENT \'所属组/小队\'' },
     { col: 'owner_department',       def: 'VARCHAR(32) NULL COMMENT \'部门代码\'' },
@@ -113,7 +121,7 @@ async function insertBatch(rows: OwnerListRow[]): Promise<number> {
   for (const r of rows) {
     params.push(
       strOrNull(r.owner_name),
-      strOrNull(r.onwer_email),
+      strOrNull(r.owner_email),
       strOrNull(r.owner_phone),
       strOrNull(r.owner_team),
       strOrNull(r.owner_department),
@@ -122,7 +130,7 @@ async function insertBatch(rows: OwnerListRow[]): Promise<number> {
     )
   }
   const sql = `INSERT INTO \`${TABLE_NAME}\`
-    (\`owner_name\`, \`onwer_email\`, \`owner_phone\`,
+    (\`owner_name\`, \`owner_email\`, \`owner_phone\`,
      \`owner_team\`, \`owner_department\`, \`owner_department_email\`,
      \`owner_rank\`)
     VALUES ${placeholders}`
@@ -189,13 +197,13 @@ async function main() {
   console.log(`   数据库实际行数: ${total}`)
 
   const sample = await query<Array<Record<string, unknown>>>(
-    `SELECT owner_id, owner_name, onwer_email, owner_phone, owner_team, owner_department, owner_department_email, owner_rank
+    `SELECT owner_id, owner_name, owner_email, owner_phone, owner_team, owner_department, owner_department_email, owner_rank
      FROM \`${TABLE_NAME}\` ORDER BY owner_id LIMIT 5`
   )
   console.log('   前 5 行样例:')
   sample.forEach((r, i) => {
     console.log(
-      `     #${i + 1}  ${String(r.owner_name).padEnd(18)} ${String(r.owner_team ?? '-').padEnd(4)} ${String(r.owner_department ?? '-').padEnd(4)} ${String(r.owner_rank ?? '-').padEnd(4)}  email=${r.onwer_email ?? '-'}  deptEmail=${r.owner_department_email ?? '-'}  phone=${r.owner_phone ?? '-'}`
+      `     #${i + 1}  ${String(r.owner_name).padEnd(18)} ${String(r.owner_team ?? '-').padEnd(4)} ${String(r.owner_department ?? '-').padEnd(4)} ${String(r.owner_rank ?? '-').padEnd(4)}  email=${r.owner_email ?? '-'}  deptEmail=${r.owner_department_email ?? '-'}  phone=${r.owner_phone ?? '-'}`
     )
   })
 

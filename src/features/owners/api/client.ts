@@ -39,21 +39,18 @@ api.interceptors.response.use(
 export interface Owner {
   owner_id: number
   owner_name: string
-  owner_company: string | null
-  owner_contact: string | null
-  owner_phone: string | null
   owner_email: string | null
-  owner_country: string | null
-  owner_fax: string | null
-  owner_address: string | null
-  owner_remark: string | null
-  created_at: string | null
-  updated_at: string | null
+  owner_phone: string | null
+  owner_team: string | null
+  owner_department: string | null
+  owner_department_email: string | null
+  owner_rank: string | null
 }
 
 export interface OwnerGroupsResponse {
-  countries: string[]
-  companies: string[]
+  teams: string[]
+  departments: string[]
+  ranks: string[]
 }
 
 export interface PaginatedResponse {
@@ -74,9 +71,11 @@ export async function fetchOwnerPaginated(params: {
   page?: number
   pageSize?: number
   ownerName?: string
-  ownerCompany?: string
-  ownerCountry?: string
-  ownerContact?: string
+  ownerTeam?: string
+  ownerDepartment?: string
+  ownerRank?: string
+  ownerEmail?: string
+  ownerPhone?: string
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/owner-list/', {
     params,
@@ -88,19 +87,17 @@ export async function fetchOwnerPaginated(params: {
 
 export async function fetchOwnerGroups(): Promise<OwnerGroupsResponse> {
   const res = await api.get<ApiEnvelope<OwnerGroupsResponse>>('/owner-list/groups')
-  return res.data.data ?? { countries: [], companies: [] }
+  return res.data.data ?? { teams: [], departments: [], ranks: [] }
 }
 
 export async function createOwner(payload: {
   owner_name: string
-  owner_company?: string | null
-  owner_contact?: string | null
-  owner_phone?: string | null
   owner_email?: string | null
-  owner_country?: string | null
-  owner_fax?: string | null
-  owner_address?: string | null
-  owner_remark?: string | null
+  owner_phone?: string | null
+  owner_team?: string | null
+  owner_department?: string | null
+  owner_department_email?: string | null
+  owner_rank?: string | null
 }): Promise<Owner> {
   const res = await api.post<ApiEnvelope<Owner>>('/owner-list/', payload)
   return res.data.data
@@ -110,14 +107,12 @@ export async function updateOwner(
   ownerId: number,
   payload: {
     owner_name?: string
-    owner_company?: string | null
-    owner_contact?: string | null
-    owner_phone?: string | null
     owner_email?: string | null
-    owner_country?: string | null
-    owner_fax?: string | null
-    owner_address?: string | null
-    owner_remark?: string | null
+    owner_phone?: string | null
+    owner_team?: string | null
+    owner_department?: string | null
+    owner_department_email?: string | null
+    owner_rank?: string | null
   }
 ): Promise<Owner> {
   const res = await api.put<ApiEnvelope<Owner>>(`/owner-list/${ownerId}`, payload)

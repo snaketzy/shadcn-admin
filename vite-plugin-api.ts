@@ -341,10 +341,12 @@ async function handleOwnerListApi(
 
   const subPath = pathname.slice('/api/owner-list'.length) || '/'
 
-  function toOptStr(s: string | null): string | undefined {
+  function toOptStr(s: string | null | unknown): string | undefined {
     if (s === null) return undefined
-    if (s === '') return undefined
-    return s
+    if (s === undefined) return undefined
+    const str = String(s)
+    if (str === '') return undefined
+    return str
   }
 
   try {
@@ -356,9 +358,11 @@ async function handleOwnerListApi(
           page,
           pageSize,
           ownerName: toOptStr(searchParams.get('ownerName')),
-          ownerCompany: toOptStr(searchParams.get('ownerCompany')),
-          ownerCountry: toOptStr(searchParams.get('ownerCountry')),
-          ownerContact: toOptStr(searchParams.get('ownerContact')),
+          ownerTeam: toOptStr(searchParams.get('ownerTeam')),
+          ownerDepartment: toOptStr(searchParams.get('ownerDepartment')),
+          ownerRank: toOptStr(searchParams.get('ownerRank')),
+          ownerEmail: toOptStr(searchParams.get('ownerEmail')),
+          ownerPhone: toOptStr(searchParams.get('ownerPhone')),
         })
         sendJson(res, 200, { success: true, data: result })
         return true
@@ -371,14 +375,12 @@ async function handleOwnerListApi(
         }
         const created = await createOwnerList({
           owner_name: String(body.owner_name ?? ''),
-          owner_company: toOptStr(body.owner_company as any),
-          owner_contact: toOptStr(body.owner_contact as any),
-          owner_phone: toOptStr(body.owner_phone as any),
-          owner_email: toOptStr(body.owner_email as any),
-          owner_country: toOptStr(body.owner_country as any),
-          owner_fax: toOptStr(body.owner_fax as any),
-          owner_address: toOptStr(body.owner_address as any),
-          owner_remark: toOptStr(body.owner_remark as any),
+          owner_email: toOptStr(body.owner_email),
+          owner_phone: toOptStr(body.owner_phone),
+          owner_team: toOptStr(body.owner_team),
+          owner_department: toOptStr(body.owner_department),
+          owner_department_email: toOptStr(body.owner_department_email),
+          owner_rank: toOptStr(body.owner_rank),
         })
         sendJson(res, 200, { success: true, data: created })
         return true
@@ -431,14 +433,12 @@ async function handleOwnerListApi(
         }
         const updated = await updateOwnerList(ownerId, {
           owner_name: body.owner_name == null ? undefined : String(body.owner_name),
-          owner_company: toOptStr(body.owner_company as any),
-          owner_contact: toOptStr(body.owner_contact as any),
-          owner_phone: toOptStr(body.owner_phone as any),
-          owner_email: toOptStr(body.owner_email as any),
-          owner_country: toOptStr(body.owner_country as any),
-          owner_fax: toOptStr(body.owner_fax as any),
-          owner_address: toOptStr(body.owner_address as any),
-          owner_remark: toOptStr(body.owner_remark as any),
+          owner_email: toOptStr(body.owner_email),
+          owner_phone: toOptStr(body.owner_phone),
+          owner_team: toOptStr(body.owner_team),
+          owner_department: toOptStr(body.owner_department),
+          owner_department_email: toOptStr(body.owner_department_email),
+          owner_rank: toOptStr(body.owner_rank),
         })
         sendJson(res, 200, { success: true, data: updated })
         return true

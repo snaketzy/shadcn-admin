@@ -62,51 +62,9 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
       enableHiding: false,
     },
     {
-      accessorKey: 'owner_company',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='公司' />
-      ),
-      cell: ({ row }) => {
-        const value = row.original.owner_company
-        if (!value) return <div>-</div>
-        return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
-        )
-      },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
-      },
-      enableHiding: false,
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'owner_contact',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('owner_contact') as string | null
-        return <div>{value ?? '-'}</div>
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'owner_phone',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='电话' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('owner_phone') as string | null
-        return <div>{value ?? '-'}</div>
-      },
-      enableSorting: false,
-    },
-    {
       accessorKey: 'owner_email',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='邮箱' />
+        <DataTableColumnHeader column={column} title='船东邮箱' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('owner_email') as string | null
@@ -115,12 +73,23 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
       enableSorting: false,
     },
     {
-      accessorKey: 'owner_country',
+      accessorKey: 'owner_phone',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='国家' />
+        <DataTableColumnHeader column={column} title='船东电话' />
       ),
       cell: ({ row }) => {
-        const value = row.original.owner_country
+        const value = row.getValue('owner_phone') as string | null
+        return <div>{value ?? '-'}</div>
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'owner_team',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='船东小组' />
+      ),
+      cell: ({ row }) => {
+        const value = row.original.owner_team
         if (!value) return <div>-</div>
         return (
           <Badge variant='outline' className={cn(getBadgeColor(value))}>
@@ -135,42 +104,54 @@ export function getOwnersColumns(): ColumnDef<Owner>[] {
       enableSorting: false,
     },
     {
-      accessorKey: 'owner_fax',
+      accessorKey: 'owner_department',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='传真' />
+        <DataTableColumnHeader column={column} title='船东部门' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('owner_fax') as string | null
+        const value = row.original.owner_department
+        if (!value) return <div>-</div>
+        return (
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {value}
+          </Badge>
+        )
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
+      },
+      enableHiding: false,
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'owner_department_email',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='船东部门邮箱' />
+      ),
+      cell: ({ row }) => {
+        const value = row.getValue('owner_department_email') as string | null
         return <div>{value ?? '-'}</div>
       },
       enableSorting: false,
     },
     {
-      accessorKey: 'owner_address',
+      accessorKey: 'owner_rank',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='地址' />
+        <DataTableColumnHeader column={column} title='船东职级' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('owner_address') as string | null
+        const value = row.original.owner_rank
         if (!value) return <div>-</div>
         return (
-          <LongText className='max-w-40'>{value}</LongText>
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {value}
+          </Badge>
         )
       },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'owner_remark',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='备注' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('owner_remark') as string | null
-        if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-40'>{value}</LongText>
-        )
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
       },
+      enableHiding: false,
       enableSorting: false,
     },
     {

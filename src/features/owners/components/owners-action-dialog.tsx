@@ -24,20 +24,17 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { type Owner } from '../data/schema'
 import { createOwner, updateOwner, fetchOwnerGroups } from '../api/client'
 
 const formSchema = z.object({
   owner_name: z.string().min(1, '船东名称是必填项。'),
-  owner_company: z.string().optional().catch(''),
-  owner_contact: z.string().optional().catch(''),
-  owner_phone: z.string().optional().catch(''),
   owner_email: z.string().email('邮箱格式不正确').optional().or(z.literal('')).catch(''),
-  owner_country: z.string().optional().catch(''),
-  owner_fax: z.string().optional().catch(''),
-  owner_address: z.string().optional().catch(''),
-  owner_remark: z.string().optional().catch(''),
+  owner_phone: z.string().optional().catch(''),
+  owner_team: z.string().optional().catch(''),
+  owner_department: z.string().optional().catch(''),
+  owner_department_email: z.string().email('部门邮箱格式不正确').optional().or(z.literal('')).catch(''),
+  owner_rank: z.string().optional().catch(''),
 })
 type OwnerForm = z.infer<typeof formSchema>
 
@@ -70,25 +67,21 @@ export function OwnersActionDialog({
     defaultValues: isEdit
       ? {
           owner_name: currentRow.owner_name,
-          owner_company: currentRow.owner_company ?? '',
-          owner_contact: currentRow.owner_contact ?? '',
-          owner_phone: currentRow.owner_phone ?? '',
           owner_email: currentRow.owner_email ?? '',
-          owner_country: currentRow.owner_country ?? '',
-          owner_fax: currentRow.owner_fax ?? '',
-          owner_address: currentRow.owner_address ?? '',
-          owner_remark: currentRow.owner_remark ?? '',
+          owner_phone: currentRow.owner_phone ?? '',
+          owner_team: currentRow.owner_team ?? '',
+          owner_department: currentRow.owner_department ?? '',
+          owner_department_email: currentRow.owner_department_email ?? '',
+          owner_rank: currentRow.owner_rank ?? '',
         }
       : {
           owner_name: '',
-          owner_company: '',
-          owner_contact: '',
-          owner_phone: '',
           owner_email: '',
-          owner_country: '',
-          owner_fax: '',
-          owner_address: '',
-          owner_remark: '',
+          owner_phone: '',
+          owner_team: '',
+          owner_department: '',
+          owner_department_email: '',
+          owner_rank: '',
         },
   })
 
@@ -97,26 +90,22 @@ export function OwnersActionDialog({
       if (isEdit && currentRow) {
         form.reset({
           owner_name: currentRow.owner_name,
-          owner_company: currentRow.owner_company ?? '',
-          owner_contact: currentRow.owner_contact ?? '',
-          owner_phone: currentRow.owner_phone ?? '',
           owner_email: currentRow.owner_email ?? '',
-          owner_country: currentRow.owner_country ?? '',
-          owner_fax: currentRow.owner_fax ?? '',
-          owner_address: currentRow.owner_address ?? '',
-          owner_remark: currentRow.owner_remark ?? '',
+          owner_phone: currentRow.owner_phone ?? '',
+          owner_team: currentRow.owner_team ?? '',
+          owner_department: currentRow.owner_department ?? '',
+          owner_department_email: currentRow.owner_department_email ?? '',
+          owner_rank: currentRow.owner_rank ?? '',
         })
       } else {
         form.reset({
           owner_name: '',
-          owner_company: '',
-          owner_contact: '',
-          owner_phone: '',
           owner_email: '',
-          owner_country: '',
-          owner_fax: '',
-          owner_address: '',
-          owner_remark: '',
+          owner_phone: '',
+          owner_team: '',
+          owner_department: '',
+          owner_department_email: '',
+          owner_rank: '',
         })
       }
     }
@@ -154,14 +143,12 @@ export function OwnersActionDialog({
   const onSubmit = (values: OwnerForm) => {
     const payload = {
       owner_name: values.owner_name,
-      owner_company: toOptStr(values.owner_company),
-      owner_contact: toOptStr(values.owner_contact),
-      owner_phone: toOptStr(values.owner_phone),
       owner_email: toOptStr(values.owner_email),
-      owner_country: toOptStr(values.owner_country),
-      owner_fax: toOptStr(values.owner_fax),
-      owner_address: toOptStr(values.owner_address),
-      owner_remark: toOptStr(values.owner_remark),
+      owner_phone: toOptStr(values.owner_phone),
+      owner_team: toOptStr(values.owner_team),
+      owner_department: toOptStr(values.owner_department),
+      owner_department_email: toOptStr(values.owner_department_email),
+      owner_rank: toOptStr(values.owner_rank),
     } as any
     if (isEdit && currentRow) {
       updateMutation.mutate({ id: currentRow.owner_id, data: payload })
@@ -218,40 +205,16 @@ export function OwnersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='owner_company'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 text-end'>
-                      公司名称
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入公司名称'
-                        className='col-span-4'
-                        list='owner-company-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='owner-company-options'>
-                      {(groups?.companies ?? []).map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='owner_contact'
+                name='owner_email'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      联系人
+                      船东邮箱
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='请输入联系人'
+                        type='email'
+                        placeholder='请输入船东邮箱'
                         className='col-span-4'
                         {...field}
                       />
@@ -266,11 +229,11 @@ export function OwnersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      电话
+                      船东电话
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='请输入联系电话'
+                        placeholder='请输入船东电话'
                         className='col-span-4'
                         {...field}
                       />
@@ -281,42 +244,22 @@ export function OwnersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='owner_email'
+                name='owner_team'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      邮箱
+                      船东小组
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type='email'
-                        placeholder='请输入邮箱'
+                        placeholder='请输入船东小组'
                         className='col-span-4'
+                        list='owner-team-options'
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='owner_country'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      国家/地区
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入国家/地区'
-                        className='col-span-4'
-                        list='owner-country-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='owner-country-options'>
-                      {(groups?.countries ?? []).map((c) => (
+                    <datalist id='owner-team-options'>
+                      {(groups?.teams ?? []).map((c) => (
                         <option key={c} value={c} />
                       ))}
                     </datalist>
@@ -326,15 +269,41 @@ export function OwnersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='owner_fax'
+                name='owner_department'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      传真
+                      船东部门
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='请输入传真'
+                        placeholder='请输入船东部门'
+                        className='col-span-4'
+                        list='owner-department-options'
+                        {...field}
+                      />
+                    </FormControl>
+                    <datalist id='owner-department-options'>
+                      {(groups?.departments ?? []).map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='owner_department_email'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      船东部门邮箱
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='email'
+                        placeholder='请输入船东部门邮箱'
                         className='col-span-4'
                         {...field}
                       />
@@ -345,40 +314,25 @@ export function OwnersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='owner_address'
+                name='owner_rank'
                 render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 pt-2 text-end'>
-                      地址
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      船东职级
                     </FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder='请输入地址'
-                        rows={2}
+                      <Input
+                        placeholder='请输入船东职级'
                         className='col-span-4'
+                        list='owner-rank-options'
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='owner_remark'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 pt-2 text-end'>
-                      备注
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder='备注信息'
-                        rows={2}
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
+                    <datalist id='owner-rank-options'>
+                      {(groups?.ranks ?? []).map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}

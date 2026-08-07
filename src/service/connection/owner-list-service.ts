@@ -3,16 +3,12 @@ import { query, execute, type ExecuteValues } from './db'
 export interface OwnerListRow {
   owner_id: number
   owner_name: string
-  owner_company: string | null
-  owner_contact: string | null
-  owner_phone: string | null
   owner_email: string | null
-  owner_country: string | null
-  owner_fax: string | null
-  owner_address: string | null
-  owner_remark: string | null
-  created_at: string | null
-  updated_at: string | null
+  owner_phone: string | null
+  owner_team: string | null
+  owner_department: string | null
+  owner_department_email: string | null
+  owner_rank: string | null
 }
 
 export interface OwnerDictEntry {
@@ -21,9 +17,8 @@ export interface OwnerDictEntry {
 }
 
 const SELECT_COLS = `
-  owner_id, owner_name, owner_company, owner_contact, owner_phone,
-  owner_email, owner_country, owner_fax, owner_address, owner_remark,
-  created_at, updated_at
+  owner_id, owner_name, owner_email, owner_phone,
+  owner_team, owner_department, owner_department_email, owner_rank
 `
 
 export async function getAllOwnerList(): Promise<OwnerListRow[]> {
@@ -43,20 +38,25 @@ export async function getOwnerListById(ownerId: number): Promise<OwnerListRow | 
 }
 
 export async function getOwnerListGroups(): Promise<{
-  countries: string[]
-  companies: string[]
+  teams: string[]
+  departments: string[]
+  ranks: string[]
 }> {
-  const [countries, companies] = await Promise.all([
-    query<{ owner_country: string | null }[]>(
-      'SELECT DISTINCT owner_country FROM `owner_list` WHERE owner_country IS NOT NULL AND owner_country <> \'\' ORDER BY owner_country'
+  const [teams, departments, ranks] = await Promise.all([
+    query<{ owner_team: string | null }[]>(
+      'SELECT DISTINCT owner_team FROM `owner_list` WHERE owner_team IS NOT NULL AND owner_team <> \'\' ORDER BY owner_team'
     ),
-    query<{ owner_company: string | null }[]>(
-      'SELECT DISTINCT owner_company FROM `owner_list` WHERE owner_company IS NOT NULL AND owner_company <> \'\' ORDER BY owner_company'
+    query<{ owner_department: string | null }[]>(
+      'SELECT DISTINCT owner_department FROM `owner_list` WHERE owner_department IS NOT NULL AND owner_department <> \'\' ORDER BY owner_department'
+    ),
+    query<{ owner_rank: string | null }[]>(
+      'SELECT DISTINCT owner_rank FROM `owner_list` WHERE owner_rank IS NOT NULL AND owner_rank <> \'\' ORDER BY owner_rank'
     ),
   ])
   return {
-    countries: countries.map((r) => r.owner_country!).filter(Boolean),
-    companies: companies.map((r) => r.owner_company!).filter(Boolean),
+    teams: teams.map((r) => r.owner_team!).filter(Boolean),
+    departments: departments.map((r) => r.owner_department!).filter(Boolean),
+    ranks: ranks.map((r) => r.owner_rank!).filter(Boolean),
   }
 }
 
@@ -64,9 +64,11 @@ export async function getOwnerListPaginated(params: {
   page?: number
   pageSize?: number
   ownerName?: string
-  ownerCompany?: string
-  ownerCountry?: string
-  ownerContact?: string
+  ownerTeam?: string
+  ownerDepartment?: string
+  ownerRank?: string
+  ownerEmail?: string
+  ownerPhone?: string
 }): Promise<{ rows: OwnerListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
   const pageSize = params.pageSize ?? 10
@@ -79,17 +81,25 @@ export async function getOwnerListPaginated(params: {
     whereClauses.push('owner_name LIKE ?')
     whereParams.push(`%${params.ownerName}%`)
   }
-  if (params.ownerCompany && params.ownerCompany.trim() !== '') {
-    whereClauses.push('owner_company = ?')
-    whereParams.push(params.ownerCompany)
+  if (params.ownerTeam && params.ownerTeam.trim() !== '') {
+    whereClauses.push('owner_team = ?')
+    whereParams.push(params.ownerTeam)
   }
-  if (params.ownerCountry && params.ownerCountry.trim() !== '') {
-    whereClauses.push('owner_country = ?')
-    whereParams.push(params.ownerCountry)
+  if (params.ownerDepartment && params.ownerDepartment.trim() !== '') {
+    whereClauses.push('owner_department = ?')
+    whereParams.push(params.ownerDepartment)
   }
-  if (params.ownerContact && params.ownerContact.trim() !== '') {
-    whereClauses.push('owner_contact LIKE ?')
-    whereParams.push(`%${params.ownerContact}%`)
+  if (params.ownerRank && params.ownerRank.trim() !== '') {
+    whereClauses.push('owner_rank = ?')
+    whereParams.push(params.ownerRank)
+  }
+  if (params.ownerEmail && params.ownerEmail.trim() !== '') {
+    whereClauses.push('owner_email LIKE ?')
+    whereParams.push(`%${params.ownerEmail}%`)
+  }
+  if (params.ownerPhone && params.ownerPhone.trim() !== '') {
+    whereClauses.push('owner_phone LIKE ?')
+    whereParams.push(`%${params.ownerPhone}%`)
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
@@ -112,30 +122,26 @@ export async function getOwnerListPaginated(params: {
 
 export async function createOwnerList(data: {
   owner_name: string
-  owner_company?: string | null
-  owner_contact?: string | null
-  owner_phone?: string | null
   owner_email?: string | null
-  owner_country?: string | null
-  owner_fax?: string | null
-  owner_address?: string | null
-  owner_remark?: string | null
+  owner_phone?: string | null
+  owner_team?: string | null
+  owner_department?: string | null
+  owner_department_email?: string | null
+  owner_rank?: string | null
 }): Promise<OwnerListRow> {
   const result = await execute(
     `INSERT INTO \`owner_list\`
-      (owner_name, owner_company, owner_contact, owner_phone, owner_email,
-       owner_country, owner_fax, owner_address, owner_remark, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      (owner_name, owner_email, owner_phone, owner_team,
+       owner_department, owner_department_email, owner_rank)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       data.owner_name,
-      data.owner_company ?? null,
-      data.owner_contact ?? null,
-      data.owner_phone ?? null,
       data.owner_email ?? null,
-      data.owner_country ?? null,
-      data.owner_fax ?? null,
-      data.owner_address ?? null,
-      data.owner_remark ?? null,
+      data.owner_phone ?? null,
+      data.owner_team ?? null,
+      data.owner_department ?? null,
+      data.owner_department_email ?? null,
+      data.owner_rank ?? null,
     ]
   )
   const newId = Number(result.insertId)
@@ -149,28 +155,24 @@ export async function updateOwnerList(
   ownerId: number,
   data: {
     owner_name?: string
-    owner_company?: string | null
-    owner_contact?: string | null
-    owner_phone?: string | null
     owner_email?: string | null
-    owner_country?: string | null
-    owner_fax?: string | null
-    owner_address?: string | null
-    owner_remark?: string | null
+    owner_phone?: string | null
+    owner_team?: string | null
+    owner_department?: string | null
+    owner_department_email?: string | null
+    owner_rank?: string | null
   }
 ): Promise<OwnerListRow> {
   const sets: string[] = []
   const params: (string | number | null)[] = []
   const keys: Array<keyof typeof data> = [
     'owner_name',
-    'owner_company',
-    'owner_contact',
-    'owner_phone',
     'owner_email',
-    'owner_country',
-    'owner_fax',
-    'owner_address',
-    'owner_remark',
+    'owner_phone',
+    'owner_team',
+    'owner_department',
+    'owner_department_email',
+    'owner_rank',
   ]
   for (const key of keys) {
     if (key in data) {
@@ -186,7 +188,6 @@ export async function updateOwnerList(
     if (!curr) throw new Error('Owner not found')
     return curr
   }
-  sets.push('`updated_at` = NOW()')
   params.push(ownerId)
   await execute(
     `UPDATE \`owner_list\` SET ${sets.join(', ')} WHERE owner_id = ?`,
@@ -216,28 +217,11 @@ function normalizeRow(row: any): OwnerListRow {
   return {
     owner_id: Number(row.owner_id),
     owner_name: String(row.owner_name ?? ''),
-    owner_company: row.owner_company ? String(row.owner_company) : null,
-    owner_contact: row.owner_contact ? String(row.owner_contact) : null,
-    owner_phone: row.owner_phone ? String(row.owner_phone) : null,
     owner_email: row.owner_email ? String(row.owner_email) : null,
-    owner_country: row.owner_country ? String(row.owner_country) : null,
-    owner_fax: row.owner_fax ? String(row.owner_fax) : null,
-    owner_address: row.owner_address ? String(row.owner_address) : null,
-    owner_remark: row.owner_remark ? String(row.owner_remark) : null,
-    created_at: row.created_at ? formatDateTime(row.created_at) : null,
-    updated_at: row.updated_at ? formatDateTime(row.updated_at) : null,
+    owner_phone: row.owner_phone ? String(row.owner_phone) : null,
+    owner_team: row.owner_team ? String(row.owner_team) : null,
+    owner_department: row.owner_department ? String(row.owner_department) : null,
+    owner_department_email: row.owner_department_email ? String(row.owner_department_email) : null,
+    owner_rank: row.owner_rank ? String(row.owner_rank) : null,
   }
-}
-
-function formatDateTime(v: unknown): string {
-  if (v instanceof Date) {
-    const y = v.getFullYear()
-    const m = String(v.getMonth() + 1).padStart(2, '0')
-    const d = String(v.getDate()).padStart(2, '0')
-    const hh = String(v.getHours()).padStart(2, '0')
-    const mm = String(v.getMinutes()).padStart(2, '0')
-    const ss = String(v.getSeconds()).padStart(2, '0')
-    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`
-  }
-  return String(v ?? '')
 }

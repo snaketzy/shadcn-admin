@@ -7,7 +7,7 @@ type DistRow = { value: string | null; cnt: number }
 type OwnerRow = {
   owner_id: number
   owner_name: string | null
-  onwer_email: string | null
+  owner_email: string | null
   owner_phone: string | null
   owner_team: string | null
   owner_department: string | null
@@ -64,19 +64,19 @@ async function main() {
   )[0].c
   const emailCnt = (
     await query<[{ c: number }]>(
-      `SELECT COUNT(*) AS c FROM \`${TABLE_NAME}\` WHERE onwer_email IS NOT NULL AND TRIM(onwer_email) <> ''`
+      `SELECT COUNT(*) AS c FROM \`${TABLE_NAME}\` WHERE owner_email IS NOT NULL AND TRIM(owner_email) <> ''`
     )
   )[0].c
   console.log(`\n电话非空: ${phoneCnt} 条；个人邮箱非空: ${emailCnt} 条`)
 
   console.log('\n=== 抽样 10 条 ===')
   const rows = await query<OwnerRow[]>(
-    `SELECT owner_id, owner_name, onwer_email, owner_phone, owner_team, owner_department, owner_department_email, owner_rank
+    `SELECT owner_id, owner_name, owner_email, owner_phone, owner_team, owner_department, owner_department_email, owner_rank
      FROM \`${TABLE_NAME}\` ORDER BY owner_id LIMIT 10`
   )
   for (const r of rows) {
     console.log(
-      `#${String(r.owner_id).padStart(2)} ${String(r.owner_name ?? '').padEnd(20)} Team:${(r.owner_team ?? '-').padEnd(4)} Dept:${(r.owner_department ?? '-').padEnd(4)} Rank:${(r.owner_rank ?? '-').padEnd(4)} ${r.owner_phone ?? '-'.padEnd(14)} ${r.onwer_email ?? '-'}`
+      `#${String(r.owner_id).padStart(2)} ${String(r.owner_name ?? '').padEnd(20)} Team:${(r.owner_team ?? '-').padEnd(4)} Dept:${(r.owner_department ?? '-').padEnd(4)} Rank:${(r.owner_rank ?? '-').padEnd(4)} ${r.owner_phone ?? '-'.padEnd(14)} ${r.owner_email ?? '-'}`
     )
   }
   console.log()
