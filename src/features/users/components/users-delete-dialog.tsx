@@ -1,18 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { type User } from '../data/schema'
+import { type Vessel } from '../data/schema'
+import { deleteVessel } from '../api/client'
 
 type UserDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: User
+  currentRow: Vessel
 }
 
 export function UsersDeleteDialog({
@@ -20,13 +22,35 @@ export function UsersDeleteDialog({
   onOpenChange,
   currentRow,
 }: UserDeleteDialogProps) {
+  const queryClient = useQueryClient()
   const [value, setValue] = useState('')
 
-  const handleDelete = () => {
-    if (value.trim() !== currentRow.username) return
+  useEffect(() => {
+    if (open) {
+      setValue('')
+    }
+  }, [open])
 
-    onOpenChange(false)
-    showSubmittedData(currentRow, '以下船只已被删除：')
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteVessel(id),
+    onSuccess: (ok) => {
+      if (ok) {
+        toast.success('船只已删除')
+        queryClient.invalidateQueries({ queryKey: ['vessel-list'] })
+        queryClient.invalidateQueries({ queryKey: ['vessel-list-groups'] })
+        onOpenChange(false)
+      } else {
+        toast.error('删除失败，请稍后重试')
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(`删除失败: ${err.message}`)
+    },
+  })
+
+  const handleDelete = () => {
+    if (value.trim() !== currentRow.vessel_name) return
+    deleteMutation.mutate(currentRow.vessel_id)
   }
 
   return (
@@ -34,7 +58,7 @@ export function UsersDeleteDialog({
       open={open}
       onOpenChange={onOpenChange}
       form='users-delete-form'
-      disabled={value.trim() !== currentRow.username}
+      disabled={value.trim() !== currentRow.vessel_name || deleteMutation.isPending}
       title={
         <span className='text-destructive'>
           <AlertTriangle
@@ -54,13 +78,9 @@ export function UsersDeleteDialog({
           className='space-y-4'
         >
           <p className='mb-2'>
-            您确定要删除 <span className='font-bold'>{currentRow.username}</span> 吗？
+            您确定要删除 <span className='font-bold'>{currentRow.vessel_name}</span> 吗？
             <br />
-            此操作将永久移除角色为{' '}
-            <span className='font-bold'>
-              {currentRow.role.toUpperCase()}
-            </span>{' '}
-            的船只。此操作不可撤销。
+            此操作不可撤销。
           </p>
 
           <Label className='my-2'>
@@ -70,6 +90,7 @@ export function UsersDeleteDialog({
               onChange={(e) => setValue(e.target.value)}
               placeholder='请输入船名以确认删除。'
               autoFocus
+              disabled={deleteMutation.isPending}
             />
           </Label>
 
@@ -81,7 +102,7 @@ export function UsersDeleteDialog({
           </Alert>
         </form>
       }
-      confirmText='删除'
+      confirmText={deleteMutation.isPending ? '删除中...' : '删除'}
       destructive
     />
   )

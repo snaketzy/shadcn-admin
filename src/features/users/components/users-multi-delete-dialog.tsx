@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { type Table } from '@tanstack/react-table'
 import { AlertTriangle } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { sleep } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { type Vessel } from '../data/schema'
+import { deleteVesselBulk } from '../api/client'
 
 type UserMultiDeleteDialogProps<TData> = {
   open: boolean
@@ -23,27 +25,42 @@ export function UsersMultiDeleteDialog<TData>({
   onOpenChange,
   table,
 }: UserMultiDeleteDialogProps<TData>) {
+  const queryClient = useQueryClient()
   const [value, setValue] = useState('')
 
+  useEffect(() => {
+    if (open) {
+      setValue('')
+    }
+  }, [open])
+
   const selectedRows = table.getFilteredSelectedRowModel().rows
+  const selectedIds = selectedRows.map((row) => (row.original as Vessel).vessel_id)
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: number[]) => deleteVesselBulk(ids),
+    onSuccess: (n) => {
+      toast.success(`已删除 ${n} 艘船只`)
+      queryClient.invalidateQueries({ queryKey: ['vessel-list'] })
+      queryClient.invalidateQueries({ queryKey: ['vessel-list-groups'] })
+      table.resetRowSelection()
+      onOpenChange(false)
+    },
+    onError: (err: Error) => {
+      toast.error(`批量删除失败: ${err.message}`)
+    },
+  })
 
   const handleDelete = () => {
     if (value.trim() !== CONFIRM_WORD) {
       toast.error(`请输入 "${CONFIRM_WORD}" 以确认。`)
       return
     }
-
-    onOpenChange(false)
-
-    toast.promise(sleep(2000), {
-      loading: '正在删除船只...',
-      success: () => {
-        setValue('')
-        table.resetRowSelection()
-        return `已删除 ${selectedRows.length} 艘船只`
-      },
-      error: '错误',
-    })
+    if (selectedIds.length === 0) {
+      toast.error('没有选中的船只')
+      return
+    }
+    deleteMutation.mutate(selectedIds)
   }
 
   return (
@@ -51,7 +68,7 @@ export function UsersMultiDeleteDialog<TData>({
       open={open}
       onOpenChange={onOpenChange}
       form='users-multi-delete-form'
-      disabled={value.trim() !== CONFIRM_WORD}
+      disabled={value.trim() !== CONFIRM_WORD || deleteMutation.isPending || selectedIds.length === 0}
       title={
         <span className='text-destructive'>
           <AlertTriangle
@@ -82,6 +99,7 @@ export function UsersMultiDeleteDialog<TData>({
               onChange={(e) => setValue(e.target.value)}
               placeholder={`输入 "${CONFIRM_WORD}" 确认。`}
               autoFocus
+              disabled={deleteMutation.isPending}
             />
           </Label>
 
@@ -93,7 +111,7 @@ export function UsersMultiDeleteDialog<TData>({
           </Alert>
         </form>
       }
-      confirmText='删除'
+      confirmText={deleteMutation.isPending ? '删除中...' : '删除'}
       destructive
     />
   )

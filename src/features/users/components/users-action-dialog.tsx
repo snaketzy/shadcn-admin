@@ -3,7 +3,8 @@
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,79 +23,38 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { PasswordInput } from '@/components/password-input'
-import { SelectDropdown } from '@/components/select-dropdown'
-import { roles } from '../data/data'
-import { type User } from '../data/schema'
+import { type Vessel } from '../data/schema'
+import { createVessel, updateVessel, fetchVesselGroups } from '../api/client'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
-const formSchema = z
-  .object({
-    firstName: z.string().min(1, 'First Name is required.'),
-    lastName: z.string().min(1, 'Last Name is required.'),
-    username: z.string().min(1, '船名是必填项。'),
-    phoneNumber: z.string().min(1, 'Phone number is required.'),
-    email: z.email({
-      error: (iss) => (iss.input === '' ? 'Email is required.' : undefined),
-    }),
-    password: z.string().transform((pwd) => pwd.trim()),
-    role: z.string().min(1, 'Role is required.'),
-    confirmPassword: z.string().transform((pwd) => pwd.trim()),
-    isEdit: z.boolean(),
-  })
-  .refine(
-    (data) => {
-      if (data.isEdit && !data.password) return true
-      return data.password.length > 0
-    },
-    {
-      message: 'Password is required.',
-      path: ['password'],
-    }
-  )
-  .refine(
-    ({ isEdit, password }) => {
-      if (isEdit && !password) return true
-      return password.length >= 8
-    },
-    {
-      message: 'Password must be at least 8 characters long.',
-      path: ['password'],
-    }
-  )
-  .refine(
-    ({ isEdit, password }) => {
-      if (isEdit && !password) return true
-      return /[a-z]/.test(password)
-    },
-    {
-      message: 'Password must contain at least one lowercase letter.',
-      path: ['password'],
-    }
-  )
-  .refine(
-    ({ isEdit, password }) => {
-      if (isEdit && !password) return true
-      return /\d/.test(password)
-    },
-    {
-      message: 'Password must contain at least one number.',
-      path: ['password'],
-    }
-  )
-  .refine(
-    ({ isEdit, password, confirmPassword }) => {
-      if (isEdit && !password) return true
-      return password === confirmPassword
-    },
-    {
-      message: "Passwords don't match.",
-      path: ['confirmPassword'],
-    }
-  )
-type UserForm = z.infer<typeof formSchema>
+const formSchema = z.object({
+  vessel_name: z.string().min(1, '船名是必填项。'),
+  building_year: z.string().optional().catch(''),
+  vessel_imo: z.string().optional().catch(''),
+  vessel_loa: z.string().optional().catch(''),
+  vessel_breadth: z.string().optional().catch(''),
+  vessel_gross: z.string().optional().catch(''),
+  vessel_dwt: z.string().optional().catch(''),
+  vessel_class: z.string().optional().catch(''),
+  vessel_flag: z.string().optional().catch(''),
+  vessel_team: z.string().optional().catch(''),
+  vessel_incharge: z.string().optional().catch(''),
+})
+type VesselForm = z.infer<typeof formSchema>
+
+function toOptStr(s: string | null | undefined): string | null {
+  if (s == null || !s || s.trim() === '') return null
+  return s
+}
+function toOptNum(s: string | null | undefined): number | null {
+  if (s == null || !s || s.trim() === '') return null
+  const n = Number(s)
+  return Number.isFinite(n) ? n : null
+}
 
 type UserActionDialogProps = {
-  currentRow?: User
+  currentRow?: Vessel
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -104,46 +64,142 @@ export function UsersActionDialog({
   open,
   onOpenChange,
 }: UserActionDialogProps) {
+  const queryClient = useQueryClient()
   const isEdit = !!currentRow
-  const form = useForm<UserForm>({
+
+  const { data: groups } = useQuery({
+    queryKey: ['vessel-list-groups'],
+    queryFn: fetchVesselGroups,
+  })
+
+  const form = useForm<VesselForm>({
     resolver: zodResolver(formSchema),
     defaultValues: isEdit
       ? {
-          ...currentRow,
-          password: '',
-          confirmPassword: '',
-          isEdit,
+          vessel_name: currentRow.vessel_name,
+          building_year: currentRow.building_year ?? '',
+          vessel_imo: currentRow.vessel_imo != null ? String(currentRow.vessel_imo) : '',
+          vessel_loa: currentRow.vessel_loa ?? '',
+          vessel_breadth: currentRow.vessel_breadth ?? '',
+          vessel_gross: currentRow.vessel_gross != null ? String(currentRow.vessel_gross) : '',
+          vessel_dwt: currentRow.vessel_dwt != null ? String(currentRow.vessel_dwt) : '',
+          vessel_class: currentRow.vessel_class ?? '',
+          vessel_flag: currentRow.vessel_flag ?? '',
+          vessel_team: currentRow.vessel_team ?? '',
+          vessel_incharge: currentRow.vessel_incharge ?? '',
         }
       : {
-          firstName: '',
-          lastName: '',
-          username: '',
-          email: '',
-          role: '',
-          phoneNumber: '',
-          password: '',
-          confirmPassword: '',
-          isEdit,
+          vessel_name: '',
+          building_year: '',
+          vessel_imo: '',
+          vessel_loa: '',
+          vessel_breadth: '',
+          vessel_gross: '',
+          vessel_dwt: '',
+          vessel_class: '',
+          vessel_flag: '',
+          vessel_team: '',
+          vessel_incharge: '',
         },
   })
 
-  const onSubmit = (values: UserForm) => {
-    form.reset()
-    showSubmittedData(values)
-    onOpenChange(false)
+  useEffect(() => {
+    if (open) {
+      if (isEdit && currentRow) {
+        form.reset({
+          vessel_name: currentRow.vessel_name,
+          building_year: currentRow.building_year ?? '',
+          vessel_imo: currentRow.vessel_imo != null ? String(currentRow.vessel_imo) : '',
+          vessel_loa: currentRow.vessel_loa ?? '',
+          vessel_breadth: currentRow.vessel_breadth ?? '',
+          vessel_gross: currentRow.vessel_gross != null ? String(currentRow.vessel_gross) : '',
+          vessel_dwt: currentRow.vessel_dwt != null ? String(currentRow.vessel_dwt) : '',
+          vessel_class: currentRow.vessel_class ?? '',
+          vessel_flag: currentRow.vessel_flag ?? '',
+          vessel_team: currentRow.vessel_team ?? '',
+          vessel_incharge: currentRow.vessel_incharge ?? '',
+        })
+      } else {
+        form.reset({
+          vessel_name: '',
+          building_year: '',
+          vessel_imo: '',
+          vessel_loa: '',
+          vessel_breadth: '',
+          vessel_gross: '',
+          vessel_dwt: '',
+          vessel_class: '',
+          vessel_flag: '',
+          vessel_team: '',
+          vessel_incharge: '',
+        })
+      }
+    }
+  }, [open, isEdit, currentRow, form])
+
+  const createMutation = useMutation({
+    mutationFn: createVessel,
+    onSuccess: () => {
+      toast.success('船只创建成功')
+      queryClient.invalidateQueries({ queryKey: ['vessel-list'] })
+      queryClient.invalidateQueries({ queryKey: ['vessel-list-groups'] })
+      form.reset()
+      onOpenChange(false)
+    },
+    onError: (err: Error) => {
+      toast.error(`创建失败: ${err.message}`)
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updateVessel>[1] }) =>
+      updateVessel(id, data),
+    onSuccess: () => {
+      toast.success('船只更新成功')
+      queryClient.invalidateQueries({ queryKey: ['vessel-list'] })
+      queryClient.invalidateQueries({ queryKey: ['vessel-list-groups'] })
+      form.reset()
+      onOpenChange(false)
+    },
+    onError: (err: Error) => {
+      toast.error(`更新失败: ${err.message}`)
+    },
+  })
+
+  const onSubmit = (values: VesselForm) => {
+    const payload = {
+      vessel_name: values.vessel_name,
+      building_year: toOptStr(values.building_year),
+      vessel_imo: toOptNum(values.vessel_imo),
+      vessel_loa: toOptStr(values.vessel_loa),
+      vessel_breadth: toOptStr(values.vessel_breadth),
+      vessel_gross: toOptNum(values.vessel_gross),
+      vessel_dwt: toOptNum(values.vessel_dwt),
+      vessel_class: toOptStr(values.vessel_class),
+      vessel_flag: toOptStr(values.vessel_flag),
+      vessel_team: toOptStr(values.vessel_team),
+      vessel_incharge: toOptStr(values.vessel_incharge),
+    } as any
+    if (isEdit && currentRow) {
+      updateMutation.mutate({ id: currentRow.vessel_id, data: payload })
+    } else {
+      createMutation.mutate(payload)
+    }
   }
 
-  const isPasswordTouched = !!form.formState.dirtyFields.password
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
 
   return (
     <Dialog
       open={open}
       onOpenChange={(state) => {
-        form.reset()
+        if (!state) {
+          form.reset()
+        }
         onOpenChange(state)
       }}
     >
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader className='text-start'>
           <DialogTitle>{isEdit ? '编辑船只' : '添加新船只'}</DialogTitle>
           <DialogDescription>
@@ -156,55 +212,15 @@ export function UsersActionDialog({
             <form
               id='user-form'
               onSubmit={form.handleSubmit(onSubmit)}
-              className='space-y-4 px-0.5'
+              className='grid grid-cols-2 gap-4 px-0.5'
             >
               <FormField
                 control={form.control}
-                name='firstName'
+                name='vessel_name'
                 render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
                     <FormLabel className='col-span-2 text-end'>
-                      First Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='John'
-                        className='col-span-4'
-                        autoComplete='off'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='lastName'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      Last Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='Doe'
-                        className='col-span-4'
-                        autoComplete='off'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='username'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船名
+                      船名 <span className='text-destructive'>*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -219,32 +235,15 @@ export function UsersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='email'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='john.doe@gmail.com'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='phoneNumber'
+                name='building_year'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Phone Number
+                      建造年份
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='+123456789'
+                        type='date'
                         className='col-span-4'
                         {...field}
                       />
@@ -255,35 +254,16 @@ export function UsersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='role'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>Role</FormLabel>
-                    <SelectDropdown
-                      defaultValue={field.value}
-                      onValueChange={field.onChange}
-                      placeholder='Select a role'
-                      className='col-span-4'
-                      items={roles.map(({ label, value }) => ({
-                        label,
-                        value,
-                      }))}
-                    />
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='password'
+                name='vessel_imo'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Password
+                      IMO
                     </FormLabel>
                     <FormControl>
-                      <PasswordInput
-                        placeholder='e.g., S3cur3P@ssw0rd'
+                      <Input
+                        type='number'
+                        placeholder='请输入IMO编号'
                         className='col-span-4'
                         {...field}
                       />
@@ -294,16 +274,168 @@ export function UsersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='confirmPassword'
+                name='vessel_loa'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Confirm Password
+                      LOA
                     </FormLabel>
                     <FormControl>
-                      <PasswordInput
-                        disabled={!isPasswordTouched}
-                        placeholder='e.g., S3cur3P@ssw0rd'
+                      <Input
+                        placeholder='总长 (m)'
+                        className='col-span-4'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_breadth'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Breadth
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='型宽 (m)'
+                        className='col-span-4'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_gross'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Gross
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        placeholder='总吨'
+                        className='col-span-4'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_dwt'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Dwt
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        placeholder='载重吨'
+                        className='col-span-4'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_class'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Class
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='船级社 (如: NK, DNV)'
+                        className='col-span-4'
+                        list='vessel-class-options'
+                        {...field}
+                      />
+                    </FormControl>
+                    <datalist id='vessel-class-options'>
+                      {(groups?.classes ?? []).map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_flag'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Flag
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='船旗 (如: Panama)'
+                        className='col-span-4'
+                        list='vessel-flag-options'
+                        {...field}
+                      />
+                    </FormControl>
+                    <datalist id='vessel-flag-options'>
+                      {(groups?.flags ?? []).map((f) => (
+                        <option key={f} value={f} />
+                      ))}
+                    </datalist>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_team'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Team
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='所属团队'
+                        className='col-span-4'
+                        list='vessel-team-options'
+                        {...field}
+                      />
+                    </FormControl>
+                    <datalist id='vessel-team-options'>
+                      {(groups?.teams ?? []).map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_incharge'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
+                    <FormLabel className='col-span-2 text-end'>
+                      负责人
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='请输入负责人姓名'
                         className='col-span-4'
                         {...field}
                       />
@@ -316,8 +448,8 @@ export function UsersActionDialog({
           </Form>
         </div>
         <DialogFooter>
-          <Button type='submit' form='user-form'>
-            保存更改
+          <Button type='submit' form='user-form' disabled={isSubmitting}>
+            {isSubmitting ? '保存中...' : '保存更改'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { type UserEvent, userEvent } from 'vitest/browser'
 import { showSubmittedData } from '@/lib/show-submitted-data'
-import { type User } from '../data/schema'
+type User = any
 import { UsersActionDialog } from './users-action-dialog'
 
 const VALIDATION_MESSAGES = {

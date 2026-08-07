@@ -1,30 +1,18 @@
 import { z } from 'zod'
 
-const userStatusSchema = z.union([
-  z.literal('active'),
-  z.literal('inactive'),
-  z.literal('invited'),
-  z.literal('suspended'),
-])
-export type UserStatus = z.infer<typeof userStatusSchema>
-
-const userRoleSchema = z.union([
-  z.literal('superadmin'),
-  z.literal('admin'),
-  z.literal('cashier'),
-  z.literal('manager'),
-])
-
-const _userSchema = z.object({
-  id: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
-  username: z.string(),
-  email: z.string(),
-  phoneNumber: z.string(),
-  status: userStatusSchema,
-  role: userRoleSchema,
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+export const vesselSchema = z.object({
+  vessel_id: z.number(),
+  vessel_name: z.string(),
+  building_year: z.string().nullable(),
+  vessel_imo: z.number().nullable(),
+  vessel_loa: z.string().nullable(),
+  vessel_breadth: z.string().nullable(),
+  vessel_gross: z.number().nullable(),
+  vessel_dwt: z.number().nullable(),
+  vessel_class: z.string().nullable(),
+  vessel_flag: z.string().nullable(),
+  vessel_team: z.string().nullable(),
+  vessel_incharge: z.string().nullable(),
 })
-export type User = z.infer<typeof _userSchema>
+
+export type Vessel = z.infer<typeof vesselSchema>

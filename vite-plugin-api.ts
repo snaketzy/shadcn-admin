@@ -9,6 +9,16 @@ import {
   deleteCaseDict,
   deleteCaseDictBulk,
 } from './src/service/connection/case-dict-service'
+import {
+  getAllVesselList,
+  getVesselListById,
+  getVesselListGroups,
+  getVesselListPaginated,
+  createVesselList,
+  updateVesselList,
+  deleteVesselList,
+  deleteVesselListBulk,
+} from './src/service/connection/vessel-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -163,6 +173,151 @@ async function handleCaseDictApi(
   }
 }
 
+async function handleVesselListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname, searchParams } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/vessel-list')) {
+    return false
+  }
+
+  const subPath = pathname.slice('/api/vessel-list'.length) || '/'
+
+  function toOptStr(s: string | null): string | undefined {
+    if (s === null) return undefined
+    if (s === '') return undefined
+    return s
+  }
+  function toOptNum(s: string | null): number | null | undefined {
+    if (s === null) return undefined
+    if (s === '') return null
+    const n = Number(s)
+    return Number.isFinite(n) ? n : null
+  }
+
+  try {
+    if (subPath === '/' || subPath === '') {
+      if (method === 'GET') {
+        const page = Number(searchParams.get('page') ?? 1)
+        const pageSize = Number(searchParams.get('pageSize') ?? 1000)
+        const result = await getVesselListPaginated({
+          page,
+          pageSize,
+          vesselName: toOptStr(searchParams.get('vesselName')),
+          vesselTeam: toOptStr(searchParams.get('vesselTeam')),
+          vesselFlag: toOptStr(searchParams.get('vesselFlag')),
+          vesselClass: toOptStr(searchParams.get('vesselClass')),
+          vesselIncharge: toOptStr(searchParams.get('vesselIncharge')),
+        })
+        sendJson(res, 200, { success: true, data: result })
+        return true
+      }
+      if (method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const created = await createVesselList({
+          vessel_name: String(body.vessel_name ?? ''),
+          building_year: toOptStr(body.building_year as any),
+          vessel_imo: toOptNum(body.vessel_imo as any),
+          vessel_loa: toOptStr(body.vessel_loa as any),
+          vessel_breadth: toOptStr(body.vessel_breadth as any),
+          vessel_gross: toOptNum(body.vessel_gross as any),
+          vessel_dwt: toOptNum(body.vessel_dwt as any),
+          vessel_class: toOptStr(body.vessel_class as any),
+          vessel_flag: toOptStr(body.vessel_flag as any),
+          vessel_team: toOptStr(body.vessel_team as any),
+          vessel_incharge: toOptStr(body.vessel_incharge as any),
+        })
+        sendJson(res, 200, { success: true, data: created })
+        return true
+      }
+    }
+
+    if (subPath === '/all') {
+      if (method === 'GET') {
+        const rows = await getAllVesselList()
+        sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+    }
+
+    if (subPath === '/groups') {
+      if (method === 'GET') {
+        const groups = await getVesselListGroups()
+        sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/bulk-delete') {
+      if (method === 'POST') {
+        const body = (await readBody(req)) as { ids?: number[] } | undefined
+        const ids = body?.ids ?? []
+        const n = await deleteVesselListBulk(ids)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const idMatch = subPath.match(/^\/(\d+)$/)
+    if (idMatch) {
+      const vesselId = Number(idMatch[1])
+      if (method === 'GET') {
+        const row = await getVesselListById(vesselId)
+        if (!row) {
+          sendJson(res, 404, { success: false, message: 'Not found' })
+        } else {
+          sendJson(res, 200, { success: true, data: row })
+        }
+        return true
+      }
+      if (method === 'PUT') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const updated = await updateVesselList(vesselId, {
+          vessel_name: body.vessel_name == null ? undefined : String(body.vessel_name),
+          building_year: toOptStr(body.building_year as any),
+          vessel_imo: toOptNum(body.vessel_imo as any),
+          vessel_loa: toOptStr(body.vessel_loa as any),
+          vessel_breadth: toOptStr(body.vessel_breadth as any),
+          vessel_gross: toOptNum(body.vessel_gross as any),
+          vessel_dwt: toOptNum(body.vessel_dwt as any),
+          vessel_class: toOptStr(body.vessel_class as any),
+          vessel_flag: toOptStr(body.vessel_flag as any),
+          vessel_team: toOptStr(body.vessel_team as any),
+          vessel_incharge: toOptStr(body.vessel_incharge as any),
+        })
+        sendJson(res, 200, { success: true, data: updated })
+        return true
+      }
+      if (method === 'DELETE') {
+        const ok = await deleteVesselList(vesselId)
+        sendJson(res, 200, { success: ok, data: { deleted: ok ? 1 : 0 } })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[vessel-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -173,15 +328,16 @@ export function vitePluginCaseDictApi(): Plugin {
         next: (err?: unknown) => void
       ) => {
         const url = req.url ?? ''
-        if (!url.startsWith('/api/case-dict')) {
-          next()
-          return
-        }
         try {
-          const handled = await handleCaseDictApi(req, res)
-          if (!handled) {
-            next()
+          if (url.startsWith('/api/case-dict')) {
+            const handled = await handleCaseDictApi(req, res)
+            if (handled) return
           }
+          if (url.startsWith('/api/vessel-list')) {
+            const handled = await handleVesselListApi(req, res)
+            if (handled) return
+          }
+          next()
         } catch (err) {
           next(err)
         }

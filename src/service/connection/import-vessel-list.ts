@@ -172,7 +172,7 @@ async function insertBatch(rows: VesselListRow[]): Promise<number> {
      \`vessel_dwt\`, \`vessel_class\`, \`vessel_flag\`,
      \`vessel_team\`, \`vessel_incharge\`)
     VALUES ${placeholders}`
-  const result = await execute(sql, params)
+  const result = await execute(sql, params as any)
   return Number(result.affectedRows)
 }
 
