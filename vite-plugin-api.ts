@@ -19,6 +19,16 @@ import {
   deleteVesselList,
   deleteVesselListBulk,
 } from './src/service/connection/vessel-list-service'
+import {
+  getAllOwnerList,
+  getOwnerListById,
+  getOwnerListGroups,
+  getOwnerListPaginated,
+  createOwnerList,
+  updateOwnerList,
+  deleteOwnerList,
+  deleteOwnerListBulk,
+} from './src/service/connection/owner-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -318,6 +328,140 @@ async function handleVesselListApi(
   }
 }
 
+async function handleOwnerListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname, searchParams } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/owner-list')) {
+    return false
+  }
+
+  const subPath = pathname.slice('/api/owner-list'.length) || '/'
+
+  function toOptStr(s: string | null): string | undefined {
+    if (s === null) return undefined
+    if (s === '') return undefined
+    return s
+  }
+
+  try {
+    if (subPath === '/' || subPath === '') {
+      if (method === 'GET') {
+        const page = Number(searchParams.get('page') ?? 1)
+        const pageSize = Number(searchParams.get('pageSize') ?? 1000)
+        const result = await getOwnerListPaginated({
+          page,
+          pageSize,
+          ownerName: toOptStr(searchParams.get('ownerName')),
+          ownerCompany: toOptStr(searchParams.get('ownerCompany')),
+          ownerCountry: toOptStr(searchParams.get('ownerCountry')),
+          ownerContact: toOptStr(searchParams.get('ownerContact')),
+        })
+        sendJson(res, 200, { success: true, data: result })
+        return true
+      }
+      if (method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const created = await createOwnerList({
+          owner_name: String(body.owner_name ?? ''),
+          owner_company: toOptStr(body.owner_company as any),
+          owner_contact: toOptStr(body.owner_contact as any),
+          owner_phone: toOptStr(body.owner_phone as any),
+          owner_email: toOptStr(body.owner_email as any),
+          owner_country: toOptStr(body.owner_country as any),
+          owner_fax: toOptStr(body.owner_fax as any),
+          owner_address: toOptStr(body.owner_address as any),
+          owner_remark: toOptStr(body.owner_remark as any),
+        })
+        sendJson(res, 200, { success: true, data: created })
+        return true
+      }
+    }
+
+    if (subPath === '/all') {
+      if (method === 'GET') {
+        const rows = await getAllOwnerList()
+        sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+    }
+
+    if (subPath === '/groups') {
+      if (method === 'GET') {
+        const groups = await getOwnerListGroups()
+        sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/bulk-delete') {
+      if (method === 'POST') {
+        const body = (await readBody(req)) as { ids?: number[] } | undefined
+        const ids = body?.ids ?? []
+        const n = await deleteOwnerListBulk(ids)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const idMatch = subPath.match(/^\/(\d+)$/)
+    if (idMatch) {
+      const ownerId = Number(idMatch[1])
+      if (method === 'GET') {
+        const row = await getOwnerListById(ownerId)
+        if (!row) {
+          sendJson(res, 404, { success: false, message: 'Not found' })
+        } else {
+          sendJson(res, 200, { success: true, data: row })
+        }
+        return true
+      }
+      if (method === 'PUT') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const updated = await updateOwnerList(ownerId, {
+          owner_name: body.owner_name == null ? undefined : String(body.owner_name),
+          owner_company: toOptStr(body.owner_company as any),
+          owner_contact: toOptStr(body.owner_contact as any),
+          owner_phone: toOptStr(body.owner_phone as any),
+          owner_email: toOptStr(body.owner_email as any),
+          owner_country: toOptStr(body.owner_country as any),
+          owner_fax: toOptStr(body.owner_fax as any),
+          owner_address: toOptStr(body.owner_address as any),
+          owner_remark: toOptStr(body.owner_remark as any),
+        })
+        sendJson(res, 200, { success: true, data: updated })
+        return true
+      }
+      if (method === 'DELETE') {
+        const ok = await deleteOwnerList(ownerId)
+        sendJson(res, 200, { success: ok, data: { deleted: ok ? 1 : 0 } })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[owner-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -335,6 +479,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/vessel-list')) {
             const handled = await handleVesselListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/owner-list')) {
+            const handled = await handleOwnerListApi(req, res)
             if (handled) return
           }
           next()

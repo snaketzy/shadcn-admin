@@ -16,6 +16,7 @@ import {
   UserCog,
   UserX,
   Ship,
+  Users,
   ShieldCheck,
   AudioWaveform,
   Command,
@@ -65,6 +66,11 @@ export const sidebarData: SidebarData = {
           title: 'Apps',
           url: '/apps',
           icon: Package,
+        },
+        {
+          title: '船东列表',
+          url: '/owner_list',
+          icon: Users,
         },
         {
           title: '船队列表',

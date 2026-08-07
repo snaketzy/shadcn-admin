@@ -2,7 +2,7 @@
 import * as XLSX from 'xlsx'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { closePool, describeTable, execute, listTables, query } from './db'
+import { closePool, describeTable, execute, listTables, query, type ExecuteValues } from './db'
 
 const XLSX_PATH = path.resolve(
   process.cwd(),
@@ -126,7 +126,7 @@ async function insertBatch(rows: OwnerListRow[]): Promise<number> {
      \`owner_team\`, \`owner_department\`, \`owner_department_email\`,
      \`owner_rank\`)
     VALUES ${placeholders}`
-  const result = await execute(sql, params)
+  const result = await execute(sql, params as ExecuteValues)
   return Number(result.affectedRows)
 }
 
