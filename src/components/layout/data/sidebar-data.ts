@@ -15,7 +15,7 @@ import {
   Wrench,
   UserCog,
   UserX,
-  Users,
+  Ship,
   ShieldCheck,
   AudioWaveform,
   Command,
@@ -69,7 +69,7 @@ export const sidebarData: SidebarData = {
         {
           title: '船队列表',
           url: '/vessel_list',
-          icon: Users,
+          icon: Ship,
         },
         {
           title: '字典',
