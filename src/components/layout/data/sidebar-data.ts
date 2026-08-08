@@ -74,6 +74,11 @@ export const sidebarData: SidebarData = {
           icon: Store,
         },
         {
+          title: '协作商列表',
+          url: '/collaboration_list',
+          icon: Users,
+        },
+        {
           title: '船东列表',
           url: '/owner_list',
           icon: Users,

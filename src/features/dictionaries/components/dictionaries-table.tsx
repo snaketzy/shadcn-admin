@@ -21,7 +21,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { SearchIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { fetchCaseDictAll, fetchCaseDictGroups } from '../api/client'
 import { type CaseDictType } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
@@ -33,6 +35,7 @@ type DataTableProps = {
 }
 
 export function DictionariesTable({ search, navigate }: DataTableProps) {
+  const queryClient = useQueryClient()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
@@ -159,6 +162,20 @@ export function DictionariesTable({ search, navigate }: DataTableProps) {
         searchPlaceholder='按字典键值/键名/分组筛选...'
         searchKey='dict_value'
         filters={filters}
+        trailingActionsBeforeView={
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-8 gap-1'
+            onClick={async () => {
+              await queryClient.refetchQueries({ queryKey: ['case-dict'] })
+              await queryClient.refetchQueries({ queryKey: ['case-dict-groups'] })
+            }}
+          >
+            <SearchIcon className='size-4' />
+            查询
+          </Button>
+        }
       />
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
         <div className='relative w-full flex-1 overflow-auto'>

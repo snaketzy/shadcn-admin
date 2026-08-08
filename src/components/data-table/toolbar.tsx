@@ -18,6 +18,7 @@ type DataTableToolbarProps<TData> = {
       icon?: React.ComponentType<{ className?: string }>
     }[]
   }[]
+  trailingActionsBeforeView?: React.ReactNode
 }
 
 export function DataTableToolbar<TData>({
@@ -25,6 +26,7 @@ export function DataTableToolbar<TData>({
   searchPlaceholder = 'Filter...',
   searchKey,
   filters = [],
+  trailingActionsBeforeView,
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
     table.getState().columnFilters.length > 0 || table.getState().globalFilter
@@ -79,7 +81,10 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <DataTableViewOptions table={table} />
+      <div className='flex items-center gap-2'>
+        {trailingActionsBeforeView}
+        <DataTableViewOptions table={table} />
+      </div>
     </div>
   )
 }

@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
+import { CheckIcon } from '@radix-ui/react-icons'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,6 +27,21 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { type Supplier } from '../data/schema'
 import { createSupplier, updateSupplier, fetchSupplierGroups } from '../api/client'
 
@@ -32,7 +49,7 @@ const formSchema = z.object({
   supplier_name: z.string().optional().catch(''),
   supplier_shortname: z.string().min(1, '供应商简称是必填项。'),
   supplier_address: z.string().optional().catch(''),
-  supplier_field: z.string().optional().catch(''),
+  supplier_field: z.array(z.string()).optional().catch([]),
   supplier_advantage: z.string().optional().catch(''),
   supplier_contact_name: z.string().optional().catch(''),
   supplier_contact_phone: z.string().optional().catch(''),
@@ -44,6 +61,20 @@ type SupplierForm = z.infer<typeof formSchema>
 function toOptStr(s: string | null | undefined): string | null {
   if (s == null || !s || s.trim() === '') return null
   return s
+}
+
+function splitMulti(raw: unknown): string[] {
+  if (raw === null || raw === undefined || raw === '') return []
+  const str = String(raw)
+  return str
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function joinMulti(arr: string[] | undefined | null): string | null {
+  if (!arr || arr.length === 0) return null
+  return arr.filter(Boolean).join(',') || null
 }
 
 type SuppliersActionDialogProps = {
@@ -60,7 +91,7 @@ export function SuppliersActionDialog({
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
 
-  useQuery({
+  const { data: groups } = useQuery({
     queryKey: ['supplier-list-groups'],
     queryFn: fetchSupplierGroups,
     enabled: open,
@@ -73,7 +104,7 @@ export function SuppliersActionDialog({
           supplier_name: currentRow.supplier_name,
           supplier_shortname: currentRow.supplier_shortname ?? '',
           supplier_address: currentRow.supplier_address ?? '',
-          supplier_field: currentRow.supplier_field ?? '',
+          supplier_field: splitMulti(currentRow.supplier_field),
           supplier_advantage: currentRow.supplier_advantage ?? '',
           supplier_contact_name: currentRow.supplier_contact_name ?? '',
           supplier_contact_phone: currentRow.supplier_contact_phone ?? '',
@@ -84,7 +115,7 @@ export function SuppliersActionDialog({
           supplier_name: '',
           supplier_shortname: '',
           supplier_address: '',
-          supplier_field: '',
+          supplier_field: [],
           supplier_advantage: '',
           supplier_contact_name: '',
           supplier_contact_phone: '',
@@ -100,7 +131,7 @@ export function SuppliersActionDialog({
           supplier_name: currentRow.supplier_name,
           supplier_shortname: currentRow.supplier_shortname ?? '',
           supplier_address: currentRow.supplier_address ?? '',
-          supplier_field: currentRow.supplier_field ?? '',
+          supplier_field: splitMulti(currentRow.supplier_field),
           supplier_advantage: currentRow.supplier_advantage ?? '',
           supplier_contact_name: currentRow.supplier_contact_name ?? '',
           supplier_contact_phone: currentRow.supplier_contact_phone ?? '',
@@ -112,7 +143,7 @@ export function SuppliersActionDialog({
           supplier_name: '',
           supplier_shortname: '',
           supplier_address: '',
-          supplier_field: '',
+          supplier_field: [],
           supplier_advantage: '',
           supplier_contact_name: '',
           supplier_contact_phone: '',
@@ -157,7 +188,7 @@ export function SuppliersActionDialog({
       supplier_name: toOptStr(values.supplier_name),
       supplier_shortname: values.supplier_shortname || null,
       supplier_address: toOptStr(values.supplier_address),
-      supplier_field: toOptStr(values.supplier_field),
+      supplier_field: joinMulti(values.supplier_field),
       supplier_advantage: toOptStr(values.supplier_advantage),
       supplier_contact_name: toOptStr(values.supplier_contact_name),
       supplier_contact_phone: toOptStr(values.supplier_contact_phone),
@@ -240,18 +271,108 @@ export function SuppliersActionDialog({
                 control={form.control}
                 name='supplier_field'
                 render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
+                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end pt-2'>
                       经营范围
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入经营范围'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
+                    <div className='col-span-4'>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='w-full min-h-9 border-dashed justify-start font-normal'
+                            >
+                              {(field.value ?? []).length > 0 ? (
+                                <>
+                                  <div className='hidden flex-wrap gap-1 lg:flex'>
+                                    {(field.value || [])
+                                      .map((v) => {
+                                        const d = (groups?.fieldDict ?? []).find(
+                                          (x) => x.dict_key === v
+                                        )
+                                        return d
+                                          ? { value: v, label: d.dict_value }
+                                          : { value: v, label: v }
+                                      })
+                                      .map((item) => (
+                                        <Badge
+                                          key={item.value}
+                                          variant='secondary'
+                                          className='rounded-sm px-1.5 font-normal'
+                                        >
+                                          {item.label}
+                                        </Badge>
+                                      ))}
+                                  </div>
+                                  <Badge
+                                    variant='secondary'
+                                    className='rounded-sm px-1 font-normal lg:hidden'
+                                  >
+                                    {(field.value ?? []).length} 已选
+                                  </Badge>
+                                </>
+                              ) : (
+                                <span className='text-muted-foreground'>
+                                  请选择经营范围
+                                </span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-64 p-0' align='start'>
+                          <Command>
+                            <CommandInput placeholder='搜索经营范围' />
+                            <CommandList>
+                              <CommandEmpty>暂无结果</CommandEmpty>
+                              <CommandGroup>
+                                {(groups?.fieldDict ?? []).map((d) => {
+                                  const isSelected = (field.value || []).includes(d.dict_key)
+                                  return (
+                                    <CommandItem
+                                      key={d.dict_key}
+                                      onSelect={() => {
+                                        const current = new Set(field.value || [])
+                                        if (isSelected) current.delete(d.dict_key)
+                                        else current.add(d.dict_key)
+                                        field.onChange(Array.from(current))
+                                      }}
+                                    >
+                                      <div
+                                        className={cn(
+                                          'flex size-4 items-center justify-center rounded-sm border border-primary me-2',
+                                          isSelected
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'opacity-50 [&_svg]:invisible'
+                                        )}
+                                      >
+                                        <CheckIcon className='h-4 w-4 text-background' />
+                                      </div>
+                                      <span>{d.dict_value}</span>
+                                    </CommandItem>
+                                  )
+                                })}
+                              </CommandGroup>
+                              {(field.value || []).length > 0 && (
+                                <>
+                                  <CommandSeparator />
+                                  <CommandGroup>
+                                    <CommandItem
+                                      onSelect={() => field.onChange([])}
+                                      className='justify-center text-center'
+                                    >
+                                      清空已选
+                                    </CommandItem>
+                                  </CommandGroup>
+                                </>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className='mt-1' />
+                    </div>
                   </FormItem>
                 )}
               />

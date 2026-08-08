@@ -28,13 +28,13 @@ import { DataTableViewOptions } from '@/components/data-table/view-options'
 import { Cross2Icon } from '@radix-ui/react-icons'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { type Supplier } from '../data/schema'
+import { type Collaboration } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-import { getSuppliersColumns } from './suppliers-columns'
-import { fetchSupplierAll, fetchSupplierGroups } from '../api/client'
+import { getCollaborationsColumns } from './collaborations-columns'
+import { fetchCollaborationAll, fetchCollaborationGroups } from '../api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const route = getRouteApi('/_authenticated/supplier_list/')
+const route = getRouteApi('/_authenticated/collaboration_list/')
 
 const FIXED_COL_STYLES: Record<
   string,
@@ -57,7 +57,7 @@ const FIXED_COL_STYLES: Record<
       minWidth: 48,
     },
   },
-  supplier_name: {
+  collaboration_name: {
     th: {
       position: 'sticky',
       top: 0,
@@ -95,7 +95,7 @@ const FIXED_COL_STYLES: Record<
 
 type DataTableProps = Record<string, never>
 
-export function SuppliersTable(_: DataTableProps) {
+export function CollaborationsTable(_: DataTableProps) {
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const [rowSelection, setRowSelection] = useState({})
@@ -108,47 +108,24 @@ export function SuppliersTable(_: DataTableProps) {
     isError,
     error,
   } = useQuery({
-    queryKey: ['supplier-list'],
-    queryFn: fetchSupplierAll,
+    queryKey: ['collaboration-list'],
+    queryFn: fetchCollaborationAll,
   })
-  const allRows: Supplier[] = allRowsData as Supplier[]
+  const allRows: Collaboration[] = allRowsData as Collaboration[]
 
   const { data: groupsData } = useQuery({
-    queryKey: ['supplier-list-groups'],
-    queryFn: fetchSupplierGroups,
+    queryKey: ['collaboration-list-groups'],
+    queryFn: fetchCollaborationGroups,
   })
   const shortnames = groupsData?.shortnames ?? []
-  const fields = groupsData?.fields ?? []
-  const advantages = groupsData?.advantages ?? []
-  const fieldDict = groupsData?.fieldDict ?? []
-  const columns = useMemo(() => getSuppliersColumns(fieldDict), [fieldDict])
-
-  const fieldFilterOptions = useMemo(() => {
-    const seen = new Set<string>()
-    const result: { label: string; value: string }[] = []
-    for (const d of fieldDict) {
-      if (!d.dict_key) continue
-      if (seen.has(d.dict_key)) continue
-      seen.add(d.dict_key)
-      result.push({ label: d.dict_value || d.dict_key, value: d.dict_key })
-    }
-    for (const raw of fields) {
-      if (!raw) continue
-      if (seen.has(raw)) continue
-      seen.add(raw)
-      result.push({ label: raw, value: raw })
-    }
-    return result
-  }, [fieldDict, fields])
+  const columns = useMemo(() => getCollaborationsColumns(), [])
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
     navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     columnFilters: [
-      { columnId: 'supplier_shortname', searchKey: 'supplierShortname', type: 'array' },
-      { columnId: 'supplier_field', searchKey: 'supplierField', type: 'array' },
-      { columnId: 'supplier_advantage', searchKey: 'supplierAdvantage', type: 'array' },
+      { columnId: 'collaboration_shortname', searchKey: 'collaborationShortname', type: 'array' },
     ],
   })
   const {
@@ -159,81 +136,50 @@ export function SuppliersTable(_: DataTableProps) {
     ensurePageInRange,
   } = urlState
 
-  const supplierName: string =
-    (search as unknown as { supplierName?: string }).supplierName ?? ''
+  const collaborationName: string =
+    (search as unknown as { collaborationName?: string }).collaborationName ?? ''
   const contactSearch: string =
     (search as unknown as { contactSearch?: string }).contactSearch ?? ''
 
   const shortnameFilter = useMemo(
     () =>
-      Array.isArray((search as any).supplierShortname)
-        ? ((search as any).supplierShortname as string[])
-        : [],
-    [search]
-  )
-  const fieldFilter = useMemo(
-    () =>
-      Array.isArray((search as any).supplierField)
-        ? ((search as any).supplierField as string[])
-        : [],
-    [search]
-  )
-  const advantageFilter = useMemo(
-    () =>
-      Array.isArray((search as any).supplierAdvantage)
-        ? ((search as any).supplierAdvantage as string[])
+      Array.isArray((search as any).collaborationShortname)
+        ? ((search as any).collaborationShortname as string[])
         : [],
     [search]
   )
 
-  const filteredData: Supplier[] = useMemo(() => {
+  const filteredData: Collaboration[] = useMemo(() => {
     let result = allRows
-    if (supplierName.trim() !== '') {
-      const q = supplierName.trim().toLowerCase()
+    if (collaborationName.trim() !== '') {
+      const q = collaborationName.trim().toLowerCase()
       result = result.filter((r) =>
-        String(r.supplier_name).toLowerCase().includes(q)
+        String(r.collaboration_name).toLowerCase().includes(q)
       )
     }
     if (contactSearch.trim() !== '') {
       const q = contactSearch.trim().toLowerCase()
       result = result.filter((r) =>
-        String(r.supplier_contact_name ?? '').toLowerCase().includes(q) ||
-        String(r.supplier_contact_phone ?? '').toLowerCase().includes(q) ||
-        String(r.supplier_contact_email ?? '').toLowerCase().includes(q)
+        String(r.collaboration_contact_name ?? '').toLowerCase().includes(q) ||
+        String(r.collaboration_contact_phone ?? '').toLowerCase().includes(q) ||
+        String(r.collaboration_contact_email ?? '').toLowerCase().includes(q)
       )
     }
     if (shortnameFilter.length > 0) {
       result = result.filter((r) =>
-        shortnameFilter.includes(r.supplier_shortname ?? '')
-      )
-    }
-    if (fieldFilter.length > 0) {
-      result = result.filter((r) => {
-        const raw = r.supplier_field ?? ''
-        const parts = String(raw)
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-        return fieldFilter.some((f) => parts.includes(f))
-      })
-    }
-    if (advantageFilter.length > 0) {
-      result = result.filter((r) =>
-        advantageFilter.includes(r.supplier_advantage ?? '')
+        shortnameFilter.includes(r.collaboration_shortname ?? '')
       )
     }
     return result
   }, [
     allRows,
-    supplierName,
+    collaborationName,
     contactSearch,
     shortnameFilter,
-    fieldFilter,
-    advantageFilter,
   ])
 
   const handleTextFilterChange = (
-    type: 'supplierName' | 'contactSearch',
+    type: 'collaborationName' | 'contactSearch',
     value: string
   ) => {
     navigate({
@@ -250,11 +196,9 @@ export function SuppliersTable(_: DataTableProps) {
       search: {
         page: undefined,
         pageSize: undefined,
-        supplierName: undefined,
+        collaborationName: undefined,
         contactSearch: undefined,
-        supplierShortname: undefined,
-        supplierField: undefined,
-        supplierAdvantage: undefined,
+        collaborationShortname: undefined,
       } as any,
     })
   }
@@ -292,7 +236,7 @@ export function SuppliersTable(_: DataTableProps) {
 
   const isFiltered =
     columnFilters.length > 0 ||
-    supplierName.trim() !== '' ||
+    collaborationName.trim() !== '' ||
     contactSearch.trim() !== ''
 
   if (isLoading) {
@@ -328,9 +272,9 @@ export function SuppliersTable(_: DataTableProps) {
       <div className='flex items-center justify-between gap-2'>
         <div className='flex flex-1 flex-col items-start gap-y-2 sm:flex-row sm:flex-wrap sm:items-center sm:space-x-2'>
           <Input
-            placeholder='按供应商名称筛选...'
-            value={supplierName}
-            onChange={(e) => handleTextFilterChange('supplierName', e.target.value)}
+            placeholder='按协作商名称筛选...'
+            value={collaborationName}
+            onChange={(e) => handleTextFilterChange('collaborationName', e.target.value)}
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
@@ -340,25 +284,11 @@ export function SuppliersTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
-            {shortnames.length > 0 && table.getColumn('supplier_shortname') && (
+            {shortnames.length > 0 && table.getColumn('collaboration_shortname') && (
               <DataTableFacetedFilter
-                column={table.getColumn('supplier_shortname')!}
-                title='供应商简称'
+                column={table.getColumn('collaboration_shortname')!}
+                title='协作商简称'
                 options={shortnames.map((s) => ({ label: s, value: s }))}
-              />
-            )}
-            {fieldFilterOptions.length > 0 && table.getColumn('supplier_field') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('supplier_field')!}
-                title='经营范围'
-                options={fieldFilterOptions}
-              />
-            )}
-            {advantages.length > 0 && table.getColumn('supplier_advantage') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('supplier_advantage')!}
-                title='供应商主营'
-                options={advantages.map((s) => ({ label: s, value: s }))}
               />
             )}
           </div>

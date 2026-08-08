@@ -1,4 +1,10 @@
 import { query, execute, type ExecuteValues } from './db'
+import { getCaseDictByKeyPrefix } from './case-dict-service'
+
+export interface SupplierDictEntry {
+  dict_key: string
+  dict_value: string
+}
 
 export interface SupplierListRow {
   supplier_id: number
@@ -35,12 +41,31 @@ export async function getSupplierListById(supplierId: number): Promise<SupplierL
   return row ? normalizeRow(row) : null
 }
 
+function flattenUnique(values: (string | null)[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const v of values) {
+    if (v == null) continue
+    const parts = String(v)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    for (const p of parts) {
+      if (seen.has(p)) continue
+      seen.add(p)
+      out.push(p)
+    }
+  }
+  return out
+}
+
 export async function getSupplierListGroups(): Promise<{
   shortnames: string[]
   fields: string[]
   advantages: string[]
+  fieldDict: SupplierDictEntry[]
 }> {
-  const [shortnames, fields, advantages] = await Promise.all([
+  const [shortnames, fields, advantages, fieldRows] = await Promise.all([
     query<{ supplier_shortname: string | null }[]>(
       'SELECT DISTINCT supplier_shortname FROM `supplier_list` WHERE supplier_shortname IS NOT NULL AND supplier_shortname <> \'\' ORDER BY supplier_shortname'
     ),
@@ -50,11 +75,16 @@ export async function getSupplierListGroups(): Promise<{
     query<{ supplier_advantage: string | null }[]>(
       'SELECT DISTINCT supplier_advantage FROM `supplier_list` WHERE supplier_advantage IS NOT NULL AND supplier_advantage <> \'\' ORDER BY supplier_advantage'
     ),
+    getCaseDictByKeyPrefix('I'),
   ])
   return {
     shortnames: shortnames.map((r) => r.supplier_shortname!).filter(Boolean),
-    fields: fields.map((r) => r.supplier_field!).filter(Boolean),
+    fields: flattenUnique(fields.map((r) => r.supplier_field)),
     advantages: advantages.map((r) => r.supplier_advantage!).filter(Boolean),
+    fieldDict: fieldRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
   }
 }
 

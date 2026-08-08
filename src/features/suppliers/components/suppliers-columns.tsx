@@ -6,9 +6,46 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import { getBadgeColor } from '../data/data'
 import { type Supplier } from '../data/schema'
+import { type SupplierDictEntry } from '../api/client'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export function getSuppliersColumns(): ColumnDef<Supplier>[] {
+type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
+
+function makeDictMap(dict: SupplierDictEntry[]): DictMap {
+  const keyMap = new Map<string, string>()
+  const valueMap = new Map<string, string>()
+  for (const d of dict) {
+    const k = String(d.dict_key).toUpperCase()
+    keyMap.set(k, d.dict_value)
+    valueMap.set(d.dict_value, d.dict_value)
+  }
+  return { keyMap, valueMap }
+}
+
+function resolveLabels(raw: unknown, { keyMap, valueMap }: DictMap): string[] {
+  if (raw === null || raw === undefined || raw === '') return []
+  const parts = String(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const p of parts) {
+    let resolved = keyMap.get(p.toUpperCase())
+    if (!resolved) resolved = valueMap.get(p)
+    if (!resolved) resolved = p
+    if (!resolved) continue
+    if (seen.has(resolved)) continue
+    seen.add(resolved)
+    out.push(resolved)
+  }
+  return out
+}
+
+export function getSuppliersColumns(
+  fieldDict: SupplierDictEntry[] = []
+): ColumnDef<Supplier>[] {
+  const fieldMap = makeDictMap(fieldDict)
   return [
     {
       id: 'select',
@@ -97,16 +134,28 @@ export function getSuppliersColumns(): ColumnDef<Supplier>[] {
         <DataTableColumnHeader column={column} title='供应商经营范围' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('supplier_field') as string | null
-        if (!value) return <div>-</div>
+        const raw = row.original.supplier_field
+        const labels = resolveLabels(raw, fieldMap)
+        if (labels.length === 0) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
+          <div className='flex flex-wrap gap-1'>
+            {labels.map((label) => (
+              <Badge key={label} variant='outline' className={cn(getBadgeColor(label))}>
+                {label}
+              </Badge>
+            ))}
+          </div>
         )
       },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
+      filterFn: (row, _id, value) => {
+        const raw = (row.original as Supplier).supplier_field ?? ''
+        const parts = String(raw)
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+        const arr = Array.isArray(value) ? (value as unknown[]) : [value]
+        if (arr.length === 0) return true
+        return arr.some((v) => parts.includes(String(v)))
       },
       enableSorting: false,
     },

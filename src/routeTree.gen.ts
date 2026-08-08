@@ -23,6 +23,7 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as AuthenticatedAppsIndexRouteImport } from './routes/_authenticated/apps/index'
+import { Route as AuthenticatedCollaboration_listIndexRouteImport } from './routes/_authenticated/collaboration_list/index'
 import { Route as AuthenticatedDictionariesIndexRouteImport } from './routes/_authenticated/dictionaries/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
@@ -106,6 +107,12 @@ const AuthenticatedAppsIndexRoute = AuthenticatedAppsIndexRouteImport.update({
   path: '/apps/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCollaboration_listIndexRoute =
+  AuthenticatedCollaboration_listIndexRouteImport.update({
+    id: '/collaboration_list/',
+    path: '/collaboration_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDictionariesIndexRoute =
   AuthenticatedDictionariesIndexRouteImport.update({
     id: '/dictionaries/',
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/apps/': typeof AuthenticatedAppsIndexRoute
+  '/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list/': typeof AuthenticatedOwner_listIndexRoute
@@ -223,6 +231,7 @@ export interface FileRoutesByTo {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/apps': typeof AuthenticatedAppsIndexRoute
+  '/collaboration_list': typeof AuthenticatedCollaboration_listIndexRoute
   '/dictionaries': typeof AuthenticatedDictionariesIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list': typeof AuthenticatedOwner_listIndexRoute
@@ -252,6 +261,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexRoute
+  '/_authenticated/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/_authenticated/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/owner_list/': typeof AuthenticatedOwner_listIndexRoute
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps/'
+    | '/collaboration_list/'
     | '/dictionaries/'
     | '/help-center/'
     | '/owner_list/'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps'
+    | '/collaboration_list'
     | '/dictionaries'
     | '/help-center'
     | '/owner_list'
@@ -335,6 +347,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/apps/'
+    | '/_authenticated/collaboration_list/'
     | '/_authenticated/dictionaries/'
     | '/_authenticated/help-center/'
     | '/_authenticated/owner_list/'
@@ -458,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/collaboration_list/': {
+      id: '/_authenticated/collaboration_list/'
+      path: '/collaboration_list'
+      fullPath: '/collaboration_list/'
+      preLoaderRoute: typeof AuthenticatedCollaboration_listIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dictionaries/': {
       id: '/_authenticated/dictionaries/'
       path: '/dictionaries'
@@ -573,6 +593,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
+  AuthenticatedCollaboration_listIndexRoute: typeof AuthenticatedCollaboration_listIndexRoute
   AuthenticatedDictionariesIndexRoute: typeof AuthenticatedDictionariesIndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedOwner_listIndexRoute: typeof AuthenticatedOwner_listIndexRoute
@@ -586,6 +607,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
+  AuthenticatedCollaboration_listIndexRoute:
+    AuthenticatedCollaboration_listIndexRoute,
   AuthenticatedDictionariesIndexRoute: AuthenticatedDictionariesIndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedOwner_listIndexRoute: AuthenticatedOwner_listIndexRoute,

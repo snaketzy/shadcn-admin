@@ -49,10 +49,16 @@ export interface Supplier {
   supplier_remark: string | null
 }
 
+export interface SupplierDictEntry {
+  dict_key: string
+  dict_value: string
+}
+
 export interface SupplierGroupsResponse {
   shortnames: string[]
   fields: string[]
   advantages: string[]
+  fieldDict: SupplierDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -88,7 +94,7 @@ export async function fetchSupplierPaginated(params: {
 
 export async function fetchSupplierGroups(): Promise<SupplierGroupsResponse> {
   const res = await api.get<ApiEnvelope<SupplierGroupsResponse>>('/supplier-list/groups')
-  return res.data.data ?? { shortnames: [], fields: [], advantages: [] }
+  return res.data.data ?? { shortnames: [], fields: [], advantages: [], fieldDict: [] }
 }
 
 export async function createSupplier(payload: {
