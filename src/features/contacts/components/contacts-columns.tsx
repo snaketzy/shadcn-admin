@@ -33,9 +33,11 @@ function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
 }
 
 export function getContactsColumns(
-  typeDict: ContactDictEntry[] = []
+  typeDict: ContactDictEntry[] = [],
+  divisionDict: ContactDictEntry[] = []
 ): ColumnDef<Contact>[] {
   const typeMap = makeDictMap(typeDict)
+  const divisionMap = makeDictMap(divisionDict)
 
   return [
     {
@@ -153,8 +155,14 @@ export function getContactsColumns(
         <DataTableColumnHeader column={column} title='所属单位类型' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('contact_division_type') as string | null
-        return <div>{value ?? '-'}</div>
+        const raw = row.original.contact_division_type
+        const label = resolveLabel(raw, divisionMap)
+        if (!label) return <div>-</div>
+        return (
+          <Badge variant='outline' className={cn(getBadgeColor(label))}>
+            {label}
+          </Badge>
+        )
       },
       enableSorting: false,
     },

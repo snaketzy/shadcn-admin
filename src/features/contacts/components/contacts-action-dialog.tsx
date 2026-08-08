@@ -32,14 +32,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { type Contact } from '../data/schema'
-import { createContact, updateContact, fetchContactGroups } from '../api/client'
+import { createContact, updateContact, fetchContactGroups, type ContactDictEntry } from '../api/client'
+
+const LINKED_TYPE_KEYS = new Set(['J1', 'J2', 'J3'])
+
+function resolveDictLabel(
+  raw: string | null | undefined,
+  dict: ContactDictEntry[]
+): string {
+  if (!raw) return '-'
+  const byKey = dict.find((d) => d.dict_key.toUpperCase() === raw.toUpperCase())
+  if (byKey) return byKey.dict_value
+  const byValue = dict.find((d) => d.dict_value === raw)
+  return byValue ? byValue.dict_value : raw
+}
+
+function deriveDivisionType(typeValue: string | undefined): string {
+  if (!typeValue || typeValue.trim() === '') return ''
+  return LINKED_TYPE_KEYS.has(typeValue.toUpperCase()) ? 'K2' : 'K1'
+}
 
 const formSchema = z.object({
   contact_name: z.string().min(1, '联系人名称是必填项。'),
   contact_mobile: z.string().optional().catch(''),
   contact_email: z.string().email('邮箱格式不正确').optional().or(z.literal('')).catch(''),
-  contact_type: z.string().optional().catch(''),
+  contact_type: z.string().min(1, '联系人类型是必填项。'),
   contact_rank: z.string().optional().catch(''),
   contact_division_type: z.string().optional().catch(''),
   contact_division_id: z.string().optional().catch(''),
@@ -81,7 +100,7 @@ export function ContactsActionDialog({
           contact_email: currentRow.contact_email ?? '',
           contact_type: currentRow.contact_type ?? '',
           contact_rank: currentRow.contact_rank ?? '',
-          contact_division_type: currentRow.contact_division_type ?? '',
+          contact_division_type: deriveDivisionType(currentRow.contact_type ?? ''),
           contact_division_id: currentRow.contact_division_id ?? '',
           contact_remark: currentRow.contact_remark ?? '',
         }
@@ -100,13 +119,14 @@ export function ContactsActionDialog({
   useEffect(() => {
     if (open) {
       if (isEdit && currentRow) {
+        const typeValue = currentRow.contact_type ?? ''
         form.reset({
           contact_name: currentRow.contact_name,
           contact_mobile: currentRow.contact_mobile ?? '',
           contact_email: currentRow.contact_email ?? '',
-          contact_type: currentRow.contact_type ?? '',
+          contact_type: typeValue,
           contact_rank: currentRow.contact_rank ?? '',
-          contact_division_type: currentRow.contact_division_type ?? '',
+          contact_division_type: deriveDivisionType(typeValue),
           contact_division_id: currentRow.contact_division_id ?? '',
           contact_remark: currentRow.contact_remark ?? '',
         })
@@ -124,6 +144,12 @@ export function ContactsActionDialog({
       }
     }
   }, [open, isEdit, currentRow, form])
+
+  const currentType = form.watch('contact_type')
+  useEffect(() => {
+    const derived = deriveDivisionType(currentType)
+    form.setValue('contact_division_type', derived, { shouldDirty: true, shouldValidate: false })
+  }, [currentType, form])
 
   const createMutation = useMutation({
     mutationFn: createContact,
@@ -155,13 +181,14 @@ export function ContactsActionDialog({
   })
 
   const onSubmit = (values: ContactForm) => {
+    const derivedDivisionType = deriveDivisionType(values.contact_type) || null
     const payload = {
       contact_name: values.contact_name || null,
       contact_mobile: toOptStr(values.contact_mobile),
       contact_email: toOptStr(values.contact_email),
       contact_type: toOptStr(values.contact_type),
       contact_rank: toOptStr(values.contact_rank),
-      contact_division_type: toOptStr(values.contact_division_type),
+      contact_division_type: derivedDivisionType,
       contact_division_id: toOptStr(values.contact_division_id),
       contact_remark: toOptStr(values.contact_remark),
     } as any
@@ -224,7 +251,7 @@ export function ContactsActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      联系人类型
+                      联系人类型 <span className='text-destructive'>*</span>
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
@@ -315,21 +342,25 @@ export function ContactsActionDialog({
               <FormField
                 control={form.control}
                 name='contact_division_type'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
+                render={() => {
+                  const value = form.watch('contact_division_type')
+                  const label = resolveDictLabel(value, groups?.divisionDict ?? [])
+                  return (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end text-muted-foreground'>
                       所属单位类型
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入单位类型'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
+                    <div className='col-span-4 flex flex-col gap-1'>
+                      <Badge variant='outline' className='min-h-9 min-w-28 self-start px-3 py-1 text-sm'>
+                        {value ? label : '（未选择联系人类型）'}
+                      </Badge>
+                      <p className='text-xs text-muted-foreground/70'>
+                        （按联系人类型联动）
+                      </p>
+                    </div>
+                    </FormItem>
+                  )
+                }}
               />
               <FormField
                 control={form.control}

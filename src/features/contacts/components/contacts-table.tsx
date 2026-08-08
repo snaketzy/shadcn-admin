@@ -118,8 +118,9 @@ export function ContactsTable(_: DataTableProps) {
     queryFn: fetchContactGroups,
   })
   const typeDict = groupsData?.typeDict ?? []
+  const divisionDict = groupsData?.divisionDict ?? []
   const types = groupsData?.types ?? []
-  const columns = useMemo(() => getContactsColumns(typeDict), [typeDict])
+  const columns = useMemo(() => getContactsColumns(typeDict, divisionDict), [typeDict, divisionDict])
 
   const typeFacetOptions = useMemo(() => {
     const result: { label: string; value: string }[] = []

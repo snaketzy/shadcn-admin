@@ -54,6 +54,7 @@ export interface ContactGroupsResponse {
   ranks: string[]
   divisionTypes: string[]
   typeDict: ContactDictEntry[]
+  divisionDict: ContactDictEntry[]
 }
 
 export interface ContactDictEntry {
