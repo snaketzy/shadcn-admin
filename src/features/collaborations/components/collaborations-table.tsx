@@ -118,7 +118,27 @@ export function CollaborationsTable(_: DataTableProps) {
     queryFn: fetchCollaborationGroups,
   })
   const shortnames = groupsData?.shortnames ?? []
-  const columns = useMemo(() => getCollaborationsColumns(), [])
+  const fields = groupsData?.fields ?? []
+  const fieldDict = groupsData?.fieldDict ?? []
+  const columns = useMemo(() => getCollaborationsColumns(fieldDict), [fieldDict])
+
+  const fieldFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const result: { label: string; value: string }[] = []
+    for (const d of fieldDict) {
+      if (!d.dict_key) continue
+      if (seen.has(d.dict_key)) continue
+      seen.add(d.dict_key)
+      result.push({ label: d.dict_value || d.dict_key, value: d.dict_key })
+    }
+    for (const raw of fields) {
+      if (!raw) continue
+      if (seen.has(raw)) continue
+      seen.add(raw)
+      result.push({ label: raw, value: raw })
+    }
+    return result
+  }, [fieldDict, fields])
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
@@ -126,6 +146,7 @@ export function CollaborationsTable(_: DataTableProps) {
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     columnFilters: [
       { columnId: 'collaboration_shortname', searchKey: 'collaborationShortname', type: 'array' },
+      { columnId: 'collaboration_field', searchKey: 'collaborationField', type: 'array' },
     ],
   })
   const {
@@ -138,15 +159,22 @@ export function CollaborationsTable(_: DataTableProps) {
 
   const collaborationName: string =
     (search as unknown as { collaborationName?: string }).collaborationName ?? ''
-  const contactSearch: string =
-    (search as unknown as { contactSearch?: string }).contactSearch ?? ''
+  const contactId: string =
+    (search as unknown as { contactId?: string }).contactId ?? ''
 
   const shortnameFilter = useMemo(
     () =>
       Array.isArray((search as any).collaborationShortname)
         ? ((search as any).collaborationShortname as string[])
         : [],
-    [search]
+    [(search as any).collaborationShortname]
+  )
+  const fieldFilter = useMemo(
+    () =>
+      Array.isArray((search as any).collaborationField)
+        ? ((search as any).collaborationField as string[])
+        : [],
+    [(search as any).collaborationField]
   )
 
   const filteredData: Collaboration[] = useMemo(() => {
@@ -157,29 +185,38 @@ export function CollaborationsTable(_: DataTableProps) {
         String(r.collaboration_name).toLowerCase().includes(q)
       )
     }
-    if (contactSearch.trim() !== '') {
-      const q = contactSearch.trim().toLowerCase()
-      result = result.filter((r) =>
-        String(r.collaboration_contact_name ?? '').toLowerCase().includes(q) ||
-        String(r.collaboration_contact_phone ?? '').toLowerCase().includes(q) ||
-        String(r.collaboration_contact_email ?? '').toLowerCase().includes(q)
-      )
+    if (contactId.trim() !== '') {
+      const q = Number(contactId.trim())
+      if (!isNaN(q)) {
+        result = result.filter((r) => r.collaboration_contact_id === q)
+      }
     }
     if (shortnameFilter.length > 0) {
       result = result.filter((r) =>
         shortnameFilter.includes(r.collaboration_shortname ?? '')
       )
     }
+    if (fieldFilter.length > 0) {
+      result = result.filter((r) => {
+        const raw = r.collaboration_field ?? ''
+        const parts = String(raw)
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+        return fieldFilter.some((f) => parts.includes(f))
+      })
+    }
     return result
   }, [
     allRows,
     collaborationName,
-    contactSearch,
+    contactId,
     shortnameFilter,
+    fieldFilter,
   ])
 
   const handleTextFilterChange = (
-    type: 'collaborationName' | 'contactSearch',
+    type: 'collaborationName' | 'contactId',
     value: string
   ) => {
     navigate({
@@ -197,8 +234,9 @@ export function CollaborationsTable(_: DataTableProps) {
         page: undefined,
         pageSize: undefined,
         collaborationName: undefined,
-        contactSearch: undefined,
+        contactId: undefined,
         collaborationShortname: undefined,
+        collaborationField: undefined,
       } as any,
     })
   }
@@ -237,7 +275,7 @@ export function CollaborationsTable(_: DataTableProps) {
   const isFiltered =
     columnFilters.length > 0 ||
     collaborationName.trim() !== '' ||
-    contactSearch.trim() !== ''
+    contactId.trim() !== ''
 
   if (isLoading) {
     return (
@@ -278,9 +316,10 @@ export function CollaborationsTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
-            placeholder='按联系人/手机/邮箱筛选...'
-            value={contactSearch}
-            onChange={(e) => handleTextFilterChange('contactSearch', e.target.value)}
+            placeholder='按联系人ID筛选...'
+            value={contactId}
+            onChange={(e) => handleTextFilterChange('contactId', e.target.value)}
+            type='number'
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
@@ -289,6 +328,13 @@ export function CollaborationsTable(_: DataTableProps) {
                 column={table.getColumn('collaboration_shortname')!}
                 title='协作商简称'
                 options={shortnames.map((s) => ({ label: s, value: s }))}
+              />
+            )}
+            {fieldFilterOptions.length > 0 && table.getColumn('collaboration_field') && (
+              <DataTableFacetedFilter
+                column={table.getColumn('collaboration_field')!}
+                title='经营范围'
+                options={fieldFilterOptions}
               />
             )}
           </div>

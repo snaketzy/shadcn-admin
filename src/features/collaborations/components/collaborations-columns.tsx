@@ -6,9 +6,46 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import { getBadgeColor } from '../data/data'
 import { type Collaboration } from '../data/schema'
+import { type CollaborationDictEntry } from '../api/client'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export function getCollaborationsColumns(): ColumnDef<Collaboration>[] {
+type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
+
+function makeDictMap(dict: CollaborationDictEntry[]): DictMap {
+  const keyMap = new Map<string, string>()
+  const valueMap = new Map<string, string>()
+  for (const d of dict) {
+    const k = String(d.dict_key).toUpperCase()
+    keyMap.set(k, d.dict_value)
+    valueMap.set(d.dict_value, d.dict_value)
+  }
+  return { keyMap, valueMap }
+}
+
+function resolveLabels(raw: unknown, { keyMap, valueMap }: DictMap): string[] {
+  if (raw === null || raw === undefined || raw === '') return []
+  const parts = String(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const p of parts) {
+    let resolved = keyMap.get(p.toUpperCase())
+    if (!resolved) resolved = valueMap.get(p)
+    if (!resolved) resolved = p
+    if (!resolved) continue
+    if (seen.has(resolved)) continue
+    seen.add(resolved)
+    out.push(resolved)
+  }
+  return out
+}
+
+export function getCollaborationsColumns(
+  fieldDict: CollaborationDictEntry[] = []
+): ColumnDef<Collaboration>[] {
+  const fieldMap = makeDictMap(fieldDict)
   return [
     {
       id: 'select',
@@ -81,6 +118,37 @@ export function getCollaborationsColumns(): ColumnDef<Collaboration>[] {
       enableSorting: false,
     },
     {
+      accessorKey: 'collaboration_field',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='协作商经营范围' />
+      ),
+      cell: ({ row }) => {
+        const raw = row.original.collaboration_field
+        const labels = resolveLabels(raw, fieldMap)
+        if (labels.length === 0) return <div>-</div>
+        return (
+          <div className='flex flex-wrap gap-1'>
+            {labels.map((label) => (
+              <Badge key={label} variant='outline' className={cn(getBadgeColor(label))}>
+                {label}
+              </Badge>
+            ))}
+          </div>
+        )
+      },
+      filterFn: (row, _id, value) => {
+        const raw = (row.original as Collaboration).collaboration_field ?? ''
+        const parts = String(raw)
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+        const arr = Array.isArray(value) ? (value as unknown[]) : [value]
+        if (arr.length === 0) return true
+        return arr.some((v) => parts.includes(String(v)))
+      },
+      enableSorting: false,
+    },
+    {
       accessorKey: 'collaboration_address',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='协作商地址' />
@@ -92,35 +160,13 @@ export function getCollaborationsColumns(): ColumnDef<Collaboration>[] {
       enableSorting: false,
     },
     {
-      accessorKey: 'collaboration_contact_name',
+      accessorKey: 'collaboration_contact_id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='协作商联系人' />
+        <DataTableColumnHeader column={column} title='联系人ID' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('collaboration_contact_name') as string | null
-        return <div>{value ?? '-'}</div>
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'collaboration_contact_phone',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人手机' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('collaboration_contact_phone') as string | null
-        return <div>{value ?? '-'}</div>
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'collaboration_contact_email',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人邮箱' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('collaboration_contact_email') as string | null
-        return <div>{value ?? '-'}</div>
+        const value = row.getValue('collaboration_contact_id') as number | null
+        return <div>{value != null ? value : '-'}</div>
       },
       enableSorting: false,
     },

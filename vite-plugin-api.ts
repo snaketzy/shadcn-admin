@@ -652,6 +652,13 @@ async function handleCollaborationListApi(
     return str
   }
 
+  function toOptNumber(n: unknown): number | undefined {
+    if (n === null || n === undefined || n === '') return undefined
+    const num = Number(n)
+    if (isNaN(num)) return undefined
+    return num
+  }
+
   try {
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
@@ -662,7 +669,8 @@ async function handleCollaborationListApi(
           pageSize,
           collaborationName: toOptStr(searchParams.get('collaborationName')),
           collaborationShortname: toOptStr(searchParams.get('collaborationShortname')),
-          contactSearch: toOptStr(searchParams.get('contactSearch')),
+          collaborationField: toOptStr(searchParams.get('collaborationField')),
+          contactId: toOptNumber(searchParams.get('contactId')),
         })
         sendJson(res, 200, { success: true, data: result })
         return true
@@ -677,9 +685,8 @@ async function handleCollaborationListApi(
           collaboration_name: String(body.collaboration_name ?? ''),
           collaboration_shortname: toOptStr(body.collaboration_shortname),
           collaboration_address: toOptStr(body.collaboration_address),
-          collaboration_contact_name: toOptStr(body.collaboration_contact_name),
-          collaboration_contact_phone: toOptStr(body.collaboration_contact_phone),
-          collaboration_contact_email: toOptStr(body.collaboration_contact_email),
+          collaboration_field: toOptStr(body.collaboration_field),
+          collaboration_contact_id: toOptNumber(body.collaboration_contact_id),
           collaboration_remark: toOptStr(body.collaboration_remark),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -735,9 +742,8 @@ async function handleCollaborationListApi(
           collaboration_name: body.collaboration_name == null ? undefined : String(body.collaboration_name),
           collaboration_shortname: toOptStr(body.collaboration_shortname),
           collaboration_address: toOptStr(body.collaboration_address),
-          collaboration_contact_name: toOptStr(body.collaboration_contact_name),
-          collaboration_contact_phone: toOptStr(body.collaboration_contact_phone),
-          collaboration_contact_email: toOptStr(body.collaboration_contact_email),
+          collaboration_field: toOptStr(body.collaboration_field),
+          collaboration_contact_id: toOptNumber(body.collaboration_contact_id),
           collaboration_remark: toOptStr(body.collaboration_remark),
         })
         sendJson(res, 200, { success: true, data: updated })

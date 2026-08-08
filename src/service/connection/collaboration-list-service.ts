@@ -1,20 +1,24 @@
 import { query, execute, type ExecuteValues } from './db'
+import { getCaseDictByKeyPrefix } from './case-dict-service'
+
+export interface CollaborationDictEntry {
+  dict_key: string
+  dict_value: string
+}
 
 export interface CollaborationListRow {
   collaboration_id: number
   collaboration_name: string
   collaboration_shortname: string | null
   collaboration_address: string | null
-  collaboration_contact_name: string | null
-  collaboration_contact_phone: string | null
-  collaboration_contact_email: string | null
+  collaboration_field: string | null
+  collaboration_contact_id: number | null
   collaboration_remark: string | null
 }
 
 const SELECT_COLS = `
   collaboration_id, collaboration_name, collaboration_shortname, collaboration_address,
-  collaboration_contact_name, collaboration_contact_phone,
-  collaboration_contact_email, collaboration_remark
+  collaboration_field, collaboration_contact_id, collaboration_remark
 `
 
 export async function getAllCollaborationList(): Promise<CollaborationListRow[]> {
@@ -33,21 +37,50 @@ export async function getCollaborationListById(collaborationId: number): Promise
   return row ? normalizeRow(row) : null
 }
 
+function flattenUnique(values: (string | null)[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const v of values) {
+    if (v == null) continue
+    const parts = String(v)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    for (const p of parts) {
+      if (seen.has(p)) continue
+      seen.add(p)
+      out.push(p)
+    }
+  }
+  return out
+}
+
 export async function getCollaborationListGroups(): Promise<{
   shortnames: string[]
   names: string[]
+  fields: string[]
+  fieldDict: CollaborationDictEntry[]
 }> {
-  const [shortnames, names] = await Promise.all([
+  const [shortnames, names, fields, fieldRows] = await Promise.all([
     query<{ collaboration_shortname: string | null }[]>(
       'SELECT DISTINCT collaboration_shortname FROM `collaboration_list` WHERE collaboration_shortname IS NOT NULL AND collaboration_shortname <> \'\' ORDER BY collaboration_shortname'
     ),
     query<{ collaboration_name: string | null }[]>(
       'SELECT DISTINCT collaboration_name FROM `collaboration_list` WHERE collaboration_name IS NOT NULL AND collaboration_name <> \'\' ORDER BY collaboration_name'
     ),
+    query<{ collaboration_field: string | null }[]>(
+      'SELECT DISTINCT collaboration_field FROM `collaboration_list` WHERE collaboration_field IS NOT NULL AND collaboration_field <> \'\' ORDER BY collaboration_field'
+    ),
+    getCaseDictByKeyPrefix('L'),
   ])
   return {
     shortnames: shortnames.map((r) => r.collaboration_shortname!).filter(Boolean),
     names: names.map((r) => r.collaboration_name!).filter(Boolean),
+    fields: flattenUnique(fields.map((r) => r.collaboration_field)),
+    fieldDict: fieldRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
   }
 }
 
@@ -56,7 +89,8 @@ export async function getCollaborationListPaginated(params: {
   pageSize?: number
   collaborationName?: string
   collaborationShortname?: string
-  contactSearch?: string
+  collaborationField?: string
+  contactId?: number
 }): Promise<{ rows: CollaborationListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
   const pageSize = params.pageSize ?? 10
@@ -73,10 +107,13 @@ export async function getCollaborationListPaginated(params: {
     whereClauses.push('collaboration_shortname LIKE ?')
     whereParams.push(`%${params.collaborationShortname}%`)
   }
-  if (params.contactSearch && params.contactSearch.trim() !== '') {
-    const q = `%${params.contactSearch}%`
-    whereClauses.push('(collaboration_contact_name LIKE ? OR collaboration_contact_phone LIKE ? OR collaboration_contact_email LIKE ?)')
-    whereParams.push(q, q, q)
+  if (params.collaborationField && params.collaborationField.trim() !== '') {
+    whereClauses.push('collaboration_field LIKE ?')
+    whereParams.push(`%${params.collaborationField}%`)
+  }
+  if (params.contactId != null && !isNaN(params.contactId)) {
+    whereClauses.push('collaboration_contact_id = ?')
+    whereParams.push(params.contactId)
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
@@ -101,24 +138,21 @@ export async function createCollaborationList(data: {
   collaboration_name: string
   collaboration_shortname?: string | null
   collaboration_address?: string | null
-  collaboration_contact_name?: string | null
-  collaboration_contact_phone?: string | null
-  collaboration_contact_email?: string | null
+  collaboration_field?: string | null
+  collaboration_contact_id?: number | null
   collaboration_remark?: string | null
 }): Promise<CollaborationListRow> {
   const result = await execute(
     `INSERT INTO \`collaboration_list\`
       (collaboration_name, collaboration_shortname, collaboration_address,
-       collaboration_contact_name, collaboration_contact_phone,
-       collaboration_contact_email, collaboration_remark)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       collaboration_field, collaboration_contact_id, collaboration_remark)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       data.collaboration_name,
       data.collaboration_shortname ?? null,
       data.collaboration_address ?? null,
-      data.collaboration_contact_name ?? null,
-      data.collaboration_contact_phone ?? null,
-      data.collaboration_contact_email ?? null,
+      data.collaboration_field ?? null,
+      data.collaboration_contact_id ?? null,
       data.collaboration_remark ?? null,
     ]
   )
@@ -135,9 +169,8 @@ export async function updateCollaborationList(
     collaboration_name?: string
     collaboration_shortname?: string | null
     collaboration_address?: string | null
-    collaboration_contact_name?: string | null
-    collaboration_contact_phone?: string | null
-    collaboration_contact_email?: string | null
+    collaboration_field?: string | null
+    collaboration_contact_id?: number | null
     collaboration_remark?: string | null
   }
 ): Promise<CollaborationListRow> {
@@ -147,9 +180,8 @@ export async function updateCollaborationList(
     'collaboration_name',
     'collaboration_shortname',
     'collaboration_address',
-    'collaboration_contact_name',
-    'collaboration_contact_phone',
-    'collaboration_contact_email',
+    'collaboration_field',
+    'collaboration_contact_id',
     'collaboration_remark',
   ]
   for (const key of keys) {
@@ -197,9 +229,10 @@ function normalizeRow(row: any): CollaborationListRow {
     collaboration_name: String(row.collaboration_name ?? ''),
     collaboration_shortname: row.collaboration_shortname ? String(row.collaboration_shortname) : null,
     collaboration_address: row.collaboration_address ? String(row.collaboration_address) : null,
-    collaboration_contact_name: row.collaboration_contact_name ? String(row.collaboration_contact_name) : null,
-    collaboration_contact_phone: row.collaboration_contact_phone ? String(row.collaboration_contact_phone) : null,
-    collaboration_contact_email: row.collaboration_contact_email ? String(row.collaboration_contact_email) : null,
+    collaboration_field: row.collaboration_field ? String(row.collaboration_field) : null,
+    collaboration_contact_id: row.collaboration_contact_id != null && !isNaN(Number(row.collaboration_contact_id))
+      ? Number(row.collaboration_contact_id)
+      : null,
     collaboration_remark: row.collaboration_remark ? String(row.collaboration_remark) : null,
   }
 }

@@ -5,9 +5,8 @@ export const collaborationSchema = z.object({
   collaboration_name: z.string(),
   collaboration_shortname: z.string().nullable(),
   collaboration_address: z.string().nullable(),
-  collaboration_contact_name: z.string().nullable(),
-  collaboration_contact_phone: z.string().nullable(),
-  collaboration_contact_email: z.string().nullable(),
+  collaboration_field: z.string().nullable(),
+  collaboration_contact_id: z.number().nullable(),
   collaboration_remark: z.string().nullable(),
 })
 

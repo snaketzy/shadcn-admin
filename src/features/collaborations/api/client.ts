@@ -36,20 +36,26 @@ api.interceptors.response.use(
   }
 )
 
+export interface CollaborationDictEntry {
+  dict_key: string
+  dict_value: string
+}
+
 export interface Collaboration {
   collaboration_id: number
   collaboration_name: string
   collaboration_shortname: string | null
   collaboration_address: string | null
-  collaboration_contact_name: string | null
-  collaboration_contact_phone: string | null
-  collaboration_contact_email: string | null
+  collaboration_field: string | null
+  collaboration_contact_id: number | null
   collaboration_remark: string | null
 }
 
 export interface CollaborationGroupsResponse {
   shortnames: string[]
   names: string[]
+  fields: string[]
+  fieldDict: CollaborationDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -71,7 +77,8 @@ export async function fetchCollaborationPaginated(params: {
   pageSize?: number
   collaborationName?: string
   collaborationShortname?: string
-  contactSearch?: string
+  collaborationField?: string
+  contactId?: number
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/collaboration-list/', {
     params,
@@ -83,16 +90,15 @@ export async function fetchCollaborationPaginated(params: {
 
 export async function fetchCollaborationGroups(): Promise<CollaborationGroupsResponse> {
   const res = await api.get<ApiEnvelope<CollaborationGroupsResponse>>('/collaboration-list/groups')
-  return res.data.data ?? { shortnames: [], names: [] }
+  return res.data.data ?? { shortnames: [], names: [], fields: [], fieldDict: [] }
 }
 
 export async function createCollaboration(payload: {
   collaboration_name: string
   collaboration_shortname?: string | null
   collaboration_address?: string | null
-  collaboration_contact_name?: string | null
-  collaboration_contact_phone?: string | null
-  collaboration_contact_email?: string | null
+  collaboration_field?: string | null
+  collaboration_contact_id?: number | null
   collaboration_remark?: string | null
 }): Promise<Collaboration> {
   const res = await api.post<ApiEnvelope<Collaboration>>('/collaboration-list/', payload)
@@ -105,9 +111,8 @@ export async function updateCollaboration(
     collaboration_name?: string
     collaboration_shortname?: string | null
     collaboration_address?: string | null
-    collaboration_contact_name?: string | null
-    collaboration_contact_phone?: string | null
-    collaboration_contact_email?: string | null
+    collaboration_field?: string | null
+    collaboration_contact_id?: number | null
     collaboration_remark?: string | null
   }
 ): Promise<Collaboration> {

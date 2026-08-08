@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
+import { CheckIcon } from '@radix-ui/react-icons'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,16 +27,34 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { type Collaboration } from '../data/schema'
-import { createCollaboration, updateCollaboration, fetchCollaborationGroups } from '../api/client'
+import {
+  createCollaboration,
+  updateCollaboration,
+  fetchCollaborationGroups,
+} from '../api/client'
 
 const formSchema = z.object({
   collaboration_name: z.string().optional().catch(''),
   collaboration_shortname: z.string().min(1, '协作商简称是必填项。'),
+  collaboration_field: z.array(z.string()).optional().catch([]),
   collaboration_address: z.string().optional().catch(''),
-  collaboration_contact_name: z.string().optional().catch(''),
-  collaboration_contact_phone: z.string().optional().catch(''),
-  collaboration_contact_email: z.string().email('邮箱格式不正确').optional().or(z.literal('')).catch(''),
+  collaboration_contact_id: z.string().nullable().catch(null),
   collaboration_remark: z.string().optional().catch(''),
 })
 type CollaborationForm = z.infer<typeof formSchema>
@@ -42,6 +62,27 @@ type CollaborationForm = z.infer<typeof formSchema>
 function toOptStr(s: string | null | undefined): string | null {
   if (s == null || !s || s.trim() === '') return null
   return s
+}
+
+function toOptNumber(n: number | string | null | undefined): number | null {
+  if (n == null || n === '') return null
+  const num = Number(n)
+  if (isNaN(num)) return null
+  return num
+}
+
+function splitMulti(raw: unknown): string[] {
+  if (raw === null || raw === undefined || raw === '') return []
+  const str = String(raw)
+  return str
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function joinMulti(arr: string[] | undefined | null): string | null {
+  if (!arr || arr.length === 0) return null
+  return arr.filter(Boolean).join(',') || null
 }
 
 type CollaborationsActionDialogProps = {
@@ -58,7 +99,7 @@ export function CollaborationsActionDialog({
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
 
-  useQuery({
+  const { data: groups } = useQuery({
     queryKey: ['collaboration-list-groups'],
     queryFn: fetchCollaborationGroups,
     enabled: open,
@@ -71,18 +112,19 @@ export function CollaborationsActionDialog({
           collaboration_name: currentRow.collaboration_name,
           collaboration_shortname: currentRow.collaboration_shortname ?? '',
           collaboration_address: currentRow.collaboration_address ?? '',
-          collaboration_contact_name: currentRow.collaboration_contact_name ?? '',
-          collaboration_contact_phone: currentRow.collaboration_contact_phone ?? '',
-          collaboration_contact_email: currentRow.collaboration_contact_email ?? '',
+          collaboration_field: splitMulti(currentRow.collaboration_field),
+          collaboration_contact_id:
+            currentRow.collaboration_contact_id != null
+              ? String(currentRow.collaboration_contact_id)
+              : null,
           collaboration_remark: currentRow.collaboration_remark ?? '',
         }
       : {
           collaboration_name: '',
           collaboration_shortname: '',
           collaboration_address: '',
-          collaboration_contact_name: '',
-          collaboration_contact_phone: '',
-          collaboration_contact_email: '',
+          collaboration_field: [],
+          collaboration_contact_id: null,
           collaboration_remark: '',
         },
   })
@@ -94,9 +136,11 @@ export function CollaborationsActionDialog({
           collaboration_name: currentRow.collaboration_name,
           collaboration_shortname: currentRow.collaboration_shortname ?? '',
           collaboration_address: currentRow.collaboration_address ?? '',
-          collaboration_contact_name: currentRow.collaboration_contact_name ?? '',
-          collaboration_contact_phone: currentRow.collaboration_contact_phone ?? '',
-          collaboration_contact_email: currentRow.collaboration_contact_email ?? '',
+          collaboration_field: splitMulti(currentRow.collaboration_field),
+          collaboration_contact_id:
+            currentRow.collaboration_contact_id != null
+              ? String(currentRow.collaboration_contact_id)
+              : null,
           collaboration_remark: currentRow.collaboration_remark ?? '',
         })
       } else {
@@ -104,9 +148,8 @@ export function CollaborationsActionDialog({
           collaboration_name: '',
           collaboration_shortname: '',
           collaboration_address: '',
-          collaboration_contact_name: '',
-          collaboration_contact_phone: '',
-          collaboration_contact_email: '',
+          collaboration_field: [],
+          collaboration_contact_id: null,
           collaboration_remark: '',
         })
       }
@@ -146,10 +189,9 @@ export function CollaborationsActionDialog({
     const payload = {
       collaboration_name: toOptStr(values.collaboration_name),
       collaboration_shortname: values.collaboration_shortname || null,
+      collaboration_field: joinMulti(values.collaboration_field),
       collaboration_address: toOptStr(values.collaboration_address),
-      collaboration_contact_name: toOptStr(values.collaboration_contact_name),
-      collaboration_contact_phone: toOptStr(values.collaboration_contact_phone),
-      collaboration_contact_email: toOptStr(values.collaboration_contact_email),
+      collaboration_contact_id: toOptNumber(values.collaboration_contact_id),
       collaboration_remark: toOptStr(values.collaboration_remark),
     } as any
     if (isEdit && currentRow) {
@@ -226,17 +268,22 @@ export function CollaborationsActionDialog({
               />
               <FormField
                 control={form.control}
-                name='collaboration_contact_name'
+                name='collaboration_contact_id'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      联系人
+                      联系人ID
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='请输入联系人姓名'
+                        type='number'
+                        placeholder='请输入联系人ID'
                         className='col-span-4'
-                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? null : val)
+                        }}
                       />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
@@ -245,20 +292,110 @@ export function CollaborationsActionDialog({
               />
               <FormField
                 control={form.control}
-                name='collaboration_contact_phone'
+                name='collaboration_field'
                 render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      联系人手机
+                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
+                    <FormLabel className='col-span-2 text-end pt-2'>
+                      经营范围
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入手机'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
+                    <div className='col-span-4'>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='w-full min-h-9 border-dashed justify-start font-normal'
+                            >
+                              {(field.value ?? []).length > 0 ? (
+                                <>
+                                  <div className='hidden flex-wrap gap-1 lg:flex'>
+                                    {(field.value || [])
+                                      .map((v) => {
+                                        const d = (groups?.fieldDict ?? []).find(
+                                          (x) => x.dict_key === v
+                                        )
+                                        return d
+                                          ? { value: v, label: d.dict_value }
+                                          : { value: v, label: v }
+                                      })
+                                      .map((item) => (
+                                        <Badge
+                                          key={item.value}
+                                          variant='secondary'
+                                          className='rounded-sm px-1.5 font-normal'
+                                        >
+                                          {item.label}
+                                        </Badge>
+                                      ))}
+                                  </div>
+                                  <Badge
+                                    variant='secondary'
+                                    className='rounded-sm px-1 font-normal lg:hidden'
+                                  >
+                                    {(field.value ?? []).length} 已选
+                                  </Badge>
+                                </>
+                              ) : (
+                                <span className='text-muted-foreground'>
+                                  请选择经营范围
+                                </span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-64 p-0' align='start'>
+                          <Command>
+                            <CommandInput placeholder='搜索经营范围' />
+                            <CommandList>
+                              <CommandEmpty>暂无结果</CommandEmpty>
+                              <CommandGroup>
+                                {(groups?.fieldDict ?? []).map((d) => {
+                                  const isSelected = (field.value || []).includes(d.dict_key)
+                                  return (
+                                    <CommandItem
+                                      key={d.dict_key}
+                                      onSelect={() => {
+                                        const current = new Set(field.value || [])
+                                        if (isSelected) current.delete(d.dict_key)
+                                        else current.add(d.dict_key)
+                                        field.onChange(Array.from(current))
+                                      }}
+                                    >
+                                      <div
+                                        className={cn(
+                                          'flex size-4 items-center justify-center rounded-sm border border-primary me-2',
+                                          isSelected
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'opacity-50 [&_svg]:invisible'
+                                        )}
+                                      >
+                                        <CheckIcon className='h-4 w-4 text-background' />
+                                      </div>
+                                      <span>{d.dict_value}</span>
+                                    </CommandItem>
+                                  )
+                                })}
+                              </CommandGroup>
+                              {(field.value || []).length > 0 && (
+                                <>
+                                  <CommandSeparator />
+                                  <CommandGroup>
+                                    <CommandItem
+                                      onSelect={() => field.onChange([])}
+                                      className='justify-center text-center'
+                                    >
+                                      清空已选
+                                    </CommandItem>
+                                  </CommandGroup>
+                                </>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className='mt-1' />
+                    </div>
                   </FormItem>
                 )}
               />
@@ -275,26 +412,6 @@ export function CollaborationsActionDialog({
                         placeholder='请输入地址'
                         rows={2}
                         className='col-span-4 w-full resize-y'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='collaboration_contact_email'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 text-end'>
-                      联系人邮箱
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='email'
-                        placeholder='请输入邮箱'
-                        className='col-span-4'
                         {...field}
                       />
                     </FormControl>
