@@ -62,6 +62,20 @@ export interface ContactDictEntry {
   dict_value: string
 }
 
+export interface DivisionSupplierRow {
+  supplier_id: number
+  supplier_name: string
+  supplier_shortname: string | null
+  supplier_advantage: string | null
+  supplier_contact_name: string | null
+}
+
+export interface DivisionCollaborationRow {
+  collaboration_id: number
+  collaboration_name: string
+  collaboration_shortname: string | null
+}
+
 export interface PaginatedResponse {
   rows: Contact[]
   total: number
@@ -140,4 +154,14 @@ export async function deleteContactBulk(contactIds: number[]): Promise<number> {
     { ids: contactIds }
   )
   return res.data.data.deleted
+}
+
+export async function fetchDivisionSuppliers(): Promise<DivisionSupplierRow[]> {
+  const res = await api.get<ApiEnvelope<DivisionSupplierRow[]>>('/supplier-list/all')
+  return res.data.data ?? []
+}
+
+export async function fetchDivisionCollaborations(): Promise<DivisionCollaborationRow[]> {
+  const res = await api.get<ApiEnvelope<DivisionCollaborationRow[]>>('/collaboration-list/all')
+  return res.data.data ?? []
 }

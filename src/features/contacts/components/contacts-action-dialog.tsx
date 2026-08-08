@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Building2, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,6 +36,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { type Contact } from '../data/schema'
 import { createContact, updateContact, fetchContactGroups, type ContactDictEntry } from '../api/client'
+import {
+  DivisionPickerDialog,
+  type DivisionPickerResult,
+} from './division-picker-dialog'
 
 const LINKED_TYPE_KEYS = new Set(['J1', 'J2', 'J3'])
 
@@ -117,39 +122,107 @@ export function ContactsActionDialog({
   })
 
   useEffect(() => {
-    if (open) {
-      if (isEdit && currentRow) {
-        const typeValue = currentRow.contact_type ?? ''
-        form.reset({
-          contact_name: currentRow.contact_name,
-          contact_mobile: currentRow.contact_mobile ?? '',
-          contact_email: currentRow.contact_email ?? '',
-          contact_type: typeValue,
-          contact_rank: currentRow.contact_rank ?? '',
-          contact_division_type: deriveDivisionType(typeValue),
-          contact_division_id: currentRow.contact_division_id ?? '',
-          contact_remark: currentRow.contact_remark ?? '',
-        })
-      } else {
-        form.reset({
-          contact_name: '',
-          contact_mobile: '',
-          contact_email: '',
-          contact_type: '',
-          contact_rank: '',
-          contact_division_type: '',
-          contact_division_id: '',
-          contact_remark: '',
+    if (!open) return
+    if (isEdit && currentRow) {
+      const typeValue = currentRow.contact_type ?? ''
+      form.reset({
+        contact_name: currentRow.contact_name,
+        contact_mobile: currentRow.contact_mobile ?? '',
+        contact_email: currentRow.contact_email ?? '',
+        contact_type: typeValue,
+        contact_rank: currentRow.contact_rank ?? '',
+        contact_division_type: deriveDivisionType(typeValue),
+        contact_division_id: currentRow.contact_division_id ?? '',
+        contact_remark: currentRow.contact_remark ?? '',
+      })
+    } else {
+      form.reset({
+        contact_name: '',
+        contact_mobile: '',
+        contact_email: '',
+        contact_type: '',
+        contact_rank: '',
+        contact_division_type: '',
+        contact_division_id: '',
+        contact_remark: '',
+      })
+    }
+  }, [open, isEdit, currentRow])
+
+  const currentType = form.watch('contact_type')
+  const currentDivisionType = form.watch('contact_division_type') as
+    | 'K1'
+    | 'K2'
+    | ''
+    | null
+    | undefined
+  const normalizedDivisionType = useMemo(
+    () =>
+      currentDivisionType?.toUpperCase() === 'K1'
+        ? 'K1'
+        : currentDivisionType?.toUpperCase() === 'K2'
+          ? 'K2'
+          : null,
+    [currentDivisionType]
+  )
+
+  useEffect(() => {
+    if (!open) return
+    const derived = deriveDivisionType(currentType)
+    const current = form.getValues('contact_division_type') ?? ''
+    if (current === derived) return
+    form.setValue('contact_division_type', derived, {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    if (!derived) {
+      setDivisionDisplay({ shortname: '', name: '' })
+      const currentId = form.getValues('contact_division_id') ?? ''
+      if (currentId) {
+        form.setValue('contact_division_id', '', {
+          shouldDirty: true,
+          shouldValidate: false,
         })
       }
     }
-  }, [open, isEdit, currentRow, form])
+  }, [open, currentType])
 
-  const currentType = form.watch('contact_type')
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [divisionDisplay, setDivisionDisplay] = useState<{
+    shortname: string
+    name: string
+  }>({ shortname: '', name: '' })
+
   useEffect(() => {
-    const derived = deriveDivisionType(currentType)
-    form.setValue('contact_division_type', derived, { shouldDirty: true, shouldValidate: false })
-  }, [currentType, form])
+    if (!open) return
+    if (isEdit && currentRow?.contact_division_id) {
+      setDivisionDisplay({
+        shortname: '',
+        name: currentRow.contact_division_id ?? '',
+      })
+    } else {
+      setDivisionDisplay({ shortname: '', name: '' })
+    }
+  }, [open, isEdit, currentRow])
+
+  const handleDivisionPicked = (r: DivisionPickerResult) => {
+    form.setValue('contact_division_id', r.divisionId, {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    setDivisionDisplay({
+      shortname: r.displayShortname,
+      name: r.displayName,
+    })
+  }
+
+  const handleClearDivision = () => {
+    form.setValue('contact_division_id', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    setDivisionDisplay({ shortname: '', name: '' })
+  }
 
   const createMutation = useMutation({
     mutationFn: createContact,
@@ -202,13 +275,14 @@ export function ContactsActionDialog({
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(state) => {
-        if (!state) {
-          form.reset()
-        }
-        onOpenChange(state)
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(state) => {
+          if (!state) {
+            form.reset()
+          }
+          onOpenChange(state)
       }}
     >
       <DialogContent className='sm:max-w-2xl'>
@@ -365,21 +439,97 @@ export function ContactsActionDialog({
               <FormField
                 control={form.control}
                 name='contact_division_id'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      所属单位
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入所属单位'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const hasDivision = normalizedDivisionType !== null
+                  const inputValue =
+                    (divisionDisplay.shortname ||
+                      divisionDisplay.name) ||
+                    field.value ||
+                    ''
+                  return (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        所属单位
+                      </FormLabel>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder={
+                                hasDivision
+                                  ? '点击输入框从对应列表中选择所属单位'
+                                  : '请先选择联系人类型（以联动确定所属单位类型）'
+                              }
+                              className={
+                                hasDivision
+                                  ? 'cursor-pointer pr-20 pe-20'
+                                  : 'cursor-not-allowed opacity-80'
+                              }
+                              readOnly
+                              value={inputValue}
+                              onClick={() => {
+                                if (!hasDivision) return
+                                setPickerOpen(true)
+                              }}
+                              onKeyDown={(e) => {
+                                if (!hasDivision) return
+                                if (
+                                  e.key === 'Enter' ||
+                                  e.key === ' '
+                                ) {
+                                  e.preventDefault()
+                                  setPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pr-2 pe-2'>
+                              {hasDivision ? (
+                                <>
+                                  {field.value ? (
+                                    <Button
+                                      type='button'
+                                      variant='ghost'
+                                      size='icon'
+                                      className='pointer-events-auto h-7 w-7'
+                                      tabIndex={-1}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleClearDivision()
+                                      }}
+                                      aria-label='清空所属单位'
+                                    >
+                                      <X className='h-3.5 w-3.5' />
+                                    </Button>
+                                  ) : null}
+                                  <Button
+                                    type='button'
+                                    variant='ghost'
+                                    size='icon'
+                                    className='pointer-events-auto h-7 w-7'
+                                    tabIndex={-1}
+                                    aria-label='选择所属单位'
+                                  >
+                                    <Search className='h-3.5 w-3.5' />
+                                  </Button>
+                                  <Building2 className='mr-1 me-1 h-3.5 w-3.5 text-muted-foreground' />
+                                </>
+                              ) : (
+                                <Building2 className='mr-2 me-2 h-3.5 w-3.5 text-muted-foreground/60' />
+                              )}
+                            </div>
+                          </div>
+                        </FormControl>
+                        {divisionDisplay.shortname &&
+                        divisionDisplay.name ? (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            全称：{divisionDisplay.name}
+                          </p>
+                        ) : null}
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )
+                }}
               />
               <FormField
                 control={form.control}
@@ -410,6 +560,18 @@ export function ContactsActionDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      {pickerOpen && (
+        <DivisionPickerDialog
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          divisionType={normalizedDivisionType}
+          initialSelectedId={
+            form.getValues('contact_division_id') || undefined
+          }
+          onSelect={handleDivisionPicked}
+        />
+      )}
+    </>
   )
 }

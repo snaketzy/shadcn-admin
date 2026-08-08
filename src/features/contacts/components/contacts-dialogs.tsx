@@ -9,7 +9,10 @@ export function ContactsDialogs() {
       <ContactsActionDialog
         key='contact-add'
         open={open === 'add'}
-        onOpenChange={() => setOpen('add')}
+        onOpenChange={(s) => {
+          if (s) setOpen('add')
+          else setOpen(null)
+        }}
       />
 
       {currentRow && (
@@ -17,11 +20,12 @@ export function ContactsDialogs() {
           <ContactsActionDialog
             key={`contact-edit-${currentRow.contact_id}`}
             open={open === 'edit'}
-            onOpenChange={() => {
-              setOpen('edit')
-              setTimeout(() => {
+            onOpenChange={(s) => {
+              if (s) setOpen('edit')
+              else {
                 setCurrentRow(null)
-              }, 500)
+                setOpen(null)
+              }
             }}
             currentRow={currentRow}
           />
@@ -29,11 +33,12 @@ export function ContactsDialogs() {
           <ContactsDeleteDialog
             key={`contact-delete-${currentRow.contact_id}`}
             open={open === 'delete'}
-            onOpenChange={() => {
-              setOpen('delete')
-              setTimeout(() => {
+            onOpenChange={(s) => {
+              if (s) setOpen('delete')
+              else {
                 setCurrentRow(null)
-              }, 500)
+                setOpen(null)
+              }
             }}
             currentRow={currentRow}
           />
