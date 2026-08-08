@@ -4,7 +4,7 @@ export interface CaseDictRow {
   dict_id: number
   dict_group: string
   dict_value: string
-  dict_key: number
+  dict_key: string
 }
 
 export async function getAllCaseDict(): Promise<CaseDictRow[]> {
@@ -94,7 +94,7 @@ export async function getCaseDictPaginated(params: {
 export async function createCaseDict(data: {
   dict_group: string
   dict_value: string
-  dict_key: number
+  dict_key: string
 }): Promise<CaseDictRow> {
   const maxIdRows = await query<[{ max_id: number }]>(
     'SELECT COALESCE(MAX(dict_id), 0) + 1 AS max_id FROM `case_dict`'
@@ -103,7 +103,7 @@ export async function createCaseDict(data: {
 
   await execute(
     'INSERT INTO `case_dict` (dict_id, dict_group, dict_value, dict_key) VALUES (?, ?, ?, ?)',
-    [newDictId, data.dict_group, data.dict_value, data.dict_key]
+    [newDictId, data.dict_group, data.dict_value, String(data.dict_key ?? '')]
   )
 
   const created = await getCaseDictById(newDictId)
@@ -116,12 +116,12 @@ export async function updateCaseDict(
   data: {
     dict_group: string
     dict_value: string
-    dict_key: number
+    dict_key: string
   }
 ): Promise<CaseDictRow> {
   await execute(
     'UPDATE `case_dict` SET dict_group = ?, dict_value = ?, dict_key = ? WHERE dict_id = ?',
-    [data.dict_group, data.dict_value, data.dict_key, dictId]
+    [data.dict_group, data.dict_value, String(data.dict_key ?? ''), dictId]
   )
 
   const updated = await getCaseDictById(dictId)

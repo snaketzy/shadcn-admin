@@ -105,7 +105,7 @@ async function handleCaseDictApi(
         const created = await createCaseDict({
           dict_group: String(body.dict_group ?? ''),
           dict_value: String(body.dict_value ?? ''),
-          dict_key: Number(body.dict_key ?? 0),
+          dict_key: String(body.dict_key ?? ''),
         })
         sendJson(res, 200, { success: true, data: created })
         return true
@@ -159,7 +159,7 @@ async function handleCaseDictApi(
         const updated = await updateCaseDict(dictId, {
           dict_group: String(body.dict_group ?? ''),
           dict_value: String(body.dict_value ?? ''),
-          dict_key: Number(body.dict_key ?? 0),
+          dict_key: String(body.dict_key ?? ''),
         })
         sendJson(res, 200, { success: true, data: updated })
         return true

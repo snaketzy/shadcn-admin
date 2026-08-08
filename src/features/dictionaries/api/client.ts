@@ -11,7 +11,7 @@ export interface CaseDict {
   dict_id: number
   dict_group: string
   dict_value: string
-  dict_key: string | number
+  dict_key: string
 }
 
 export interface PaginatedResponse {
@@ -51,7 +51,7 @@ export async function fetchCaseDictGroups(): Promise<string[]> {
 export async function createCaseDict(payload: {
   dict_group: string
   dict_value: string
-  dict_key: string | number
+  dict_key: string
 }): Promise<CaseDict> {
   const res = await api.post<ApiEnvelope<CaseDict>>('/case-dict/', payload)
   return res.data.data
@@ -62,7 +62,7 @@ export async function updateCaseDict(
   payload: {
     dict_group: string
     dict_value: string
-    dict_key: string | number
+    dict_key: string
   }
 ): Promise<CaseDict> {
   const res = await api.put<ApiEnvelope<CaseDict>>(`/case-dict/${dictId}`, payload)

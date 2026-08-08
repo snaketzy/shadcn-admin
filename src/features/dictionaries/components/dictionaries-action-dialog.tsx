@@ -38,14 +38,6 @@ const formSchema = z.object({
 
 type DictionaryForm = z.infer<typeof formSchema>
 
-function toDictKey(v: string): string | number {
-  const trimmed = v.trim()
-  if (trimmed === '') return ''
-  const n = Number(trimmed)
-  if (Number.isFinite(n)) return n
-  return trimmed
-}
-
 type DictionaryActionDialogProps = {
   currentRow?: CaseDictType
   open: boolean
@@ -61,7 +53,7 @@ export function DictionariesActionDialog({
   const queryClient = useQueryClient()
 
   const createMutation = useMutation({
-    mutationFn: (p: { dict_group: string; dict_value: string; dict_key: string | number }) =>
+    mutationFn: (p: { dict_group: string; dict_value: string; dict_key: string }) =>
       createCaseDict(p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-dict'] })
@@ -71,7 +63,7 @@ export function DictionariesActionDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: (vars: { id: number; payload: { dict_group: string; dict_value: string; dict_key: string | number } }) =>
+    mutationFn: (vars: { id: number; payload: { dict_group: string; dict_value: string; dict_key: string } }) =>
       updateCaseDict(vars.id, vars.payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-dict'] })
@@ -100,7 +92,7 @@ export function DictionariesActionDialog({
       const payload = {
         dict_group: values.dict_group,
         dict_value: values.dict_value,
-        dict_key: toDictKey(values.dict_key),
+        dict_key: values.dict_key.trim(),
       }
       if (isEdit && currentRow) {
         await updateMutation.mutateAsync({
@@ -114,7 +106,11 @@ export function DictionariesActionDialog({
       showSubmittedData(payload)
       onOpenChange(false)
     } catch (err) {
-      toast.error(isEdit ? '字典更新失败' : '字典添加失败')
+      toast.error(
+        `${isEdit ? '字典更新失败' : '字典添加失败'}：${
+          err instanceof Error ? err.message : String(err)
+        }`
+      )
     }
   }
 
