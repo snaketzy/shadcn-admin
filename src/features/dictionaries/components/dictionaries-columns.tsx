@@ -77,6 +77,20 @@ export const dictionariesColumns: ColumnDef<CaseDictType>[] = [
     enableSorting: false,
   },
   {
+    accessorKey: 'dict_value_remark',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='备注' />
+    ),
+    cell: ({ row }) => {
+      const remark = row.getValue<string | null>('dict_value_remark')
+      if (remark == null || remark.trim() === '') {
+        return <span className='text-muted-foreground text-sm'>—</span>
+      }
+      return <LongText className='max-w-[24rem]'>{remark}</LongText>
+    },
+    enableSorting: false,
+  },
+  {
     id: 'actions',
     header: () => <span className='pe-3 inline-block w-full text-end'>操作</span>,
     cell: DataTableRowActions,

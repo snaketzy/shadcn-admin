@@ -4,19 +4,20 @@ export interface CaseDictRow {
   dict_id: number
   dict_group: string
   dict_value: string
+  dict_value_remark: string | null
   dict_key: string
 }
 
 export async function getAllCaseDict(): Promise<CaseDictRow[]> {
   const rows = await query<CaseDictRow[]>(
-    'SELECT dict_id, dict_group, dict_value, dict_key FROM `case_dict` ORDER BY dict_group, dict_key'
+    'SELECT dict_id, dict_group, dict_value, dict_value_remark, dict_key FROM `case_dict` ORDER BY dict_group, dict_key'
   )
   return rows
 }
 
 export async function getCaseDictById(dictId: number): Promise<CaseDictRow | null> {
   const rows = await query<CaseDictRow[]>(
-    'SELECT dict_id, dict_group, dict_value, dict_key FROM `case_dict` WHERE dict_id = ? LIMIT 1',
+    'SELECT dict_id, dict_group, dict_value, dict_value_remark, dict_key FROM `case_dict` WHERE dict_id = ? LIMIT 1',
     [dictId]
   )
   return rows[0] ?? null
@@ -31,7 +32,7 @@ export async function getCaseDictGroups(): Promise<string[]> {
 
 export async function getCaseDictByGroup(group: string): Promise<CaseDictRow[]> {
   const rows = await query<CaseDictRow[]>(
-    'SELECT dict_id, dict_group, dict_value, dict_key FROM `case_dict` WHERE dict_group = ? ORDER BY dict_key',
+    'SELECT dict_id, dict_group, dict_value, dict_value_remark, dict_key FROM `case_dict` WHERE dict_group = ? ORDER BY dict_key',
     [group]
   )
   return rows
@@ -40,7 +41,7 @@ export async function getCaseDictByGroup(group: string): Promise<CaseDictRow[]> 
 export async function getCaseDictByKeyPrefix(prefix: string): Promise<CaseDictRow[]> {
   if (prefix === '') return []
   const rows = await query<CaseDictRow[]>(
-    "SELECT dict_id, dict_group, dict_value, dict_key FROM `case_dict` WHERE CAST(dict_key AS CHAR) LIKE ? ORDER BY dict_key",
+    "SELECT dict_id, dict_group, dict_value, dict_value_remark, dict_key FROM `case_dict` WHERE CAST(dict_key AS CHAR) LIKE ? ORDER BY dict_key",
     [`${prefix}%`]
   )
   return rows
@@ -76,7 +77,7 @@ export async function getCaseDictPaginated(params: {
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
 
   const countSql = `SELECT COUNT(*) as total FROM \`case_dict\` ${whereSql}`
-  const dataSql = `SELECT dict_id, dict_group, dict_value, dict_key FROM \`case_dict\` ${whereSql} ORDER BY dict_group, dict_key LIMIT ? OFFSET ?`
+  const dataSql = `SELECT dict_id, dict_group, dict_value, dict_value_remark, dict_key FROM \`case_dict\` ${whereSql} ORDER BY dict_group, dict_key LIMIT ? OFFSET ?`
 
   const [countRows, dataRows] = await Promise.all([
     query<[{ total: number }]>(countSql, whereParams),
@@ -94,6 +95,7 @@ export async function getCaseDictPaginated(params: {
 export async function createCaseDict(data: {
   dict_group: string
   dict_value: string
+  dict_value_remark?: string | null
   dict_key: string
 }): Promise<CaseDictRow> {
   const maxIdRows = await query<[{ max_id: number }]>(
@@ -102,8 +104,14 @@ export async function createCaseDict(data: {
   const newDictId = maxIdRows[0]?.max_id ?? 1
 
   await execute(
-    'INSERT INTO `case_dict` (dict_id, dict_group, dict_value, dict_key) VALUES (?, ?, ?, ?)',
-    [newDictId, data.dict_group, data.dict_value, String(data.dict_key ?? '')]
+    'INSERT INTO `case_dict` (dict_id, dict_group, dict_value, dict_value_remark, dict_key) VALUES (?, ?, ?, ?, ?)',
+    [
+      newDictId,
+      data.dict_group,
+      data.dict_value,
+      data.dict_value_remark ?? null,
+      String(data.dict_key ?? ''),
+    ]
   )
 
   const created = await getCaseDictById(newDictId)
@@ -116,12 +124,19 @@ export async function updateCaseDict(
   data: {
     dict_group: string
     dict_value: string
+    dict_value_remark?: string | null
     dict_key: string
   }
 ): Promise<CaseDictRow> {
   await execute(
-    'UPDATE `case_dict` SET dict_group = ?, dict_value = ?, dict_key = ? WHERE dict_id = ?',
-    [data.dict_group, data.dict_value, String(data.dict_key ?? ''), dictId]
+    'UPDATE `case_dict` SET dict_group = ?, dict_value = ?, dict_value_remark = ?, dict_key = ? WHERE dict_id = ?',
+    [
+      data.dict_group,
+      data.dict_value,
+      data.dict_value_remark ?? null,
+      String(data.dict_key ?? ''),
+      dictId,
+    ]
   )
 
   const updated = await getCaseDictById(dictId)

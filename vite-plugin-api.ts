@@ -105,6 +105,7 @@ async function handleCaseDictApi(
         const created = await createCaseDict({
           dict_group: String(body.dict_group ?? ''),
           dict_value: String(body.dict_value ?? ''),
+          dict_value_remark: body.dict_value_remark == null || body.dict_value_remark === '' ? null : String(body.dict_value_remark),
           dict_key: String(body.dict_key ?? ''),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -159,6 +160,7 @@ async function handleCaseDictApi(
         const updated = await updateCaseDict(dictId, {
           dict_group: String(body.dict_group ?? ''),
           dict_value: String(body.dict_value ?? ''),
+          dict_value_remark: body.dict_value_remark == null || body.dict_value_remark === '' ? null : String(body.dict_value_remark),
           dict_key: String(body.dict_key ?? ''),
         })
         sendJson(res, 200, { success: true, data: updated })

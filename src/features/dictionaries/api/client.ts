@@ -11,6 +11,7 @@ export interface CaseDict {
   dict_id: number
   dict_group: string
   dict_value: string
+  dict_value_remark: string | null
   dict_key: string
 }
 
@@ -51,6 +52,7 @@ export async function fetchCaseDictGroups(): Promise<string[]> {
 export async function createCaseDict(payload: {
   dict_group: string
   dict_value: string
+  dict_value_remark?: string | null
   dict_key: string
 }): Promise<CaseDict> {
   const res = await api.post<ApiEnvelope<CaseDict>>('/case-dict/', payload)
@@ -62,6 +64,7 @@ export async function updateCaseDict(
   payload: {
     dict_group: string
     dict_value: string
+    dict_value_remark?: string | null
     dict_key: string
   }
 ): Promise<CaseDict> {

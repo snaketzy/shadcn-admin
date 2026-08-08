@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -33,6 +34,7 @@ import { type CaseDictType } from '../data/schema'
 const formSchema = z.object({
   dict_group: z.string().min(1, '字典分组是必填项。'),
   dict_value: z.string().min(1, '字典键值是必填项。'),
+  dict_value_remark: z.string().max(500, '备注长度不能超过 500 个字符。').optional().or(z.literal('')),
   dict_key: z.string().min(1, '字典键名是必填项。'),
 })
 
@@ -53,8 +55,12 @@ export function DictionariesActionDialog({
   const queryClient = useQueryClient()
 
   const createMutation = useMutation({
-    mutationFn: (p: { dict_group: string; dict_value: string; dict_key: string }) =>
-      createCaseDict(p),
+    mutationFn: (p: {
+      dict_group: string
+      dict_value: string
+      dict_value_remark?: string | null
+      dict_key: string
+    }) => createCaseDict(p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-dict'] })
       queryClient.invalidateQueries({ queryKey: ['case-dict-groups'] })
@@ -63,8 +69,15 @@ export function DictionariesActionDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: (vars: { id: number; payload: { dict_group: string; dict_value: string; dict_key: string } }) =>
-      updateCaseDict(vars.id, vars.payload),
+    mutationFn: (vars: {
+      id: number
+      payload: {
+        dict_group: string
+        dict_value: string
+        dict_value_remark?: string | null
+        dict_key: string
+      }
+    }) => updateCaseDict(vars.id, vars.payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-dict'] })
       queryClient.invalidateQueries({ queryKey: ['case-dict-groups'] })
@@ -78,11 +91,13 @@ export function DictionariesActionDialog({
       ? {
           dict_group: currentRow.dict_group,
           dict_value: currentRow.dict_value,
+          dict_value_remark: currentRow.dict_value_remark ?? '',
           dict_key: String(currentRow.dict_key),
         }
       : {
           dict_group: '',
           dict_value: '',
+          dict_value_remark: '',
           dict_key: '',
         },
   })
@@ -92,6 +107,10 @@ export function DictionariesActionDialog({
       const payload = {
         dict_group: values.dict_group,
         dict_value: values.dict_value,
+        dict_value_remark:
+          values.dict_value_remark == null || values.dict_value_remark.trim() === ''
+            ? null
+            : values.dict_value_remark,
         dict_key: values.dict_key.trim(),
       }
       if (isEdit && currentRow) {
@@ -188,6 +207,25 @@ export function DictionariesActionDialog({
                       <Input
                         placeholder='请输入字典键值'
                         className='col-span-4'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='dict_value_remark'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end pt-2'>
+                      备注
+                    </FormLabel>
+                    <FormControl className='col-span-4'>
+                      <Textarea
+                        placeholder='请输入备注（最多 500 字）'
+                        rows={4}
                         {...field}
                       />
                     </FormControl>
