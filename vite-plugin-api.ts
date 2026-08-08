@@ -49,6 +49,16 @@ import {
   deleteCollaborationList,
   deleteCollaborationListBulk,
 } from './src/service/connection/collaboration-list-service'
+import {
+  getAllContactList,
+  getContactListById,
+  getContactListGroups,
+  getContactListPaginated,
+  createContactList,
+  updateContactList,
+  deleteContactList,
+  deleteContactListBulk,
+} from './src/service/connection/contact-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -752,6 +762,139 @@ async function handleCollaborationListApi(
   }
 }
 
+async function handleContactListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname, searchParams } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/contact-list')) {
+    return false
+  }
+
+  const subPath = pathname.slice('/api/contact-list'.length) || '/'
+
+  function toOptStr(s: string | null | unknown): string | undefined {
+    if (s === null) return undefined
+    if (s === undefined) return undefined
+    const str = String(s)
+    if (str === '') return undefined
+    return str
+  }
+
+  try {
+    if (subPath === '/' || subPath === '') {
+      if (method === 'GET') {
+        const page = Number(searchParams.get('page') ?? 1)
+        const pageSize = Number(searchParams.get('pageSize') ?? 1000)
+        const result = await getContactListPaginated({
+          page,
+          pageSize,
+          contactName: toOptStr(searchParams.get('contactName')),
+          contactType: toOptStr(searchParams.get('contactType')),
+          contactSearch: toOptStr(searchParams.get('contactSearch')),
+        })
+        sendJson(res, 200, { success: true, data: result })
+        return true
+      }
+      if (method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const created = await createContactList({
+          contact_name: String(body.contact_name ?? ''),
+          contact_mobile: toOptStr(body.contact_mobile),
+          contact_email: toOptStr(body.contact_email),
+          contact_type: toOptStr(body.contact_type),
+          contact_rank: toOptStr(body.contact_rank),
+          contact_division_type: toOptStr(body.contact_division_type),
+          contact_division_id: toOptStr(body.contact_division_id),
+          contact_remark: toOptStr(body.contact_remark),
+        })
+        sendJson(res, 200, { success: true, data: created })
+        return true
+      }
+    }
+
+    if (subPath === '/all') {
+      if (method === 'GET') {
+        const rows = await getAllContactList()
+        sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+    }
+
+    if (subPath === '/groups') {
+      if (method === 'GET') {
+        const groups = await getContactListGroups()
+        sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/bulk-delete') {
+      if (method === 'POST') {
+        const body = (await readBody(req)) as { ids?: number[] } | undefined
+        const ids = body?.ids ?? []
+        const n = await deleteContactListBulk(ids)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const idMatch = subPath.match(/^\/(\d+)$/)
+    if (idMatch) {
+      const contactId = Number(idMatch[1])
+      if (method === 'GET') {
+        const row = await getContactListById(contactId)
+        if (!row) {
+          sendJson(res, 404, { success: false, message: 'Not found' })
+        } else {
+          sendJson(res, 200, { success: true, data: row })
+        }
+        return true
+      }
+      if (method === 'PUT') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const updated = await updateContactList(contactId, {
+          contact_name: body.contact_name == null ? undefined : String(body.contact_name),
+          contact_mobile: toOptStr(body.contact_mobile),
+          contact_email: toOptStr(body.contact_email),
+          contact_type: toOptStr(body.contact_type),
+          contact_rank: toOptStr(body.contact_rank),
+          contact_division_type: toOptStr(body.contact_division_type),
+          contact_division_id: toOptStr(body.contact_division_id),
+          contact_remark: toOptStr(body.contact_remark),
+        })
+        sendJson(res, 200, { success: true, data: updated })
+        return true
+      }
+      if (method === 'DELETE') {
+        const ok = await deleteContactList(contactId)
+        sendJson(res, 200, { success: ok, data: { deleted: ok ? 1 : 0 } })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[contact-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -781,6 +924,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/collaboration-list')) {
             const handled = await handleCollaborationListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/contact-list')) {
+            const handled = await handleContactListApi(req, res)
             if (handled) return
           }
           next()
