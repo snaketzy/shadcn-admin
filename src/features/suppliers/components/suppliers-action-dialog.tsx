@@ -29,8 +29,8 @@ import { type Supplier } from '../data/schema'
 import { createSupplier, updateSupplier, fetchSupplierGroups } from '../api/client'
 
 const formSchema = z.object({
-  supplier_name: z.string().min(1, '供应商名称是必填项。'),
-  supplier_shortname: z.string().optional().catch(''),
+  supplier_name: z.string().optional().catch(''),
+  supplier_shortname: z.string().min(1, '供应商简称是必填项。'),
   supplier_address: z.string().optional().catch(''),
   supplier_field: z.string().optional().catch(''),
   supplier_advantage: z.string().optional().catch(''),
@@ -154,8 +154,8 @@ export function SuppliersActionDialog({
 
   const onSubmit = (values: SupplierForm) => {
     const payload = {
-      supplier_name: values.supplier_name,
-      supplier_shortname: toOptStr(values.supplier_shortname),
+      supplier_name: toOptStr(values.supplier_name),
+      supplier_shortname: values.supplier_shortname || null,
       supplier_address: toOptStr(values.supplier_address),
       supplier_field: toOptStr(values.supplier_field),
       supplier_advantage: toOptStr(values.supplier_advantage),
@@ -204,7 +204,7 @@ export function SuppliersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
                     <FormLabel className='col-span-2 text-end'>
-                      供应商名称 <span className='text-destructive'>*</span>
+                      供应商名称
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -223,7 +223,7 @@ export function SuppliersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      供应商简称
+                      供应商简称 <span className='text-destructive'>*</span>
                     </FormLabel>
                     <FormControl>
                       <Input

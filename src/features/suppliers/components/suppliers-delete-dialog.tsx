@@ -49,7 +49,7 @@ export function SuppliersDeleteDialog({
   })
 
   const handleDelete = () => {
-    if (value.trim() !== currentRow.supplier_name) return
+    if (value.trim() !== currentRow.supplier_shortname) return
     deleteMutation.mutate(currentRow.supplier_id)
   }
 
@@ -58,7 +58,7 @@ export function SuppliersDeleteDialog({
       open={open}
       onOpenChange={onOpenChange}
       form='suppliers-delete-form'
-      disabled={value.trim() !== currentRow.supplier_name || deleteMutation.isPending}
+      disabled={value.trim() !== currentRow.supplier_shortname || deleteMutation.isPending}
       title={
         <span className='text-destructive'>
           <AlertTriangle
@@ -78,17 +78,17 @@ export function SuppliersDeleteDialog({
           className='space-y-4'
         >
           <p className='mb-2'>
-            您确定要删除 <span className='font-bold'>{currentRow.supplier_name}</span> 吗？
+            您确定要删除 <span className='font-bold'>{currentRow.supplier_shortname}</span> 吗？
             <br />
             此操作不可撤销。
           </p>
 
           <Label className='my-2'>
-            供应商名称：
+            供应商简称：
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder='请输入供应商名称以确认删除。'
+              placeholder='请输入供应商简称以确认删除。'
               autoFocus
               disabled={deleteMutation.isPending}
             />
