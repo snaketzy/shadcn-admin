@@ -86,7 +86,7 @@ export const dictionariesColumns: ColumnDef<CaseDictType>[] = [
       if (remark == null || remark.trim() === '') {
         return <span className='text-muted-foreground text-sm'>—</span>
       }
-      return <LongText className='max-w-[24rem]'>{remark}</LongText>
+      return <LongText className='max-w-48'>{remark}</LongText>
     },
     enableSorting: false,
   },
