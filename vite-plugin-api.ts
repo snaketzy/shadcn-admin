@@ -29,6 +29,16 @@ import {
   deleteOwnerList,
   deleteOwnerListBulk,
 } from './src/service/connection/owner-list-service'
+import {
+  getAllSupplierList,
+  getSupplierListById,
+  getSupplierListGroups,
+  getSupplierListPaginated,
+  createSupplierList,
+  updateSupplierList,
+  deleteSupplierList,
+  deleteSupplierListBulk,
+} from './src/service/connection/supplier-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -464,6 +474,143 @@ async function handleOwnerListApi(
   }
 }
 
+async function handleSupplierListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname, searchParams } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/supplier-list')) {
+    return false
+  }
+
+  const subPath = pathname.slice('/api/supplier-list'.length) || '/'
+
+  function toOptStr(s: string | null | unknown): string | undefined {
+    if (s === null) return undefined
+    if (s === undefined) return undefined
+    const str = String(s)
+    if (str === '') return undefined
+    return str
+  }
+
+  try {
+    if (subPath === '/' || subPath === '') {
+      if (method === 'GET') {
+        const page = Number(searchParams.get('page') ?? 1)
+        const pageSize = Number(searchParams.get('pageSize') ?? 1000)
+        const result = await getSupplierListPaginated({
+          page,
+          pageSize,
+          supplierName: toOptStr(searchParams.get('supplierName')),
+          supplierShortname: toOptStr(searchParams.get('supplierShortname')),
+          supplierField: toOptStr(searchParams.get('supplierField')),
+          supplierAdvantage: toOptStr(searchParams.get('supplierAdvantage')),
+          contactSearch: toOptStr(searchParams.get('contactSearch')),
+        })
+        sendJson(res, 200, { success: true, data: result })
+        return true
+      }
+      if (method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const created = await createSupplierList({
+          supplier_name: String(body.supplier_name ?? ''),
+          supplier_shortname: toOptStr(body.supplier_shortname),
+          supplier_address: toOptStr(body.supplier_address),
+          supplier_field: toOptStr(body.supplier_field),
+          supplier_advantage: toOptStr(body.supplier_advantage),
+          supplier_contact_name: toOptStr(body.supplier_contact_name),
+          supplier_contact_phone: toOptStr(body.supplier_contact_phone),
+          supplier_contact_email: toOptStr(body.supplier_contact_email),
+          supplier_remark: toOptStr(body.supplier_remark),
+        })
+        sendJson(res, 200, { success: true, data: created })
+        return true
+      }
+    }
+
+    if (subPath === '/all') {
+      if (method === 'GET') {
+        const rows = await getAllSupplierList()
+        sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+    }
+
+    if (subPath === '/groups') {
+      if (method === 'GET') {
+        const groups = await getSupplierListGroups()
+        sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/bulk-delete') {
+      if (method === 'POST') {
+        const body = (await readBody(req)) as { ids?: number[] } | undefined
+        const ids = body?.ids ?? []
+        const n = await deleteSupplierListBulk(ids)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const idMatch = subPath.match(/^\/(\d+)$/)
+    if (idMatch) {
+      const supplierId = Number(idMatch[1])
+      if (method === 'GET') {
+        const row = await getSupplierListById(supplierId)
+        if (!row) {
+          sendJson(res, 404, { success: false, message: 'Not found' })
+        } else {
+          sendJson(res, 200, { success: true, data: row })
+        }
+        return true
+      }
+      if (method === 'PUT') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const updated = await updateSupplierList(supplierId, {
+          supplier_name: body.supplier_name == null ? undefined : String(body.supplier_name),
+          supplier_shortname: toOptStr(body.supplier_shortname),
+          supplier_address: toOptStr(body.supplier_address),
+          supplier_field: toOptStr(body.supplier_field),
+          supplier_advantage: toOptStr(body.supplier_advantage),
+          supplier_contact_name: toOptStr(body.supplier_contact_name),
+          supplier_contact_phone: toOptStr(body.supplier_contact_phone),
+          supplier_contact_email: toOptStr(body.supplier_contact_email),
+          supplier_remark: toOptStr(body.supplier_remark),
+        })
+        sendJson(res, 200, { success: true, data: updated })
+        return true
+      }
+      if (method === 'DELETE') {
+        const ok = await deleteSupplierList(supplierId)
+        sendJson(res, 200, { success: ok, data: { deleted: ok ? 1 : 0 } })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[supplier-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -485,6 +632,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/owner-list')) {
             const handled = await handleOwnerListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/supplier-list')) {
+            const handled = await handleSupplierListApi(req, res)
             if (handled) return
           }
           next()

@@ -12,6 +12,7 @@ import {
   Palette,
   ServerOff,
   Settings,
+  Store,
   Wrench,
   UserCog,
   UserX,
@@ -66,6 +67,11 @@ export const sidebarData: SidebarData = {
           title: 'Apps',
           url: '/apps',
           icon: Package,
+        },
+        {
+          title: '供应商列表',
+          url: '/supplier_list',
+          icon: Store,
         },
         {
           title: '船东列表',
