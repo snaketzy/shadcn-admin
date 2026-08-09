@@ -73,6 +73,16 @@ export async function fetchSupplierAll(): Promise<Supplier[]> {
   return res.data.data ?? []
 }
 
+export async function fetchSupplierDetail(supplierId: number): Promise<Supplier | null> {
+  try {
+    const res = await api.get<ApiEnvelope<Supplier>>(`/supplier-list/${supplierId}`)
+    return res.data.data ?? null
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
+}
+
 export async function fetchSupplierPaginated(params: {
   page?: number
   pageSize?: number

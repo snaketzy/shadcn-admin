@@ -34,9 +34,12 @@ import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
+import { Route as AuthenticatedSupplier_detailSupplierIdRouteRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/route'
 import { Route as AuthenticatedSupplier_listIndexRouteImport } from './routes/_authenticated/supplier_list/index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedVessel_listIndexRouteImport } from './routes/_authenticated/vessel_list/index'
+import { Route as AuthenticatedSupplier_detailSupplierIdIndexRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/index'
+import { Route as AuthenticatedSupplier_detailSupplierIdInfoRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/info'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -174,6 +177,12 @@ const AuthenticatedSettingsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedSupplier_detailSupplierIdRouteRoute =
+  AuthenticatedSupplier_detailSupplierIdRouteRouteImport.update({
+    id: '/supplier_detail/$supplierId',
+    path: '/supplier_detail/$supplierId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSupplier_listIndexRoute =
   AuthenticatedSupplier_listIndexRouteImport.update({
     id: '/supplier_list/',
@@ -191,6 +200,18 @@ const AuthenticatedVessel_listIndexRoute =
     path: '/vessel_list/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSupplier_detailSupplierIdIndexRoute =
+  AuthenticatedSupplier_detailSupplierIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSupplier_detailSupplierIdRouteRoute,
+  } as any)
+const AuthenticatedSupplier_detailSupplierIdInfoRoute =
+  AuthenticatedSupplier_detailSupplierIdInfoRouteImport.update({
+    id: '/info',
+    path: '/info',
+    getParentRoute: () => AuthenticatedSupplier_detailSupplierIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -205,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -220,6 +242,8 @@ export interface FileRoutesByFullPath {
   '/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
+  '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof authForgotPasswordRoute
@@ -248,6 +272,8 @@ export interface FileRoutesByTo {
   '/supplier_list': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/vessel_list': typeof AuthenticatedVessel_listIndexRoute
+  '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -264,6 +290,7 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -279,6 +306,8 @@ export interface FileRoutesById {
   '/_authenticated/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
+  '/_authenticated/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/_authenticated/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -295,6 +324,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
+    | '/supplier_detail/$supplierId'
     | '/errors/$error'
     | '/settings/account'
     | '/settings/appearance'
@@ -310,6 +340,8 @@ export interface FileRouteTypes {
     | '/supplier_list/'
     | '/tasks/'
     | '/vessel_list/'
+    | '/supplier_detail/$supplierId/info'
+    | '/supplier_detail/$supplierId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
@@ -338,6 +370,8 @@ export interface FileRouteTypes {
     | '/supplier_list'
     | '/tasks'
     | '/vessel_list'
+    | '/supplier_detail/$supplierId/info'
+    | '/supplier_detail/$supplierId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -353,6 +387,7 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/'
+    | '/_authenticated/supplier_detail/$supplierId'
     | '/_authenticated/errors/$error'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
@@ -368,6 +403,8 @@ export interface FileRouteTypes {
     | '/_authenticated/supplier_list/'
     | '/_authenticated/tasks/'
     | '/_authenticated/vessel_list/'
+    | '/_authenticated/supplier_detail/$supplierId/info'
+    | '/_authenticated/supplier_detail/$supplierId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -561,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/supplier_detail/$supplierId': {
+      id: '/_authenticated/supplier_detail/$supplierId'
+      path: '/supplier_detail/$supplierId'
+      fullPath: '/supplier_detail/$supplierId'
+      preLoaderRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/supplier_list/': {
       id: '/_authenticated/supplier_list/'
       path: '/supplier_list'
@@ -581,6 +625,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/vessel_list/'
       preLoaderRoute: typeof AuthenticatedVessel_listIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier_detail/$supplierId/': {
+      id: '/_authenticated/supplier_detail/$supplierId/'
+      path: '/'
+      fullPath: '/supplier_detail/$supplierId/'
+      preLoaderRoute: typeof AuthenticatedSupplier_detailSupplierIdIndexRouteImport
+      parentRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRoute
+    }
+    '/_authenticated/supplier_detail/$supplierId/info': {
+      id: '/_authenticated/supplier_detail/$supplierId/info'
+      path: '/info'
+      fullPath: '/supplier_detail/$supplierId/info'
+      preLoaderRoute: typeof AuthenticatedSupplier_detailSupplierIdInfoRouteImport
+      parentRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRoute
     }
   }
 }
@@ -608,9 +666,28 @@ const AuthenticatedSettingsRouteRouteWithChildren =
     AuthenticatedSettingsRouteRouteChildren,
   )
 
+interface AuthenticatedSupplier_detailSupplierIdRouteRouteChildren {
+  AuthenticatedSupplier_detailSupplierIdInfoRoute: typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  AuthenticatedSupplier_detailSupplierIdIndexRoute: typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
+}
+
+const AuthenticatedSupplier_detailSupplierIdRouteRouteChildren: AuthenticatedSupplier_detailSupplierIdRouteRouteChildren =
+  {
+    AuthenticatedSupplier_detailSupplierIdInfoRoute:
+      AuthenticatedSupplier_detailSupplierIdInfoRoute,
+    AuthenticatedSupplier_detailSupplierIdIndexRoute:
+      AuthenticatedSupplier_detailSupplierIdIndexRoute,
+  }
+
+const AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren =
+  AuthenticatedSupplier_detailSupplierIdRouteRoute._addFileChildren(
+    AuthenticatedSupplier_detailSupplierIdRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedSupplier_detailSupplierIdRouteRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
   AuthenticatedCollaboration_listIndexRoute: typeof AuthenticatedCollaboration_listIndexRoute
@@ -626,6 +703,8 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedSupplier_detailSupplierIdRouteRoute:
+    AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
   AuthenticatedCollaboration_listIndexRoute:

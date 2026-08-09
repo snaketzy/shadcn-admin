@@ -1,6 +1,11 @@
-import { query, execute, type ExecuteValues } from './db'
 import { getCaseDictByKeyPrefix } from './case-dict-service'
-import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
+import { query, execute, type ExecuteValues } from './db'
+import {
+  auditInsert,
+  auditUpdate,
+  auditDelete,
+  auditBulkDelete,
+} from './log-list-service'
 
 export interface SupplierDictEntry {
   dict_key: string
@@ -15,7 +20,7 @@ export interface SupplierListRow {
   supplier_field: string | null
   supplier_advantage: string | null
   supplier_remark: string | null
-  supplier_contact_id: string | null
+  supplier_contact_id: number | null
 }
 
 const SELECT_COLS = `
@@ -30,7 +35,9 @@ export async function getAllSupplierList(): Promise<SupplierListRow[]> {
   return rows.map(normalizeRow)
 }
 
-export async function getSupplierListById(supplierId: number): Promise<SupplierListRow | null> {
+export async function getSupplierListById(
+  supplierId: number
+): Promise<SupplierListRow | null> {
   const rows = await query<SupplierListRow[]>(
     `SELECT ${SELECT_COLS} FROM \`supplier_list\` WHERE supplier_id = ? LIMIT 1`,
     [supplierId]
@@ -65,13 +72,13 @@ export async function getSupplierListGroups(): Promise<{
 }> {
   const [shortnames, fields, advantages, fieldRows] = await Promise.all([
     query<{ supplier_shortname: string | null }[]>(
-      'SELECT DISTINCT supplier_shortname FROM `supplier_list` WHERE supplier_shortname IS NOT NULL AND supplier_shortname <> \'\' ORDER BY supplier_shortname'
+      "SELECT DISTINCT supplier_shortname FROM `supplier_list` WHERE supplier_shortname IS NOT NULL AND supplier_shortname <> '' ORDER BY supplier_shortname"
     ),
     query<{ supplier_field: string | null }[]>(
-      'SELECT DISTINCT supplier_field FROM `supplier_list` WHERE supplier_field IS NOT NULL AND supplier_field <> \'\' ORDER BY supplier_field'
+      "SELECT DISTINCT supplier_field FROM `supplier_list` WHERE supplier_field IS NOT NULL AND supplier_field <> '' ORDER BY supplier_field"
     ),
     query<{ supplier_advantage: string | null }[]>(
-      'SELECT DISTINCT supplier_advantage FROM `supplier_list` WHERE supplier_advantage IS NOT NULL AND supplier_advantage <> \'\' ORDER BY supplier_advantage'
+      "SELECT DISTINCT supplier_advantage FROM `supplier_list` WHERE supplier_advantage IS NOT NULL AND supplier_advantage <> '' ORDER BY supplier_advantage"
     ),
     getCaseDictByKeyPrefix('I'),
   ])
@@ -93,7 +100,12 @@ export async function getSupplierListPaginated(params: {
   supplierShortname?: string
   supplierField?: string
   supplierAdvantage?: string
-}): Promise<{ rows: SupplierListRow[]; total: number; page: number; pageSize: number }> {
+}): Promise<{
+  rows: SupplierListRow[]
+  total: number
+  page: number
+  pageSize: number
+}> {
   const page = params.page ?? 1
   const pageSize = params.pageSize ?? 10
   const offset = (page - 1) * pageSize
@@ -118,14 +130,19 @@ export async function getSupplierListPaginated(params: {
     whereParams.push(`%${params.supplierAdvantage}%`)
   }
 
-  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
+  const whereSql =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
 
   const countSql = `SELECT COUNT(*) as total FROM \`supplier_list\` ${whereSql}`
   const dataSql = `SELECT ${SELECT_COLS} FROM \`supplier_list\` ${whereSql} ORDER BY supplier_name LIMIT ? OFFSET ?`
 
   const [countRows, dataRows] = await Promise.all([
     query<[{ total: number }]>(countSql, whereParams),
-    query<SupplierListRow[]>(dataSql, [...whereParams, pageSize, offset] as ExecuteValues),
+    query<SupplierListRow[]>(dataSql, [
+      ...whereParams,
+      pageSize,
+      offset,
+    ] as ExecuteValues),
   ])
 
   return {
@@ -143,7 +160,7 @@ export async function createSupplierList(data: {
   supplier_field?: string | null
   supplier_advantage?: string | null
   supplier_remark?: string | null
-  supplier_contact_id?: string | null
+  supplier_contact_id?: number | null
 }): Promise<SupplierListRow> {
   const result = await execute(
     `INSERT INTO \`supplier_list\`
@@ -164,7 +181,10 @@ export async function createSupplierList(data: {
   if (!newId) throw new Error('Failed to create supplier_list row')
   const created = await getSupplierListById(newId)
   if (!created) throw new Error('Failed to create supplier_list row')
-  await auditInsert('supplier_list', created, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+  await auditInsert('supplier_list', created, {
+    excludeFields: ['supplier_id'],
+    primaryKeyField: 'supplier_id',
+  })
   return created
 }
 
@@ -177,7 +197,7 @@ export async function updateSupplierList(
     supplier_field?: string | null
     supplier_advantage?: string | null
     supplier_remark?: string | null
-    supplier_contact_id?: string | null
+    supplier_contact_id?: number | null
   }
 ): Promise<SupplierListRow> {
   const oldRow = await getSupplierListById(supplierId)
@@ -213,22 +233,33 @@ export async function updateSupplierList(
   const newRow = await getSupplierListById(supplierId)
   if (!newRow) throw new Error('Failed to update supplier_list row')
   if (oldRow) {
-    await auditUpdate('supplier_list', oldRow, newRow, data, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+    await auditUpdate('supplier_list', oldRow, newRow, data, {
+      excludeFields: ['supplier_id'],
+      primaryKeyField: 'supplier_id',
+    })
   }
   return newRow
 }
 
 export async function deleteSupplierList(supplierId: number): Promise<boolean> {
   const row = await getSupplierListById(supplierId)
-  const result = await execute('DELETE FROM `supplier_list` WHERE supplier_id = ?', [supplierId])
+  const result = await execute(
+    'DELETE FROM `supplier_list` WHERE supplier_id = ?',
+    [supplierId]
+  )
   const success = result.affectedRows > 0
   if (success && row) {
-    await auditDelete('supplier_list', row, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+    await auditDelete('supplier_list', row, {
+      excludeFields: ['supplier_id'],
+      primaryKeyField: 'supplier_id',
+    })
   }
   return success
 }
 
-export async function deleteSupplierListBulk(supplierIds: number[]): Promise<number> {
+export async function deleteSupplierListBulk(
+  supplierIds: number[]
+): Promise<number> {
   if (supplierIds.length === 0) return 0
   const placeholders = supplierIds.map(() => '?').join(', ')
   const rawRows = await query<SupplierListRow[]>(
@@ -241,7 +272,10 @@ export async function deleteSupplierListBulk(supplierIds: number[]): Promise<num
     supplierIds
   )
   if (rows.length > 0) {
-    await auditBulkDelete('supplier_list', rows, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+    await auditBulkDelete('supplier_list', rows, {
+      excludeFields: ['supplier_id'],
+      primaryKeyField: 'supplier_id',
+    })
   }
   return Number(result.affectedRows)
 }
@@ -250,11 +284,20 @@ function normalizeRow(row: any): SupplierListRow {
   return {
     supplier_id: Number(row.supplier_id),
     supplier_name: String(row.supplier_name ?? ''),
-    supplier_shortname: row.supplier_shortname ? String(row.supplier_shortname) : null,
-    supplier_address: row.supplier_address ? String(row.supplier_address) : null,
+    supplier_shortname: row.supplier_shortname
+      ? String(row.supplier_shortname)
+      : null,
+    supplier_address: row.supplier_address
+      ? String(row.supplier_address)
+      : null,
     supplier_field: row.supplier_field ? String(row.supplier_field) : null,
-    supplier_advantage: row.supplier_advantage ? String(row.supplier_advantage) : null,
+    supplier_advantage: row.supplier_advantage
+      ? String(row.supplier_advantage)
+      : null,
     supplier_remark: row.supplier_remark ? String(row.supplier_remark) : null,
-    supplier_contact_id: row.supplier_contact_id ? String(row.supplier_contact_id) : null,
+    supplier_contact_id:
+      row.supplier_contact_id != null && !isNaN(Number(row.supplier_contact_id))
+        ? Number(row.supplier_contact_id)
+        : null,
   }
 }

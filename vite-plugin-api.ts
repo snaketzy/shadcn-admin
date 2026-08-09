@@ -518,6 +518,13 @@ async function handleSupplierListApi(
     return str
   }
 
+  function toOptNumber(n: unknown): number | undefined {
+    if (n === null || n === undefined || n === '') return undefined
+    const num = Number(n)
+    if (isNaN(num)) return undefined
+    return num
+  }
+
   try {
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
@@ -546,7 +553,7 @@ async function handleSupplierListApi(
           supplier_address: toOptStr(body.supplier_address),
           supplier_field: toOptStr(body.supplier_field),
           supplier_advantage: toOptStr(body.supplier_advantage),
-          supplier_contact_id: toOptStr(body.supplier_contact_id),
+          supplier_contact_id: toOptNumber(body.supplier_contact_id),
           supplier_remark: toOptStr(body.supplier_remark),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -604,7 +611,7 @@ async function handleSupplierListApi(
           supplier_address: toOptStr(body.supplier_address),
           supplier_field: toOptStr(body.supplier_field),
           supplier_advantage: toOptStr(body.supplier_advantage),
-          supplier_contact_id: toOptStr(body.supplier_contact_id),
+          supplier_contact_id: toOptNumber(body.supplier_contact_id),
           supplier_remark: toOptStr(body.supplier_remark),
         })
         sendJson(res, 200, { success: true, data: updated })

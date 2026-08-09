@@ -1,13 +1,18 @@
-import { type ColumnDef } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
+import { type ColumnDef, type Row } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
+import { type SupplierDictEntry } from '../api/client'
 import { getBadgeColor } from '../data/data'
 import { type Supplier } from '../data/schema'
-import { type SupplierDictEntry } from '../api/client'
 import { DataTableRowActions } from './data-table-row-actions'
+
+function toDetailParams(row: Row<Supplier>): { supplierId: string } {
+  return { supplierId: String(row.original.supplier_id) }
+}
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
 
@@ -86,7 +91,16 @@ export function getSuppliersColumns(
         <DataTableColumnHeader column={column} title='供应商名称' />
       ),
       cell: ({ row }) => (
-        <LongText className='max-w-50 ps-3'>{row.getValue('supplier_name')}</LongText>
+        <Link
+          to='/supplier_detail/$supplierId'
+          params={toDetailParams(row)}
+          className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium hover:underline'
+          title={String(row.getValue('supplier_name') ?? '')}
+        >
+          <LongText className='max-w-50 truncate'>
+            {row.getValue('supplier_name')}
+          </LongText>
+        </Link>
       ),
       meta: {
         className: cn(
@@ -109,9 +123,16 @@ export function getSuppliersColumns(
         const value = row.getValue('supplier_shortname') as string | null
         if (!value) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
+          <Link
+            to='/supplier_detail/$supplierId'
+            params={toDetailParams(row)}
+            className='inline-flex items-center hover:underline'
+            title={value}
+          >
+            <Badge variant='outline' className={cn(getBadgeColor(value))}>
+              {value}
+            </Badge>
+          </Link>
         )
       },
       filterFn: (row, id, value) => {
@@ -142,7 +163,11 @@ export function getSuppliersColumns(
         return (
           <div className='flex flex-wrap gap-1'>
             {labels.map((label) => (
-              <Badge key={label} variant='outline' className={cn(getBadgeColor(label))}>
+              <Badge
+                key={label}
+                variant='outline'
+                className={cn(getBadgeColor(label))}
+              >
                 {label}
               </Badge>
             ))}
@@ -194,7 +219,9 @@ export function getSuppliersColumns(
           return (
             <div className='flex items-center gap-1.5'>
               <span className='font-medium'>{name}</span>
-              <span className='text-xs text-muted-foreground/70'>(ID: {idStr})</span>
+              <span className='text-xs text-muted-foreground/70'>
+                (ID: {idStr})
+              </span>
             </div>
           )
         }
@@ -215,7 +242,9 @@ export function getSuppliersColumns(
     },
     {
       id: 'actions',
-      header: () => <span className='pe-3 inline-block w-full text-end'>操作</span>,
+      header: () => (
+        <span className='inline-block w-full pe-3 text-end'>操作</span>
+      ),
       cell: DataTableRowActions,
       meta: {
         className: cn(
