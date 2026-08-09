@@ -139,14 +139,7 @@ function getColumns(
       cell: ({ row }) => {
         const value = row.getValue('contact_mobile') as string | null
         if (!value) return <div>-</div>
-        return (
-          <a
-            href={`tel:${value}`}
-            className='font-mono text-sm hover:underline'
-          >
-            {value}
-          </a>
-        )
+        return <span className='font-mono text-sm'>{value}</span>
       },
       enableSorting: false,
     },
