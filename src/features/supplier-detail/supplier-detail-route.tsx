@@ -1,12 +1,16 @@
 import { createContext, useContext, useMemo } from 'react'
-import { Outlet } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { UserRound, Briefcase, AlertCircle, ClipboardList } from 'lucide-react'
+import { Outlet } from '@tanstack/react-router'
 import { getRouteApi } from '@tanstack/react-router'
+import { UserRound, Briefcase, AlertCircle, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fetchSupplierDetail, fetchSupplierGroups, type SupplierDictEntry } from '@/features/suppliers/api/client'
 import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
+import {
+  fetchSupplierDetail,
+  fetchSupplierGroups,
+  type SupplierDictEntry,
+} from '@/features/suppliers/api/client'
 import { SupplierDetailShell } from './supplier-detail-shell'
 
 const route = getRouteApi('/_authenticated/supplier_detail/$supplierId')
@@ -42,7 +46,8 @@ function useSupplierDetailQuery(supplierId: string) {
 
 export function SupplierDetailRoute() {
   const { supplierId } = route.useParams()
-  const { supplier, isLoading, error, isNotFound } = useSupplierDetailQuery(supplierId)
+  const { supplier, isLoading, error, isNotFound } =
+    useSupplierDetailQuery(supplierId)
 
   const { data: groupsData } = useQuery({
     queryKey: ['supplier-list-groups'],
@@ -74,10 +79,11 @@ export function SupplierDetailRoute() {
     return out
   }, [contactRows])
 
-  const pageTitle = supplier?.supplier_shortname || supplier?.supplier_name || '供应商详情'
+  const pageTitle =
+    supplier?.supplier_shortname || supplier?.supplier_name || '供应商详情'
   const pageSub = supplier?.supplier_name
-    ? supplier.supplier_shortname
-      ? `${supplier.supplier_name} · ${supplier.supplier_shortname}`
+    ? supplier.supplier_advantage
+      ? `${supplier.supplier_name} · ${supplier.supplier_advantage}`
       : supplier.supplier_name
     : undefined
 
@@ -118,9 +124,7 @@ export function SupplierDetailRoute() {
         sidebarItems={sidebarItems}
       >
         {isLoading && <SupplierDetailSkeleton />}
-        {!isLoading && error && (
-          <SupplierDetailError error={error} />
-        )}
+        {!isLoading && error && <SupplierDetailError error={error} />}
         {!isLoading && !error && isNotFound && (
           <SupplierDetailNotFound supplierId={supplierId} />
         )}
@@ -133,7 +137,9 @@ export function SupplierDetailRoute() {
 export function useSupplierDetail(): SupplierDetailCtxValue {
   const ctx = useContext(SupplierDetailCtx)
   if (!ctx) {
-    throw new Error('useSupplierDetail must be used within SupplierDetailCtx Provider')
+    throw new Error(
+      'useSupplierDetail must be used within SupplierDetailCtx Provider'
+    )
   }
   return ctx
 }
@@ -147,7 +153,7 @@ function SupplierDetailSkeleton() {
       </div>
       <div className='my-4 h-px bg-border' />
       <div className='faded-bottom h-full w-full overflow-y-auto scroll-smooth pe-4 pb-12'>
-        <div className='-mx-1 px-1.5 space-y-4 lg:max-w-xl'>
+        <div className='-mx-1 space-y-4 px-1.5 lg:max-w-xl'>
           <Skeleton className='h-10 w-full' />
           <Skeleton className='h-10 w-full' />
           <Skeleton className='h-10 w-full' />
