@@ -13,6 +13,7 @@ export const vesselSchema = z.object({
   vessel_flag: z.string().nullable(),
   vessel_team: z.string().nullable(),
   vessel_incharge: z.string().nullable(),
+  vessel_fleet_manager: z.string().nullable(),
 })
 
 export type Vessel = z.infer<typeof vesselSchema>

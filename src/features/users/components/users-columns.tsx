@@ -10,13 +10,20 @@ import { DataTableRowActions } from './data-table-row-actions'
 import { type VesselDictEntry } from '../api/client'
 
 export function getUsersColumns(
-  inchargeDict: VesselDictEntry[] = []
+  inchargeDict: VesselDictEntry[] = [],
+  fleetManagerDict: VesselDictEntry[] = []
 ): ColumnDef<Vessel>[] {
   const inchargeMap = new Map<string, string>(
     inchargeDict.map((d) => [String(d.dict_key).toUpperCase(), d.dict_value])
   )
-  const valueToLabel = new Map<string, string>(
+  const inchargeValueToLabel = new Map<string, string>(
     inchargeDict.map((d) => [d.dict_value, d.dict_value])
+  )
+  const fleetManagerMap = new Map<string, string>(
+    fleetManagerDict.map((d) => [String(d.dict_key).toUpperCase(), d.dict_value])
+  )
+  const fleetValueToLabel = new Map<string, string>(
+    fleetManagerDict.map((d) => [d.dict_value, d.dict_value])
   )
 
   return [
@@ -221,6 +228,32 @@ export function getUsersColumns(
     enableSorting: false,
   },
   {
+    accessorKey: 'vessel_fleet_manager',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='管理公司' />
+    ),
+    cell: ({ row }) => {
+      const raw = row.getValue('vessel_fleet_manager') as string | number | null
+      if (raw === null || raw === undefined || raw === '') {
+        return <div>-</div>
+      }
+      const rawStr = String(raw)
+      const byKey = fleetManagerMap.get(rawStr.toUpperCase())
+      const byValue = fleetValueToLabel.get(rawStr)
+      const label = byKey ?? byValue ?? rawStr
+      return (
+        <Badge variant='outline' className={cn(getBadgeColor(label))}>
+          {label}
+        </Badge>
+      )
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id))
+    },
+    enableHiding: false,
+    enableSorting: false,
+  },
+  {
     accessorKey: 'vessel_incharge',
     header: ({ column }) => (
       <div className='pe-2 text-end'>
@@ -238,7 +271,7 @@ export function getUsersColumns(
       }
       const rawStr = String(raw)
       const byKey = inchargeMap.get(rawStr.toUpperCase())
-      const byValue = valueToLabel.get(rawStr)
+      const byValue = inchargeValueToLabel.get(rawStr)
       const label = byKey ?? byValue ?? rawStr
       return (
         <div className='pe-2 text-end'>

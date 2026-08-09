@@ -140,9 +140,10 @@ export function UsersTable(_: DataTableProps) {
   const flags = groupsData?.flags ?? []
   const classes = groupsData?.classes ?? []
   const inchargeDict = groupsData?.inchargeDict ?? []
+  const fleetManagerDict = groupsData?.fleetManagerDict ?? []
   const columns = useMemo(
-    () => getUsersColumns(inchargeDict),
-    [inchargeDict]
+    () => getUsersColumns(inchargeDict, fleetManagerDict),
+    [inchargeDict, fleetManagerDict]
   )
 
   const urlState = useTableUrlState({
@@ -154,6 +155,7 @@ export function UsersTable(_: DataTableProps) {
       { columnId: 'vessel_flag', searchKey: 'vesselFlag', type: 'array' },
       { columnId: 'vessel_class', searchKey: 'vesselClass', type: 'array' },
       { columnId: 'vessel_incharge', searchKey: 'vesselIncharge', type: 'array' },
+      { columnId: 'vessel_fleet_manager', searchKey: 'vesselFleetManager', type: 'array' },
     ],
   })
   const {
@@ -195,6 +197,13 @@ export function UsersTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const vesselFleetManagerFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselFleetManager)
+        ? ((search as any).vesselFleetManager as string[])
+        : [],
+    [search]
+  )
 
   const filteredData: Vessel[] = useMemo(() => {
     let result = allRows
@@ -224,6 +233,11 @@ export function UsersTable(_: DataTableProps) {
         vesselInchargeFilter.includes(r.vessel_incharge ?? '')
       )
     }
+    if (vesselFleetManagerFilter.length > 0) {
+      result = result.filter((r) =>
+        vesselFleetManagerFilter.includes(r.vessel_fleet_manager ?? '')
+      )
+    }
     return result
   }, [
     allRows,
@@ -232,6 +246,7 @@ export function UsersTable(_: DataTableProps) {
     vesselFlagFilter,
     vesselClassFilter,
     vesselInchargeFilter,
+    vesselFleetManagerFilter,
   ])
 
   const handleTextFilterChange = (
@@ -254,6 +269,7 @@ export function UsersTable(_: DataTableProps) {
         pageSize: undefined,
         vesselName: undefined,
         vesselIncharge: undefined,
+        vesselFleetManager: undefined,
         vesselTeam: undefined,
         vesselFlag: undefined,
         vesselClass: undefined,
@@ -350,6 +366,16 @@ export function UsersTable(_: DataTableProps) {
                 column={table.getColumn('vessel_team')!}
                 title='Team'
                 options={teams.map((t) => ({ label: t, value: t }))}
+              />
+            )}
+            {fleetManagerDict.length > 0 && table.getColumn('vessel_fleet_manager') && (
+              <DataTableFacetedFilter
+                column={table.getColumn('vessel_fleet_manager')!}
+                title='管理公司'
+                options={fleetManagerDict.map((d) => ({
+                  label: d.dict_value,
+                  value: d.dict_key,
+                }))}
               />
             )}
             {flags.length > 0 && table.getColumn('vessel_flag') && (

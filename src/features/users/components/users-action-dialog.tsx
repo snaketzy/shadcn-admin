@@ -46,6 +46,7 @@ const formSchema = z.object({
   vessel_class: z.string().optional().catch(''),
   vessel_flag: z.string().optional().catch(''),
   vessel_team: z.string().optional().catch(''),
+  vessel_fleet_manager: z.string().optional().catch(''),
   vessel_incharge: z.string().optional().catch(''),
 })
 type VesselForm = z.infer<typeof formSchema>
@@ -109,6 +110,7 @@ export function UsersActionDialog({
           vessel_class: currentRow.vessel_class ?? '',
           vessel_flag: currentRow.vessel_flag ?? '',
           vessel_team: currentRow.vessel_team ?? '',
+          vessel_fleet_manager: currentRow.vessel_fleet_manager ?? '',
           vessel_incharge: currentRow.vessel_incharge ?? '',
         }
       : {
@@ -122,6 +124,7 @@ export function UsersActionDialog({
           vessel_class: '',
           vessel_flag: '',
           vessel_team: '',
+          vessel_fleet_manager: '',
           vessel_incharge: '',
         },
   })
@@ -144,6 +147,7 @@ export function UsersActionDialog({
           vessel_class: currentRow.vessel_class ?? '',
           vessel_flag: currentRow.vessel_flag ?? '',
           vessel_team: currentRow.vessel_team ?? '',
+          vessel_fleet_manager: currentRow.vessel_fleet_manager ?? '',
           vessel_incharge: currentRow.vessel_incharge ?? '',
         })
       } else {
@@ -158,6 +162,7 @@ export function UsersActionDialog({
           vessel_class: '',
           vessel_flag: '',
           vessel_team: '',
+          vessel_fleet_manager: '',
           vessel_incharge: '',
         })
       }
@@ -205,6 +210,7 @@ export function UsersActionDialog({
       vessel_class: toOptStr(values.vessel_class),
       vessel_flag: toOptStr(values.vessel_flag),
       vessel_team: toOptStr(values.vessel_team),
+      vessel_fleet_manager: toOptStr(values.vessel_fleet_manager),
       vessel_incharge: toOptStr(values.vessel_incharge),
     } as any
     if (isEdit && currentRow) {
@@ -474,6 +480,35 @@ export function UsersActionDialog({
                         <option key={t} value={t} />
                       ))}
                     </datalist>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='vessel_fleet_manager'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      管理公司
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择管理公司' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.fleetManagerDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}

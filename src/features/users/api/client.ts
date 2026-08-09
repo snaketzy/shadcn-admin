@@ -49,6 +49,7 @@ export interface Vessel {
   vessel_flag: string | null
   vessel_team: string | null
   vessel_incharge: string | null
+  vessel_fleet_manager: string | null
 }
 
 export interface VesselDictEntry {
@@ -61,6 +62,7 @@ export interface VesselGroupsResponse {
   flags: string[]
   classes: string[]
   inchargeDict: VesselDictEntry[]
+  fleetManagerDict: VesselDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -85,6 +87,7 @@ export async function fetchVesselPaginated(params: {
   vesselFlag?: string
   vesselClass?: string
   vesselIncharge?: string
+  vesselFleetManager?: string
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/vessel-list/', {
     params,
@@ -96,7 +99,7 @@ export async function fetchVesselPaginated(params: {
 
 export async function fetchVesselGroups(): Promise<VesselGroupsResponse> {
   const res = await api.get<ApiEnvelope<VesselGroupsResponse>>('/vessel-list/groups')
-  return res.data.data ?? { teams: [], flags: [], classes: [], inchargeDict: [] }
+  return res.data.data ?? { teams: [], flags: [], classes: [], inchargeDict: [], fleetManagerDict: [] }
 }
 
 export async function createVessel(payload: {
@@ -111,6 +114,7 @@ export async function createVessel(payload: {
   vessel_flag?: string | null
   vessel_team?: string | null
   vessel_incharge?: string | null
+  vessel_fleet_manager?: string | null
 }): Promise<Vessel> {
   const res = await api.post<ApiEnvelope<Vessel>>('/vessel-list/', payload)
   return res.data.data
@@ -130,6 +134,7 @@ export async function updateVessel(
     vessel_flag?: string | null
     vessel_team?: string | null
     vessel_incharge?: string | null
+    vessel_fleet_manager?: string | null
   }
 ): Promise<Vessel> {
   const res = await api.put<ApiEnvelope<Vessel>>(`/vessel-list/${vesselId}`, payload)

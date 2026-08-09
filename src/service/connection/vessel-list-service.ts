@@ -14,6 +14,7 @@ export interface VesselListRow {
   vessel_flag: string | null
   vessel_team: string | null
   vessel_incharge: string | null
+  vessel_fleet_manager: string | null
 }
 
 export interface VesselDictEntry {
@@ -24,7 +25,8 @@ export interface VesselDictEntry {
 const SELECT_COLS = `
   vessel_id, vessel_name, building_year, vessel_imo,
   vessel_loa, vessel_breadth, vessel_gross, vessel_dwt,
-  vessel_class, vessel_flag, vessel_team, vessel_incharge
+  vessel_class, vessel_flag, vessel_team, vessel_incharge,
+  vessel_fleet_manager
 `
 
 export async function getAllVesselList(): Promise<VesselListRow[]> {
@@ -48,8 +50,9 @@ export async function getVesselListGroups(): Promise<{
   flags: string[]
   classes: string[]
   inchargeDict: VesselDictEntry[]
+  fleetManagerDict: VesselDictEntry[]
 }> {
-  const [teams, flags, classes, inchargeRows] = await Promise.all([
+  const [teams, flags, classes, inchargeRows, fleetRows] = await Promise.all([
     query<{ vessel_team: string | null }[]>(
       'SELECT DISTINCT vessel_team FROM `vessel_list` WHERE vessel_team IS NOT NULL AND vessel_team <> \'\' ORDER BY vessel_team'
     ),
@@ -60,12 +63,17 @@ export async function getVesselListGroups(): Promise<{
       'SELECT DISTINCT vessel_class FROM `vessel_list` WHERE vessel_class IS NOT NULL AND vessel_class <> \'\' ORDER BY vessel_class'
     ),
     getCaseDictByKeyPrefix('E'),
+    getCaseDictByKeyPrefix('N'),
   ])
   return {
     teams: teams.map((r) => r.vessel_team!).filter(Boolean),
     flags: flags.map((r) => r.vessel_flag!).filter(Boolean),
     classes: classes.map((r) => r.vessel_class!).filter(Boolean),
     inchargeDict: inchargeRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    fleetManagerDict: fleetRows.map((r) => ({
       dict_key: String(r.dict_key),
       dict_value: r.dict_value,
     })),
@@ -80,6 +88,7 @@ export async function getVesselListPaginated(params: {
   vesselFlag?: string
   vesselClass?: string
   vesselIncharge?: string
+  vesselFleetManager?: string
 }): Promise<{ rows: VesselListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
   const pageSize = params.pageSize ?? 10
@@ -107,6 +116,10 @@ export async function getVesselListPaginated(params: {
   if (params.vesselIncharge && params.vesselIncharge.trim() !== '') {
     whereClauses.push('vessel_incharge LIKE ?')
     whereParams.push(`%${params.vesselIncharge}%`)
+  }
+  if (params.vesselFleetManager && params.vesselFleetManager.trim() !== '') {
+    whereClauses.push('vessel_fleet_manager LIKE ?')
+    whereParams.push(`%${params.vesselFleetManager}%`)
   }
 
   const whereSql =
@@ -143,12 +156,13 @@ export async function createVesselList(data: {
   vessel_flag?: string | null
   vessel_team?: string | null
   vessel_incharge?: string | null
+  vessel_fleet_manager?: string | null
 }): Promise<VesselListRow> {
   const result = await execute(
     `INSERT INTO \`vessel_list\`
       (vessel_name, building_year, vessel_imo, vessel_loa, vessel_breadth,
-       vessel_gross, vessel_dwt, vessel_class, vessel_flag, vessel_team, vessel_incharge)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       vessel_gross, vessel_dwt, vessel_class, vessel_flag, vessel_team, vessel_incharge, vessel_fleet_manager)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name,
       data.building_year ?? null,
@@ -161,6 +175,7 @@ export async function createVesselList(data: {
       data.vessel_flag ?? null,
       data.vessel_team ?? null,
       data.vessel_incharge ?? null,
+      data.vessel_fleet_manager ?? null,
     ]
   )
   const newId = Number(result.insertId)
@@ -184,6 +199,7 @@ export async function updateVesselList(
     vessel_flag?: string | null
     vessel_team?: string | null
     vessel_incharge?: string | null
+    vessel_fleet_manager?: string | null
   }
 ): Promise<VesselListRow> {
   const sets: string[] = []
@@ -200,6 +216,7 @@ export async function updateVesselList(
     ['vessel_flag', 'str'],
     ['vessel_team', 'str'],
     ['vessel_incharge', 'str'],
+    ['vessel_fleet_manager', 'str'],
   ]
   for (const [key] of mapping) {
     if (key in data) {
@@ -266,6 +283,7 @@ function normalizeRow(row: any): VesselListRow {
     vessel_flag: row.vessel_flag ? String(row.vessel_flag) : null,
     vessel_team: row.vessel_team ? String(row.vessel_team) : null,
     vessel_incharge: row.vessel_incharge ? String(row.vessel_incharge) : null,
+    vessel_fleet_manager: row.vessel_fleet_manager ? String(row.vessel_fleet_manager) : null,
   }
 }
 

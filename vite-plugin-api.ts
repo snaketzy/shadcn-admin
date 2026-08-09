@@ -253,6 +253,7 @@ async function handleVesselListApi(
           vesselFlag: toOptStr(searchParams.get('vesselFlag')),
           vesselClass: toOptStr(searchParams.get('vesselClass')),
           vesselIncharge: toOptStr(searchParams.get('vesselIncharge')),
+          vesselFleetManager: toOptStr(searchParams.get('vesselFleetManager')),
         })
         sendJson(res, 200, { success: true, data: result })
         return true
@@ -274,6 +275,7 @@ async function handleVesselListApi(
           vessel_class: toOptStr(body.vessel_class as any),
           vessel_flag: toOptStr(body.vessel_flag as any),
           vessel_team: toOptStr(body.vessel_team as any),
+          vessel_fleet_manager: toOptStr(body.vessel_fleet_manager as any),
           vessel_incharge: toOptStr(body.vessel_incharge as any),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -336,6 +338,7 @@ async function handleVesselListApi(
           vessel_class: toOptStr(body.vessel_class as any),
           vessel_flag: toOptStr(body.vessel_flag as any),
           vessel_team: toOptStr(body.vessel_team as any),
+          vessel_fleet_manager: toOptStr(body.vessel_fleet_manager as any),
           vessel_incharge: toOptStr(body.vessel_incharge as any),
         })
         sendJson(res, 200, { success: true, data: updated })
