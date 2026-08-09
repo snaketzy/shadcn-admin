@@ -1,4 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
+import { Cross2Icon } from '@radix-ui/react-icons'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import {
   type SortingState,
   type VisibilityState,
@@ -11,10 +14,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { SearchIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   TableBody,
   TableCell,
@@ -25,19 +30,15 @@ import {
 import { DataTablePagination } from '@/components/data-table'
 import { DataTableFacetedFilter } from '@/components/data-table/faceted-filter'
 import { DataTableViewOptions } from '@/components/data-table/view-options'
-import { Cross2Icon } from '@radix-ui/react-icons'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { type Contact } from '../data/schema'
-import { DataTableBulkActions } from './data-table-bulk-actions'
-import { getContactsColumns } from './contacts-columns'
 import {
   fetchContactAll,
   fetchContactGroups,
   fetchDivisionSuppliers,
   fetchDivisionCollaborations,
 } from '../api/client'
-import { Skeleton } from '@/components/ui/skeleton'
+import { type Contact } from '../data/schema'
+import { getContactsColumns } from './contacts-columns'
+import { DataTableBulkActions } from './data-table-bulk-actions'
 
 const route = getRouteApi('/_authenticated/contact_list/')
 
@@ -101,6 +102,7 @@ const FIXED_COL_STYLES: Record<
 type DataTableProps = Record<string, never>
 
 export function ContactsTable(_: DataTableProps) {
+  const queryClient = useQueryClient()
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const [rowSelection, setRowSelection] = useState({})
@@ -184,7 +186,9 @@ export function ContactsTable(_: DataTableProps) {
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
-    navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
+    navigate: navigate as unknown as Parameters<
+      typeof useTableUrlState
+    >[0]['navigate'],
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     columnFilters: [
       { columnId: 'contact_type', searchKey: 'contactType', type: 'array' },
@@ -221,26 +225,30 @@ export function ContactsTable(_: DataTableProps) {
     }
     if (contactSearch.trim() !== '') {
       const q = contactSearch.trim().toLowerCase()
-      result = result.filter((r) =>
-        String(r.contact_name ?? '').toLowerCase().includes(q) ||
-        String(r.contact_mobile ?? '').toLowerCase().includes(q) ||
-        String(r.contact_email ?? '').toLowerCase().includes(q) ||
-        String(r.contact_type ?? '').toLowerCase().includes(q) ||
-        String(r.contact_rank ?? '').toLowerCase().includes(q)
+      result = result.filter(
+        (r) =>
+          String(r.contact_name ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.contact_mobile ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.contact_email ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.contact_type ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.contact_rank ?? '')
+            .toLowerCase()
+            .includes(q)
       )
     }
     if (typeFilter.length > 0) {
-      result = result.filter((r) =>
-        typeFilter.includes(r.contact_type ?? '')
-      )
+      result = result.filter((r) => typeFilter.includes(r.contact_type ?? ''))
     }
     return result
-  }, [
-    allRows,
-    contactName,
-    contactSearch,
-    typeFilter,
-  ])
+  }, [allRows, contactName, contactSearch, typeFilter])
 
   const handleTextFilterChange = (
     type: 'contactName' | 'contactSearch',
@@ -338,13 +346,17 @@ export function ContactsTable(_: DataTableProps) {
           <Input
             placeholder='按联系人名称筛选...'
             value={contactName}
-            onChange={(e) => handleTextFilterChange('contactName', e.target.value)}
+            onChange={(e) =>
+              handleTextFilterChange('contactName', e.target.value)
+            }
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
             placeholder='按名称/手机/邮箱/类型/职级筛选...'
             value={contactSearch}
-            onChange={(e) => handleTextFilterChange('contactSearch', e.target.value)}
+            onChange={(e) =>
+              handleTextFilterChange('contactSearch', e.target.value)
+            }
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
@@ -367,7 +379,23 @@ export function ContactsTable(_: DataTableProps) {
             </Button>
           )}
         </div>
-        <DataTableViewOptions table={table} />
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-8 gap-1'
+            onClick={async () => {
+              await queryClient.refetchQueries({ queryKey: ['case-dict'] })
+              await queryClient.refetchQueries({
+                queryKey: ['case-dict-groups'],
+              })
+            }}
+          >
+            <SearchIcon className='size-4' />
+            查询
+          </Button>
+          <DataTableViewOptions table={table} />
+        </div>
       </div>
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
         <div className='relative w-full flex-1 overflow-auto'>
