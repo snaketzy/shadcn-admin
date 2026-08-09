@@ -161,8 +161,6 @@ export function SuppliersTable(_: DataTableProps) {
 
   const supplierName: string =
     (search as unknown as { supplierName?: string }).supplierName ?? ''
-  const contactSearch: string =
-    (search as unknown as { contactSearch?: string }).contactSearch ?? ''
 
   const shortnameFilter = useMemo(
     () =>
@@ -194,14 +192,6 @@ export function SuppliersTable(_: DataTableProps) {
         String(r.supplier_name).toLowerCase().includes(q)
       )
     }
-    if (contactSearch.trim() !== '') {
-      const q = contactSearch.trim().toLowerCase()
-      result = result.filter((r) =>
-        String(r.supplier_contact_name ?? '').toLowerCase().includes(q) ||
-        String(r.supplier_contact_phone ?? '').toLowerCase().includes(q) ||
-        String(r.supplier_contact_email ?? '').toLowerCase().includes(q)
-      )
-    }
     if (shortnameFilter.length > 0) {
       result = result.filter((r) =>
         shortnameFilter.includes(r.supplier_shortname ?? '')
@@ -226,14 +216,13 @@ export function SuppliersTable(_: DataTableProps) {
   }, [
     allRows,
     supplierName,
-    contactSearch,
     shortnameFilter,
     fieldFilter,
     advantageFilter,
   ])
 
   const handleTextFilterChange = (
-    type: 'supplierName' | 'contactSearch',
+    type: 'supplierName',
     value: string
   ) => {
     navigate({
@@ -251,7 +240,6 @@ export function SuppliersTable(_: DataTableProps) {
         page: undefined,
         pageSize: undefined,
         supplierName: undefined,
-        contactSearch: undefined,
         supplierShortname: undefined,
         supplierField: undefined,
         supplierAdvantage: undefined,
@@ -292,8 +280,7 @@ export function SuppliersTable(_: DataTableProps) {
 
   const isFiltered =
     columnFilters.length > 0 ||
-    supplierName.trim() !== '' ||
-    contactSearch.trim() !== ''
+    supplierName.trim() !== ''
 
   if (isLoading) {
     return (
@@ -331,12 +318,6 @@ export function SuppliersTable(_: DataTableProps) {
             placeholder='按供应商名称筛选...'
             value={supplierName}
             onChange={(e) => handleTextFilterChange('supplierName', e.target.value)}
-            className='h-8 w-37.5 lg:w-62.5'
-          />
-          <Input
-            placeholder='按联系人/手机/邮箱筛选...'
-            value={contactSearch}
-            onChange={(e) => handleTextFilterChange('contactSearch', e.target.value)}
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>

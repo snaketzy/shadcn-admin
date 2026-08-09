@@ -43,10 +43,8 @@ export interface Supplier {
   supplier_address: string | null
   supplier_field: string | null
   supplier_advantage: string | null
-  supplier_contact_name: string | null
-  supplier_contact_phone: string | null
-  supplier_contact_email: string | null
   supplier_remark: string | null
+  supplier_contact_id: string | null
 }
 
 export interface SupplierDictEntry {
@@ -82,7 +80,6 @@ export async function fetchSupplierPaginated(params: {
   supplierShortname?: string
   supplierField?: string
   supplierAdvantage?: string
-  contactSearch?: string
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/supplier-list/', {
     params,
@@ -103,10 +100,8 @@ export async function createSupplier(payload: {
   supplier_address?: string | null
   supplier_field?: string | null
   supplier_advantage?: string | null
-  supplier_contact_name?: string | null
-  supplier_contact_phone?: string | null
-  supplier_contact_email?: string | null
   supplier_remark?: string | null
+  supplier_contact_id?: string | null
 }): Promise<Supplier> {
   const res = await api.post<ApiEnvelope<Supplier>>('/supplier-list/', payload)
   return res.data.data
@@ -120,10 +115,8 @@ export async function updateSupplier(
     supplier_address?: string | null
     supplier_field?: string | null
     supplier_advantage?: string | null
-    supplier_contact_name?: string | null
-    supplier_contact_phone?: string | null
-    supplier_contact_email?: string | null
     supplier_remark?: string | null
+    supplier_contact_id?: string | null
   }
 ): Promise<Supplier> {
   const res = await api.put<ApiEnvelope<Supplier>>(`/supplier-list/${supplierId}`, payload)

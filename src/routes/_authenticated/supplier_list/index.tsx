@@ -9,7 +9,6 @@ const suppliersSearchSchema = z.object({
   supplierField: z.array(z.string()).optional().catch([]),
   supplierAdvantage: z.array(z.string()).optional().catch([]),
   supplierName: z.string().optional().catch(''),
-  contactSearch: z.string().optional().catch(''),
 })
 
 export const Route = createFileRoute('/_authenticated/supplier_list/')({

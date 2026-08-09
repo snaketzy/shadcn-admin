@@ -13,16 +13,13 @@ export interface SupplierListRow {
   supplier_address: string | null
   supplier_field: string | null
   supplier_advantage: string | null
-  supplier_contact_name: string | null
-  supplier_contact_phone: string | null
-  supplier_contact_email: string | null
   supplier_remark: string | null
+  supplier_contact_id: string | null
 }
 
 const SELECT_COLS = `
   supplier_id, supplier_name, supplier_shortname, supplier_address,
-  supplier_field, supplier_advantage, supplier_contact_name,
-  supplier_contact_phone, supplier_contact_email, supplier_remark
+  supplier_field, supplier_advantage, supplier_remark, supplier_contact_id
 `
 
 export async function getAllSupplierList(): Promise<SupplierListRow[]> {
@@ -95,7 +92,6 @@ export async function getSupplierListPaginated(params: {
   supplierShortname?: string
   supplierField?: string
   supplierAdvantage?: string
-  contactSearch?: string
 }): Promise<{ rows: SupplierListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
   const pageSize = params.pageSize ?? 10
@@ -119,11 +115,6 @@ export async function getSupplierListPaginated(params: {
   if (params.supplierAdvantage && params.supplierAdvantage.trim() !== '') {
     whereClauses.push('supplier_advantage LIKE ?')
     whereParams.push(`%${params.supplierAdvantage}%`)
-  }
-  if (params.contactSearch && params.contactSearch.trim() !== '') {
-    const q = `%${params.contactSearch}%`
-    whereClauses.push('(supplier_contact_name LIKE ? OR supplier_contact_phone LIKE ? OR supplier_contact_email LIKE ?)')
-    whereParams.push(q, q, q)
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
@@ -150,27 +141,22 @@ export async function createSupplierList(data: {
   supplier_address?: string | null
   supplier_field?: string | null
   supplier_advantage?: string | null
-  supplier_contact_name?: string | null
-  supplier_contact_phone?: string | null
-  supplier_contact_email?: string | null
   supplier_remark?: string | null
+  supplier_contact_id?: string | null
 }): Promise<SupplierListRow> {
   const result = await execute(
     `INSERT INTO \`supplier_list\`
       (supplier_name, supplier_shortname, supplier_address, supplier_field,
-       supplier_advantage, supplier_contact_name, supplier_contact_phone,
-       supplier_contact_email, supplier_remark)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       supplier_advantage, supplier_remark, supplier_contact_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       data.supplier_name,
       data.supplier_shortname ?? null,
       data.supplier_address ?? null,
       data.supplier_field ?? null,
       data.supplier_advantage ?? null,
-      data.supplier_contact_name ?? null,
-      data.supplier_contact_phone ?? null,
-      data.supplier_contact_email ?? null,
       data.supplier_remark ?? null,
+      data.supplier_contact_id ?? null,
     ]
   )
   const newId = Number(result.insertId)
@@ -188,10 +174,8 @@ export async function updateSupplierList(
     supplier_address?: string | null
     supplier_field?: string | null
     supplier_advantage?: string | null
-    supplier_contact_name?: string | null
-    supplier_contact_phone?: string | null
-    supplier_contact_email?: string | null
     supplier_remark?: string | null
+    supplier_contact_id?: string | null
   }
 ): Promise<SupplierListRow> {
   const sets: string[] = []
@@ -202,10 +186,8 @@ export async function updateSupplierList(
     'supplier_address',
     'supplier_field',
     'supplier_advantage',
-    'supplier_contact_name',
-    'supplier_contact_phone',
-    'supplier_contact_email',
     'supplier_remark',
+    'supplier_contact_id',
   ]
   for (const key of keys) {
     if (key in data) {
@@ -254,9 +236,7 @@ function normalizeRow(row: any): SupplierListRow {
     supplier_address: row.supplier_address ? String(row.supplier_address) : null,
     supplier_field: row.supplier_field ? String(row.supplier_field) : null,
     supplier_advantage: row.supplier_advantage ? String(row.supplier_advantage) : null,
-    supplier_contact_name: row.supplier_contact_name ? String(row.supplier_contact_name) : null,
-    supplier_contact_phone: row.supplier_contact_phone ? String(row.supplier_contact_phone) : null,
-    supplier_contact_email: row.supplier_contact_email ? String(row.supplier_contact_email) : null,
     supplier_remark: row.supplier_remark ? String(row.supplier_remark) : null,
+    supplier_contact_id: row.supplier_contact_id ? String(row.supplier_contact_id) : null,
   }
 }

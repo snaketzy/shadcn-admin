@@ -46,6 +46,7 @@ export function getSuppliersColumns(
   fieldDict: SupplierDictEntry[] = []
 ): ColumnDef<Supplier>[] {
   const fieldMap = makeDictMap(fieldDict)
+
   return [
     {
       id: 'select',
@@ -179,34 +180,12 @@ export function getSuppliersColumns(
       enableSorting: false,
     },
     {
-      accessorKey: 'supplier_contact_name',
+      accessorKey: 'supplier_contact_id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='供应商联系人' />
+        <DataTableColumnHeader column={column} title='联系人ID' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('supplier_contact_name') as string | null
-        return <div>{value ?? '-'}</div>
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'supplier_contact_phone',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人手机' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('supplier_contact_phone') as string | null
-        return <div>{value ?? '-'}</div>
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'supplier_contact_email',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人邮箱' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('supplier_contact_email') as string | null
+        const value = row.getValue('supplier_contact_id') as string | null
         return <div>{value ?? '-'}</div>
       },
       enableSorting: false,

@@ -527,7 +527,6 @@ async function handleSupplierListApi(
           supplierShortname: toOptStr(searchParams.get('supplierShortname')),
           supplierField: toOptStr(searchParams.get('supplierField')),
           supplierAdvantage: toOptStr(searchParams.get('supplierAdvantage')),
-          contactSearch: toOptStr(searchParams.get('contactSearch')),
         })
         sendJson(res, 200, { success: true, data: result })
         return true
@@ -544,9 +543,7 @@ async function handleSupplierListApi(
           supplier_address: toOptStr(body.supplier_address),
           supplier_field: toOptStr(body.supplier_field),
           supplier_advantage: toOptStr(body.supplier_advantage),
-          supplier_contact_name: toOptStr(body.supplier_contact_name),
-          supplier_contact_phone: toOptStr(body.supplier_contact_phone),
-          supplier_contact_email: toOptStr(body.supplier_contact_email),
+          supplier_contact_id: toOptStr(body.supplier_contact_id),
           supplier_remark: toOptStr(body.supplier_remark),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -604,9 +601,7 @@ async function handleSupplierListApi(
           supplier_address: toOptStr(body.supplier_address),
           supplier_field: toOptStr(body.supplier_field),
           supplier_advantage: toOptStr(body.supplier_advantage),
-          supplier_contact_name: toOptStr(body.supplier_contact_name),
-          supplier_contact_phone: toOptStr(body.supplier_contact_phone),
-          supplier_contact_email: toOptStr(body.supplier_contact_email),
+          supplier_contact_id: toOptStr(body.supplier_contact_id),
           supplier_remark: toOptStr(body.supplier_remark),
         })
         sendJson(res, 200, { success: true, data: updated })
