@@ -68,7 +68,7 @@ export function SupplierDetailBasic() {
                 params={{ supplierId }}
                 className='flex items-center gap-1 text-xs text-muted-foreground hover:underline'
               >
-                查看业务信息
+                查看员工信息
                 <ArrowRightIcon className='size-3' />
               </Link>
             </div>

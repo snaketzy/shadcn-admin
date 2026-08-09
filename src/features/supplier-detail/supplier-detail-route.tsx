@@ -88,7 +88,7 @@ export function SupplierDetailRoute() {
       icon: <UserRound size={18} />,
     },
     {
-      title: '供应商信息',
+      title: '员工信息',
       href: `/supplier_detail/${supplierId}/info`,
       icon: <Briefcase size={18} />,
     },

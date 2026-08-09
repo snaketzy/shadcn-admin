@@ -76,7 +76,7 @@ export function SupplierDetailInfo() {
 
   return (
     <ContentSection
-      title='供应商信息'
+      title='员工信息'
       desc='该供应商的业务维度信息，包括经营范围、主营方向及备注说明。'
     >
       <div className='space-y-4'>
