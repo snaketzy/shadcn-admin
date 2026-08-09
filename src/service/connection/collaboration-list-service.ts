@@ -1,5 +1,6 @@
 import { query, execute, type ExecuteValues } from './db'
 import { getCaseDictByKeyPrefix } from './case-dict-service'
+import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
 
 export interface CollaborationDictEntry {
   dict_key: string
@@ -160,6 +161,7 @@ export async function createCollaborationList(data: {
   if (!newId) throw new Error('Failed to create collaboration_list row')
   const created = await getCollaborationListById(newId)
   if (!created) throw new Error('Failed to create collaboration_list row')
+  await auditInsert('collaboration_list', created, { excludeFields: ['collaboration_id'], primaryKeyField: 'collaboration_id' })
   return created
 }
 
@@ -174,6 +176,8 @@ export async function updateCollaborationList(
     collaboration_remark?: string | null
   }
 ): Promise<CollaborationListRow> {
+  const oldRow = await getCollaborationListById(collaborationId)
+  if (!oldRow) throw new Error('Collaboration not found')
   const sets: string[] = []
   const params: (string | number | null)[] = []
   const keys: Array<keyof typeof data> = [
@@ -194,33 +198,44 @@ export async function updateCollaborationList(
     }
   }
   if (sets.length === 0) {
-    const curr = await getCollaborationListById(collaborationId)
-    if (!curr) throw new Error('Collaboration not found')
-    return curr
+    return oldRow
   }
   params.push(collaborationId)
   await execute(
     `UPDATE \`collaboration_list\` SET ${sets.join(', ')} WHERE collaboration_id = ?`,
     params as ExecuteValues
   )
-  const updated = await getCollaborationListById(collaborationId)
-  if (!updated) throw new Error('Failed to update collaboration_list row')
-  return updated
+  const newRow = await getCollaborationListById(collaborationId)
+  if (!newRow) throw new Error('Failed to update collaboration_list row')
+  await auditUpdate('collaboration_list', oldRow, newRow, data, { excludeFields: ['collaboration_id'], primaryKeyField: 'collaboration_id' })
+  return newRow
 }
 
 export async function deleteCollaborationList(collaborationId: number): Promise<boolean> {
+  const oldRow = await getCollaborationListById(collaborationId)
+  if (!oldRow) return false
   const result = await execute('DELETE FROM `collaboration_list` WHERE collaboration_id = ?', [collaborationId])
+  if (result.affectedRows > 0) {
+    await auditDelete('collaboration_list', oldRow, { excludeFields: ['collaboration_id'], primaryKeyField: 'collaboration_id' })
+  }
   return result.affectedRows > 0
 }
 
 export async function deleteCollaborationListBulk(collaborationIds: number[]): Promise<number> {
   if (collaborationIds.length === 0) return 0
   const placeholders = collaborationIds.map(() => '?').join(', ')
-  const result = await execute(
+  const oldRows = await query<CollaborationListRow[]>(
+    `SELECT ${SELECT_COLS} FROM \`collaboration_list\` WHERE collaboration_id IN (${placeholders})`,
+    collaborationIds
+  )
+  const deleteResult = await execute(
     `DELETE FROM \`collaboration_list\` WHERE collaboration_id IN (${placeholders})`,
     collaborationIds
   )
-  return Number(result.affectedRows)
+  if (deleteResult.affectedRows > 0 && oldRows.length > 0) {
+    await auditBulkDelete('collaboration_list', oldRows.map(normalizeRow), { excludeFields: ['collaboration_id'], primaryKeyField: 'collaboration_id' })
+  }
+  return Number(deleteResult.affectedRows)
 }
 
 function normalizeRow(row: any): CollaborationListRow {

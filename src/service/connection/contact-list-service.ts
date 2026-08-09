@@ -1,5 +1,6 @@
 import { query, execute, type ExecuteValues } from './db'
 import { getCaseDictByKeyPrefix } from './case-dict-service'
+import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
 
 export interface ContactListRow {
   contact_id: number
@@ -184,6 +185,7 @@ export async function createContactList(data: {
   if (!newId) throw new Error('Failed to create contact_list row')
   const created = await getContactListById(newId)
   if (!created) throw new Error('Failed to create contact_list row')
+  await auditInsert('contact_list', created, { excludeFields: ['contact_id'], primaryKeyField: 'contact_id' })
   return created
 }
 
@@ -200,6 +202,7 @@ export async function updateContactList(
     contact_remark?: string | null
   }
 ): Promise<ContactListRow> {
+  const oldRow = await getContactListById(contactId)
   const sets: string[] = []
   const params: (string | number | null)[] = []
   const keys: Array<keyof typeof data> = [
@@ -222,32 +225,47 @@ export async function updateContactList(
     }
   }
   if (sets.length === 0) {
-    const curr = await getContactListById(contactId)
-    if (!curr) throw new Error('Contact not found')
-    return curr
+    if (!oldRow) throw new Error('Contact not found')
+    return oldRow
   }
   params.push(contactId)
   await execute(
     `UPDATE \`contact_list\` SET ${sets.join(', ')} WHERE contact_id = ?`,
     params as ExecuteValues
   )
-  const updated = await getContactListById(contactId)
-  if (!updated) throw new Error('Failed to update contact_list row')
-  return updated
+  const newRow = await getContactListById(contactId)
+  if (!newRow) throw new Error('Failed to update contact_list row')
+  if (oldRow) {
+    await auditUpdate('contact_list', oldRow, newRow, data, { excludeFields: ['contact_id'], primaryKeyField: 'contact_id' })
+  }
+  return newRow
 }
 
 export async function deleteContactList(contactId: number): Promise<boolean> {
+  const row = await getContactListById(contactId)
   const result = await execute('DELETE FROM `contact_list` WHERE contact_id = ?', [contactId])
-  return result.affectedRows > 0
+  const success = result.affectedRows > 0
+  if (success && row) {
+    await auditDelete('contact_list', row, { excludeFields: ['contact_id'], primaryKeyField: 'contact_id' })
+  }
+  return success
 }
 
 export async function deleteContactListBulk(contactIds: number[]): Promise<number> {
   if (contactIds.length === 0) return 0
   const placeholders = contactIds.map(() => '?').join(', ')
+  const rawRows = await query<ContactListRow[]>(
+    `SELECT ${SELECT_COLS} FROM \`contact_list\` WHERE contact_id IN (${placeholders})`,
+    contactIds
+  )
+  const rows = rawRows.map(normalizeRow)
   const result = await execute(
     `DELETE FROM \`contact_list\` WHERE contact_id IN (${placeholders})`,
     contactIds
   )
+  if (rows.length > 0) {
+    await auditBulkDelete('contact_list', rows, { excludeFields: ['contact_id'], primaryKeyField: 'contact_id' })
+  }
   return Number(result.affectedRows)
 }
 

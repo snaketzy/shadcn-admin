@@ -1,5 +1,6 @@
 import { query, execute, type ExecuteValues } from './db'
 import { getCaseDictByKeyPrefix } from './case-dict-service'
+import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
 
 export interface VesselListRow {
   vessel_id: number
@@ -182,6 +183,7 @@ export async function createVesselList(data: {
   if (!newId) throw new Error('Failed to create vessel_list row')
   const created = await getVesselListById(newId)
   if (!created) throw new Error('Failed to create vessel_list row')
+  await auditInsert('vessel_list', created, { excludeFields: ['vessel_id'], primaryKeyField: 'vessel_id' })
   return created
 }
 
@@ -202,6 +204,8 @@ export async function updateVesselList(
     vessel_fleet_manager?: string | null
   }
 ): Promise<VesselListRow> {
+  const oldRow = await getVesselListById(vesselId)
+  if (!oldRow) throw new Error('Vessel not found')
   const sets: string[] = []
   const params: (string | number | null)[] = []
   const mapping: Array<[keyof typeof data, 'str' | 'num' | 'date']> = [
@@ -228,36 +232,47 @@ export async function updateVesselList(
     }
   }
   if (sets.length === 0) {
-    const curr = await getVesselListById(vesselId)
-    if (!curr) throw new Error('Vessel not found')
-    return curr
+    return oldRow
   }
   params.push(vesselId)
   await execute(
     `UPDATE \`vessel_list\` SET ${sets.join(', ')} WHERE vessel_id = ?`,
     params as ExecuteValues
   )
-  const updated = await getVesselListById(vesselId)
-  if (!updated) throw new Error('Failed to update vessel_list row')
-  return updated
+  const newRow = await getVesselListById(vesselId)
+  if (!newRow) throw new Error('Failed to update vessel_list row')
+  await auditUpdate('vessel_list', oldRow, newRow, data, { excludeFields: ['vessel_id'], primaryKeyField: 'vessel_id' })
+  return newRow
 }
 
 export async function deleteVesselList(vesselId: number): Promise<boolean> {
+  const oldRow = await getVesselListById(vesselId)
+  if (!oldRow) return false
   const result = await execute(
     'DELETE FROM `vessel_list` WHERE vessel_id = ?',
     [vesselId]
   )
+  if (result.affectedRows > 0) {
+    await auditDelete('vessel_list', oldRow, { excludeFields: ['vessel_id'], primaryKeyField: 'vessel_id' })
+  }
   return result.affectedRows > 0
 }
 
 export async function deleteVesselListBulk(vesselIds: number[]): Promise<number> {
   if (vesselIds.length === 0) return 0
   const placeholders = vesselIds.map(() => '?').join(', ')
-  const result = await execute(
+  const oldRows = await query<VesselListRow[]>(
+    `SELECT ${SELECT_COLS} FROM \`vessel_list\` WHERE vessel_id IN (${placeholders})`,
+    vesselIds
+  )
+  const deleteResult = await execute(
     `DELETE FROM \`vessel_list\` WHERE vessel_id IN (${placeholders})`,
     vesselIds
   )
-  return Number(result.affectedRows)
+  if (deleteResult.affectedRows > 0 && oldRows.length > 0) {
+    await auditBulkDelete('vessel_list', oldRows.map(normalizeRow), { excludeFields: ['vessel_id'], primaryKeyField: 'vessel_id' })
+  }
+  return Number(deleteResult.affectedRows)
 }
 
 function normalizeRow(row: any): VesselListRow {

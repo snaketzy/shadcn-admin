@@ -1,5 +1,6 @@
 import { query, execute, type ExecuteValues } from './db'
 import { getCaseDictByKeyPrefix } from './case-dict-service'
+import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
 
 export interface SupplierDictEntry {
   dict_key: string
@@ -163,6 +164,7 @@ export async function createSupplierList(data: {
   if (!newId) throw new Error('Failed to create supplier_list row')
   const created = await getSupplierListById(newId)
   if (!created) throw new Error('Failed to create supplier_list row')
+  await auditInsert('supplier_list', created, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
   return created
 }
 
@@ -178,6 +180,7 @@ export async function updateSupplierList(
     supplier_contact_id?: string | null
   }
 ): Promise<SupplierListRow> {
+  const oldRow = await getSupplierListById(supplierId)
   const sets: string[] = []
   const params: (string | number | null)[] = []
   const keys: Array<keyof typeof data> = [
@@ -199,32 +202,47 @@ export async function updateSupplierList(
     }
   }
   if (sets.length === 0) {
-    const curr = await getSupplierListById(supplierId)
-    if (!curr) throw new Error('Supplier not found')
-    return curr
+    if (!oldRow) throw new Error('Supplier not found')
+    return oldRow
   }
   params.push(supplierId)
   await execute(
     `UPDATE \`supplier_list\` SET ${sets.join(', ')} WHERE supplier_id = ?`,
     params as ExecuteValues
   )
-  const updated = await getSupplierListById(supplierId)
-  if (!updated) throw new Error('Failed to update supplier_list row')
-  return updated
+  const newRow = await getSupplierListById(supplierId)
+  if (!newRow) throw new Error('Failed to update supplier_list row')
+  if (oldRow) {
+    await auditUpdate('supplier_list', oldRow, newRow, data, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+  }
+  return newRow
 }
 
 export async function deleteSupplierList(supplierId: number): Promise<boolean> {
+  const row = await getSupplierListById(supplierId)
   const result = await execute('DELETE FROM `supplier_list` WHERE supplier_id = ?', [supplierId])
-  return result.affectedRows > 0
+  const success = result.affectedRows > 0
+  if (success && row) {
+    await auditDelete('supplier_list', row, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+  }
+  return success
 }
 
 export async function deleteSupplierListBulk(supplierIds: number[]): Promise<number> {
   if (supplierIds.length === 0) return 0
   const placeholders = supplierIds.map(() => '?').join(', ')
+  const rawRows = await query<SupplierListRow[]>(
+    `SELECT ${SELECT_COLS} FROM \`supplier_list\` WHERE supplier_id IN (${placeholders})`,
+    supplierIds
+  )
+  const rows = rawRows.map(normalizeRow)
   const result = await execute(
     `DELETE FROM \`supplier_list\` WHERE supplier_id IN (${placeholders})`,
     supplierIds
   )
+  if (rows.length > 0) {
+    await auditBulkDelete('supplier_list', rows, { excludeFields: ['supplier_id'], primaryKeyField: 'supplier_id' })
+  }
   return Number(result.affectedRows)
 }
 

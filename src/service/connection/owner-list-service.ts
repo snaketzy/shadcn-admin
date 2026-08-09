@@ -1,5 +1,6 @@
 import { query, execute, type ExecuteValues } from './db'
 import { getCaseDictByKeyPrefix } from './case-dict-service'
+import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
 
 export interface OwnerListRow {
   owner_id: number
@@ -167,6 +168,7 @@ export async function createOwnerList(data: {
   if (!newId) throw new Error('Failed to create owner_list row')
   const created = await getOwnerListById(newId)
   if (!created) throw new Error('Failed to create owner_list row')
+  await auditInsert('owner_list', created, { excludeFields: ['owner_id'], primaryKeyField: 'owner_id' })
   return created
 }
 
@@ -182,6 +184,8 @@ export async function updateOwnerList(
     owner_rank?: string | null
   }
 ): Promise<OwnerListRow> {
+  const oldRow = await getOwnerListById(ownerId)
+  if (!oldRow) throw new Error('Owner not found')
   const sets: string[] = []
   const params: (string | number | null)[] = []
   const keys: Array<keyof typeof data> = [
@@ -203,33 +207,44 @@ export async function updateOwnerList(
     }
   }
   if (sets.length === 0) {
-    const curr = await getOwnerListById(ownerId)
-    if (!curr) throw new Error('Owner not found')
-    return curr
+    return oldRow
   }
   params.push(ownerId)
   await execute(
     `UPDATE \`owner_list\` SET ${sets.join(', ')} WHERE owner_id = ?`,
     params as ExecuteValues
   )
-  const updated = await getOwnerListById(ownerId)
-  if (!updated) throw new Error('Failed to update owner_list row')
-  return updated
+  const newRow = await getOwnerListById(ownerId)
+  if (!newRow) throw new Error('Failed to update owner_list row')
+  await auditUpdate('owner_list', oldRow, newRow, data, { excludeFields: ['owner_id'], primaryKeyField: 'owner_id' })
+  return newRow
 }
 
 export async function deleteOwnerList(ownerId: number): Promise<boolean> {
+  const oldRow = await getOwnerListById(ownerId)
+  if (!oldRow) return false
   const result = await execute('DELETE FROM `owner_list` WHERE owner_id = ?', [ownerId])
+  if (result.affectedRows > 0) {
+    await auditDelete('owner_list', oldRow, { excludeFields: ['owner_id'] })
+  }
   return result.affectedRows > 0
 }
 
 export async function deleteOwnerListBulk(ownerIds: number[]): Promise<number> {
   if (ownerIds.length === 0) return 0
   const placeholders = ownerIds.map(() => '?').join(', ')
-  const result = await execute(
+  const oldRows = await query<OwnerListRow[]>(
+    `SELECT ${SELECT_COLS} FROM \`owner_list\` WHERE owner_id IN (${placeholders})`,
+    ownerIds
+  )
+  const deleteResult = await execute(
     `DELETE FROM \`owner_list\` WHERE owner_id IN (${placeholders})`,
     ownerIds
   )
-  return Number(result.affectedRows)
+  if (deleteResult.affectedRows > 0 && oldRows.length > 0) {
+    await auditBulkDelete('owner_list', oldRows.map(normalizeRow), { excludeFields: ['owner_id'], primaryKeyField: 'owner_id' })
+  }
+  return Number(deleteResult.affectedRows)
 }
 
 function normalizeRow(row: any): OwnerListRow {

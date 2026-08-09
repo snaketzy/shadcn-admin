@@ -1,4 +1,5 @@
 import { query, execute, type ExecuteValues } from './db'
+import { auditInsert, auditUpdate, auditDelete, auditBulkDelete } from './log-list-service'
 
 export interface CaseDictRow {
   dict_id: number
@@ -116,6 +117,7 @@ export async function createCaseDict(data: {
 
   const created = await getCaseDictById(newDictId)
   if (!created) throw new Error('Failed to create case_dict row')
+  await auditInsert('case_dict', created, { excludeFields: ['dict_id'], primaryKeyField: 'dict_id' })
   return created
 }
 
@@ -128,6 +130,7 @@ export async function updateCaseDict(
     dict_key: string
   }
 ): Promise<CaseDictRow> {
+  const oldRow = await getCaseDictById(dictId)
   await execute(
     'UPDATE `case_dict` SET dict_group = ?, dict_value = ?, dict_value_remark = ?, dict_key = ? WHERE dict_id = ?',
     [
@@ -139,22 +142,37 @@ export async function updateCaseDict(
     ]
   )
 
-  const updated = await getCaseDictById(dictId)
-  if (!updated) throw new Error('Failed to update case_dict row')
-  return updated
+  const newRow = await getCaseDictById(dictId)
+  if (!newRow) throw new Error('Failed to update case_dict row')
+  if (oldRow) {
+    await auditUpdate('case_dict', oldRow, newRow, data, { excludeFields: ['dict_id'] })
+  }
+  return newRow
 }
 
 export async function deleteCaseDict(dictId: number): Promise<boolean> {
+  const row = await getCaseDictById(dictId)
   const result = await execute('DELETE FROM `case_dict` WHERE dict_id = ?', [dictId])
-  return result.affectedRows > 0
+  const success = result.affectedRows > 0
+  if (success && row) {
+    await auditDelete('case_dict', row, { excludeFields: ['dict_id'], primaryKeyField: 'dict_id' })
+  }
+  return success
 }
 
 export async function deleteCaseDictBulk(dictIds: number[]): Promise<number> {
   if (dictIds.length === 0) return 0
   const placeholders = dictIds.map(() => '?').join(', ')
+  const rows = await query<CaseDictRow[]>(
+    `SELECT dict_id, dict_group, dict_value, dict_value_remark, dict_key FROM \`case_dict\` WHERE dict_id IN (${placeholders})`,
+    dictIds
+  )
   const result = await execute(
     `DELETE FROM \`case_dict\` WHERE dict_id IN (${placeholders})`,
     dictIds
   )
+  if (rows.length > 0) {
+    await auditBulkDelete('case_dict', rows, { excludeFields: ['dict_id'], primaryKeyField: 'dict_id' })
+  }
   return Number(result.affectedRows)
 }
