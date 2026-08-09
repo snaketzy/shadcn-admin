@@ -34,7 +34,7 @@ export const sidebarData: SidebarData = {
   },
   teams: [
     {
-      name: 'Shadcn Admin',
+      name: '杰弘业务管理系统',
       logo: Command,
       plan: 'Vite + ShadcnUI',
     },
