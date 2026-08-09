@@ -3,6 +3,7 @@ import { query, execute } from './db'
 export interface LogListRow {
   log_id: number
   log_table_name: string | null
+  log_table_primary_key: string | null
   log_table_primary_key_value: string | null
   log_field_name: string | null
   log_filed_old_value: string | null
@@ -29,17 +30,19 @@ function valueToStr(v: unknown, maxLen = 500): string | null {
 
 export async function writeAuditLogs(records: {
   log_table_name: string
+  log_table_primary_key?: string | null
   log_table_primary_key_value?: string | number | null
   log_field_name: string
   log_filed_old_value?: unknown
   log_field_new_value?: unknown
 }[]): Promise<void> {
   if (!records || records.length === 0) return
-  const placeholders = records.map(() => '(?, ?, ?, ?, ?)').join(', ')
+  const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
   const params: (string | null)[] = []
   for (const r of records) {
     params.push(
       r.log_table_name ?? null,
+      valueToStr(r.log_table_primary_key, 45),
       valueToStr(r.log_table_primary_key_value, 45),
       r.log_field_name ?? null,
       valueToStr(r.log_filed_old_value, 500),
@@ -48,8 +51,8 @@ export async function writeAuditLogs(records: {
   }
   await execute(
     `INSERT INTO \`log_list\`
-       (log_table_name, log_table_primary_key_value, log_field_name,
-        log_filed_old_value, log_field_new_value)
+       (log_table_name, log_table_primary_key, log_table_primary_key_value,
+        log_field_name, log_filed_old_value, log_field_new_value)
      VALUES ${placeholders}`,
     params as any
   )
@@ -78,12 +81,13 @@ export async function auditInsert<Row extends Record<string, any>>(
 ): Promise<void> {
   if (!newRow) return
   const exclude = new Set(opts.excludeFields ?? [])
-  const pk = opts.primaryKeyField ?? null
-  const pkValue = pickPrimaryKeyValue(newRow, pk, opts.primaryKeyValue)
+  const pkField = opts.primaryKeyField ?? null
+  const pkValue = pickPrimaryKeyValue(newRow, pkField, opts.primaryKeyValue)
   const records = Object.keys(newRow)
     .filter((k) => !exclude.has(k))
     .map((k) => ({
       log_table_name: tableName,
+      log_table_primary_key: pkField,
       log_table_primary_key_value: pkValue,
       log_field_name: k,
       log_filed_old_value: null,
@@ -103,12 +107,13 @@ export async function auditDelete<Row extends Record<string, any>>(
 ): Promise<void> {
   if (!oldRow) return
   const exclude = new Set(opts.excludeFields ?? [])
-  const pk = opts.primaryKeyField ?? null
-  const pkValue = pickPrimaryKeyValue(oldRow, pk, opts.primaryKeyValue)
+  const pkField = opts.primaryKeyField ?? null
+  const pkValue = pickPrimaryKeyValue(oldRow, pkField, opts.primaryKeyValue)
   const records = Object.keys(oldRow)
     .filter((k) => !exclude.has(k))
     .map((k) => ({
       log_table_name: tableName,
+      log_table_primary_key: pkField,
       log_table_primary_key_value: pkValue,
       log_field_name: k,
       log_filed_old_value: (oldRow as any)[k],
@@ -145,14 +150,14 @@ export async function auditUpdate<
 ): Promise<void> {
   if (!oldRow || !newRow) return
   const exclude = new Set(opts.excludeFields ?? [])
-  const pk = opts.primaryKeyField ?? null
+  const pkField = opts.primaryKeyField ?? null
   const pkValue =
     opts.primaryKeyValue !== undefined && opts.primaryKeyValue !== null
       ? opts.primaryKeyValue
-      : oldRow && pk
-        ? (oldRow as any)[pk] ?? (newRow as any)[pk] ?? null
-        : newRow && pk
-          ? (newRow as any)[pk] ?? null
+      : oldRow && pkField
+        ? (oldRow as any)[pkField] ?? (newRow as any)[pkField] ?? null
+        : newRow && pkField
+          ? (newRow as any)[pkField] ?? null
           : null
   const allKeys = new Set<string>([
     ...Object.keys(oldRow),
@@ -160,6 +165,7 @@ export async function auditUpdate<
   ])
   const records: {
     log_table_name: string
+    log_table_primary_key: string | null
     log_table_primary_key_value: string | number | null
     log_field_name: string
     log_filed_old_value: unknown
@@ -174,6 +180,7 @@ export async function auditUpdate<
     if (ovStr === nvStr) continue
     records.push({
       log_table_name: tableName,
+      log_table_primary_key: pkField,
       log_table_primary_key_value: pkValue,
       log_field_name: k,
       log_filed_old_value: ov,
@@ -195,7 +202,8 @@ export async function getLogListPaginated(params: {
       'SELECT COUNT(*) AS total FROM `log_list`'
     ),
     query<LogListRow[]>(
-      `SELECT log_id, log_table_name, log_table_primary_key_value,
+      `SELECT log_id, log_table_name, log_table_primary_key,
+              log_table_primary_key_value,
               log_field_name, log_filed_old_value, log_field_new_value
          FROM \`log_list\`
         ORDER BY log_id DESC
