@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   ColumnFiltersState,
   OnChangeFn,
@@ -109,6 +109,24 @@ export function useTableUrlState(
 
   const [columnFilters, setColumnFilters] =
     useState<ColumnFiltersState>(initialColumnFilters)
+
+  useEffect(() => {
+    setColumnFilters((current) => {
+      let changed = current.length !== initialColumnFilters.length
+      if (!changed) {
+        const mapCurr = new Map(current.map((f) => [f.id, f.value]))
+        for (const next of initialColumnFilters) {
+          const v1 = mapCurr.get(next.id)
+          const v2 = next.value
+          if (JSON.stringify(v1) !== JSON.stringify(v2)) {
+            changed = true
+            break
+          }
+        }
+      }
+      return changed ? initialColumnFilters : current
+    })
+  }, [initialColumnFilters])
 
   const pagination: PaginationState = useMemo(() => {
     const rawPage = (search as SearchRecord)[pageKey]
