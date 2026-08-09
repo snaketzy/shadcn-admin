@@ -62,7 +62,7 @@ export function SupplierDetailShell({
       </Header>
 
       <Main fixed>
-        <div className='space-y-0.5'>
+        <div className='space-y-0.5 flex-none'>
           <h1 className='text-2xl font-bold tracking-tight md:text-3xl truncate max-w-full'>
             {title}
             <span className='ml-3 text-sm font-normal text-muted-foreground'>
@@ -73,12 +73,12 @@ export function SupplierDetailShell({
             {subTitle ?? '查看并管理该供应商的基础信息与业务信息。'}
           </p>
         </div>
-        <Separator className='my-4 lg:my-6' />
-        <div className='flex flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>
+        <Separator className='my-4 lg:my-6 flex-none' />
+        <div className='flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>
           <aside className='top-0 lg:sticky lg:w-1/5'>
             <SidebarNav items={sidebarItems} />
           </aside>
-          <div className='flex w-full overflow-y-hidden p-1'>
+          <div className='flex min-h-0 flex-1 w-full overflow-hidden p-1'>
             {children}
           </div>
         </div>
