@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
@@ -26,7 +26,6 @@ import { DataTablePagination } from '@/components/data-table'
 import { DataTableFacetedFilter } from '@/components/data-table/faceted-filter'
 import { DataTableViewOptions } from '@/components/data-table/view-options'
 import { Cross2Icon } from '@radix-ui/react-icons'
-import { SearchIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { type Contact } from '../data/schema'
@@ -104,7 +103,6 @@ type DataTableProps = Record<string, never>
 export function ContactsTable(_: DataTableProps) {
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const queryClient = useQueryClient()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
@@ -369,27 +367,7 @@ export function ContactsTable(_: DataTableProps) {
             </Button>
           )}
         </div>
-        <div className='flex items-center gap-2'>
-          <Button
-            variant='outline'
-            size='sm'
-            className='h-8 gap-1'
-            onClick={async () => {
-              await Promise.all([
-                queryClient.refetchQueries({ queryKey: ['contact-list'] }),
-                queryClient.refetchQueries({ queryKey: ['contact-list-groups'] }),
-                queryClient.refetchQueries({ queryKey: ['division-picker-suppliers'] }),
-                queryClient.refetchQueries({ queryKey: ['division-picker-supplier-groups'] }),
-                queryClient.refetchQueries({ queryKey: ['division-picker-collaborations'] }),
-                queryClient.refetchQueries({ queryKey: ['division-picker-collaboration-groups'] }),
-              ])
-            }}
-          >
-            <SearchIcon className='size-4' />
-            查询
-          </Button>
-          <DataTableViewOptions table={table} />
-        </div>
+        <DataTableViewOptions table={table} />
       </div>
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
         <div className='relative w-full flex-1 overflow-auto'>

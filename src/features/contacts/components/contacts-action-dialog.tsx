@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Building2, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -275,7 +275,7 @@ export function ContactsActionDialog({
     collaborationMap,
   ])
 
-  const handleDivisionPicked = (r: DivisionPickerResult) => {
+  const handleDivisionPicked = useCallback((r: DivisionPickerResult) => {
     form.setValue('contact_division_id', r.divisionId, {
       shouldDirty: true,
       shouldValidate: false,
@@ -284,15 +284,15 @@ export function ContactsActionDialog({
       shortname: r.displayShortname,
       name: r.displayName,
     })
-  }
+  }, [form])
 
-  const handleClearDivision = () => {
+  const handleClearDivision = useCallback(() => {
     form.setValue('contact_division_id', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
     setDivisionDisplay({ shortname: '', name: '' })
-  }
+  }, [form])
 
   const createMutation = useMutation({
     mutationFn: createContact,
