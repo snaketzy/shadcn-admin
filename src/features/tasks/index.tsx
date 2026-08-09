@@ -23,9 +23,9 @@ export function Tasks() {
       <Main fixed className='flex flex-1 flex-col gap-4 sm:gap-6 overflow-hidden'>
         <div className='flex flex-shrink-0 flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>询价列表</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>Task列表</h2>
             <p className='text-muted-foreground'>
-              以下是您本月的询价列表！
+              以下是您本月的Task列表！
             </p>
           </div>
           <TasksPrimaryButtons />

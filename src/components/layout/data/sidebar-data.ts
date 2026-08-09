@@ -59,16 +59,6 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: '询价列表',
-          url: '/tasks',
-          icon: ListTodo,
-        },
-        {
-          title: 'Apps',
-          url: '/apps',
-          icon: Package,
-        },
-        {
           title: '供应商列表',
           url: '/supplier_list',
           icon: Store,
@@ -97,6 +87,16 @@ export const sidebarData: SidebarData = {
           title: '字典',
           url: '/dictionaries',
           icon: BookOpen,
+        },
+        {
+          title: 'Task列表',
+          url: '/tasks',
+          icon: ListTodo,
+        },
+        {
+          title: 'Apps',
+          url: '/apps',
+          icon: Package,
         },
       ],
     },
