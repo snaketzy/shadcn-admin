@@ -66,14 +66,37 @@ export interface DivisionSupplierRow {
   supplier_id: number
   supplier_name: string
   supplier_shortname: string | null
+  supplier_field: string | null
   supplier_advantage: string | null
   supplier_contact_name: string | null
+}
+
+export interface SupplierDictEntry {
+  dict_key: string
+  dict_value: string
+}
+export interface SupplierGroupsResponse {
+  shortnames: string[]
+  fields: string[]
+  advantages: string[]
+  fieldDict: SupplierDictEntry[]
 }
 
 export interface DivisionCollaborationRow {
   collaboration_id: number
   collaboration_name: string
   collaboration_shortname: string | null
+  collaboration_field: string | null
+}
+export interface CollaborationDictEntry {
+  dict_key: string
+  dict_value: string
+}
+export interface CollaborationGroupsResponse {
+  shortnames: string[]
+  names: string[]
+  fields: string[]
+  fieldDict: CollaborationDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -160,8 +183,16 @@ export async function fetchDivisionSuppliers(): Promise<DivisionSupplierRow[]> {
   const res = await api.get<ApiEnvelope<DivisionSupplierRow[]>>('/supplier-list/all')
   return res.data.data ?? []
 }
+export async function fetchDivisionSupplierGroups(): Promise<SupplierGroupsResponse> {
+  const res = await api.get<ApiEnvelope<SupplierGroupsResponse>>('/supplier-list/groups')
+  return res.data.data ?? { shortnames: [], fields: [], advantages: [], fieldDict: [] }
+}
 
 export async function fetchDivisionCollaborations(): Promise<DivisionCollaborationRow[]> {
   const res = await api.get<ApiEnvelope<DivisionCollaborationRow[]>>('/collaboration-list/all')
   return res.data.data ?? []
+}
+export async function fetchDivisionCollaborationGroups(): Promise<CollaborationGroupsResponse> {
+  const res = await api.get<ApiEnvelope<CollaborationGroupsResponse>>('/collaboration-list/groups')
+  return res.data.data ?? { shortnames: [], names: [], fields: [], fieldDict: [] }
 }
