@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Cross2Icon } from '@radix-ui/react-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
@@ -109,6 +109,72 @@ export function ContactsTable(_: DataTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
 
+  const urlContactName: string =
+    (search as unknown as { contactName?: string }).contactName ?? ''
+  const urlContactSearch: string =
+    (search as unknown as { contactSearch?: string }).contactSearch ?? ''
+  const [editingName, setEditingName] = useState(urlContactName)
+  const [editingSearch, setEditingSearch] = useState(urlContactSearch)
+  const [nameComposing, setNameComposing] = useState(false)
+  const [searchComposing, setSearchComposing] = useState(false)
+  const commitDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    if (editingName !== urlContactName) setEditingName(urlContactName)
+  }, [urlContactName])
+  useEffect(() => {
+    if (editingSearch !== urlContactSearch) setEditingSearch(urlContactSearch)
+  }, [urlContactSearch])
+
+  const scheduleCommit = useCallback(
+    (type: 'contactName' | 'contactSearch', value: string) => {
+      if (commitDebounceTimerRef.current)
+        clearTimeout(commitDebounceTimerRef.current)
+      commitDebounceTimerRef.current = setTimeout(() => {
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            [type]: value || undefined,
+            page: undefined,
+          }),
+        })
+      }, 250)
+    },
+    [navigate]
+  )
+
+  const onTextChange = (
+    type: 'contactName' | 'contactSearch',
+    value: string,
+    composing: boolean
+  ) => {
+    if (type === 'contactName') setEditingName(value)
+    else setEditingSearch(value)
+    if (composing) return
+    scheduleCommit(type, value)
+  }
+
+  const onCompositionStart = (type: 'contactName' | 'contactSearch') => {
+    if (type === 'contactName') setNameComposing(true)
+    else setSearchComposing(true)
+  }
+
+  const onCompositionEnd = (
+    type: 'contactName' | 'contactSearch',
+    value: string
+  ) => {
+    if (type === 'contactName') {
+      setNameComposing(false)
+      setEditingName(value)
+    } else {
+      setSearchComposing(false)
+      setEditingSearch(value)
+    }
+    scheduleCommit(type, value)
+  }
+
   const {
     data: allRowsData = [],
     isLoading,
@@ -165,7 +231,13 @@ export function ContactsTable(_: DataTableProps) {
         collaborationShortnameMap,
         rankDict
       ),
-    [typeDict, divisionDict, supplierShortnameMap, collaborationShortnameMap, rankDict]
+    [
+      typeDict,
+      divisionDict,
+      supplierShortnameMap,
+      collaborationShortnameMap,
+      rankDict,
+    ]
   )
 
   const typeFacetOptions = useMemo(() => {
@@ -204,10 +276,8 @@ export function ContactsTable(_: DataTableProps) {
     ensurePageInRange,
   } = urlState
 
-  const contactName: string =
-    (search as unknown as { contactName?: string }).contactName ?? ''
-  const contactSearch: string =
-    (search as unknown as { contactSearch?: string }).contactSearch ?? ''
+  const contactName = editingName
+  const contactSearch = editingSearch
 
   const typeFilter = useMemo(
     () =>
@@ -252,20 +322,11 @@ export function ContactsTable(_: DataTableProps) {
     return result
   }, [allRows, contactName, contactSearch, typeFilter])
 
-  const handleTextFilterChange = (
-    type: 'contactName' | 'contactSearch',
-    value: string
-  ) => {
-    navigate({
-      search: (prev: any) => ({
-        ...(prev ?? {}),
-        [type]: value || undefined,
-        page: undefined,
-      }),
-    })
-  }
-
   const handleResetFilters = () => {
+    if (commitDebounceTimerRef.current)
+      clearTimeout(commitDebounceTimerRef.current)
+    setEditingName('')
+    setEditingSearch('')
     navigate({
       search: {
         page: undefined,
@@ -347,17 +408,25 @@ export function ContactsTable(_: DataTableProps) {
         <div className='flex flex-1 flex-col items-start gap-y-2 sm:flex-row sm:flex-wrap sm:items-center sm:space-x-2'>
           <Input
             placeholder='按联系人名称筛选...'
-            value={contactName}
+            value={editingName}
             onChange={(e) =>
-              handleTextFilterChange('contactName', e.target.value)
+              onTextChange('contactName', e.target.value, nameComposing)
+            }
+            onCompositionStart={() => onCompositionStart('contactName')}
+            onCompositionEnd={(e) =>
+              onCompositionEnd('contactName', (e.target as HTMLInputElement).value)
             }
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
             placeholder='按名称/手机/邮箱/类型/职级筛选...'
-            value={contactSearch}
+            value={editingSearch}
             onChange={(e) =>
-              handleTextFilterChange('contactSearch', e.target.value)
+              onTextChange('contactSearch', e.target.value, searchComposing)
+            }
+            onCompositionStart={() => onCompositionStart('contactSearch')}
+            onCompositionEnd={(e) =>
+              onCompositionEnd('contactSearch', (e.target as HTMLInputElement).value)
             }
             className='h-8 w-37.5 lg:w-62.5'
           />
