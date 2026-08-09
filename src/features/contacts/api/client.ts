@@ -66,6 +66,7 @@ export interface DivisionSupplierRow {
   supplier_id: number
   supplier_name: string
   supplier_shortname: string | null
+  supplier_field: string | null
   supplier_advantage: string | null
   supplier_contact_name: string | null
 }
@@ -81,6 +82,16 @@ export interface PaginatedResponse {
   total: number
   page: number
   pageSize: number
+}
+
+export interface ContactGroupsResponse {
+  names: string[]
+  types: string[]
+  ranks: string[]
+  divisionTypes: string[]
+  typeDict: ContactDictEntry[]
+  divisionDict: ContactDictEntry[]
+  supplierFieldDict: ContactDictEntry[]
 }
 
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
@@ -101,13 +112,30 @@ export async function fetchContactPaginated(params: {
     params,
   })
   return (
-    res.data.data ?? { rows: [], total: 0, page: params.page ?? 1, pageSize: params.pageSize ?? 10 }
+    res.data.data ?? {
+      rows: [],
+      total: 0,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 10,
+    }
   )
 }
 
 export async function fetchContactGroups(): Promise<ContactGroupsResponse> {
-  const res = await api.get<ApiEnvelope<ContactGroupsResponse>>('/contact-list/groups')
-  return res.data.data ?? { names: [], types: [], ranks: [], divisionTypes: [] }
+  const res = await api.get<ApiEnvelope<ContactGroupsResponse>>(
+    '/contact-list/groups'
+  )
+  return (
+    res.data.data ?? {
+      names: [],
+      types: [],
+      ranks: [],
+      divisionTypes: [],
+      typeDict: [],
+      divisionDict: [],
+      supplierFieldDict: [],
+    }
+  )
 }
 
 export async function createContact(payload: {
@@ -137,7 +165,10 @@ export async function updateContact(
     contact_remark?: string | null
   }
 ): Promise<Contact> {
-  const res = await api.put<ApiEnvelope<Contact>>(`/contact-list/${contactId}`, payload)
+  const res = await api.put<ApiEnvelope<Contact>>(
+    `/contact-list/${contactId}`,
+    payload
+  )
   return res.data.data
 }
 
@@ -157,11 +188,16 @@ export async function deleteContactBulk(contactIds: number[]): Promise<number> {
 }
 
 export async function fetchDivisionSuppliers(): Promise<DivisionSupplierRow[]> {
-  const res = await api.get<ApiEnvelope<DivisionSupplierRow[]>>('/supplier-list/all')
+  const res =
+    await api.get<ApiEnvelope<DivisionSupplierRow[]>>('/supplier-list/all')
   return res.data.data ?? []
 }
 
-export async function fetchDivisionCollaborations(): Promise<DivisionCollaborationRow[]> {
-  const res = await api.get<ApiEnvelope<DivisionCollaborationRow[]>>('/collaboration-list/all')
+export async function fetchDivisionCollaborations(): Promise<
+  DivisionCollaborationRow[]
+> {
+  const res = await api.get<ApiEnvelope<DivisionCollaborationRow[]>>(
+    '/collaboration-list/all'
+  )
   return res.data.data ?? []
 }
