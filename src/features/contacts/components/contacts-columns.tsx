@@ -1,4 +1,5 @@
-import { type ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef, type Row } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -8,6 +9,10 @@ import { getBadgeColor } from '../data/data'
 import { type Contact } from '../data/schema'
 import { type ContactDictEntry } from '../api/client'
 import { DataTableRowActions } from './data-table-row-actions'
+
+function toDetailParams(row: Row<Contact>): { contactId: string } {
+  return { contactId: String(row.original.contact_id) }
+}
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
 
@@ -81,7 +86,16 @@ export function getContactsColumns(
         <DataTableColumnHeader column={column} title='联系人名称' />
       ),
       cell: ({ row }) => (
-        <LongText className='max-w-50 ps-3'>{row.getValue('contact_name')}</LongText>
+        <Link
+          to='/contact_detail/$contactId'
+          params={toDetailParams(row)}
+          className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium hover:underline'
+          title={String(row.original.contact_name ?? '')}
+        >
+          <LongText className='max-w-50 truncate'>
+            {row.original.contact_name}
+          </LongText>
+        </Link>
       ),
       meta: {
         className: cn(

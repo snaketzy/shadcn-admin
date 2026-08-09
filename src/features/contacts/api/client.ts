@@ -48,15 +48,6 @@ export interface Contact {
   contact_remark: string | null
 }
 
-export interface ContactGroupsResponse {
-  names: string[]
-  types: string[]
-  ranks: string[]
-  divisionTypes: string[]
-  typeDict: ContactDictEntry[]
-  divisionDict: ContactDictEntry[]
-}
-
 export interface ContactDictEntry {
   dict_key: string
   dict_value: string
@@ -102,6 +93,16 @@ type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
 export async function fetchContactAll(): Promise<Contact[]> {
   const res = await api.get<ApiEnvelope<Contact[]>>('/contact-list/all')
   return res.data.data ?? []
+}
+
+export async function fetchContactDetail(contactId: number): Promise<Contact | null> {
+  try {
+    const res = await api.get<ApiEnvelope<Contact>>(`/contact-list/${contactId}`)
+    return res.data.data ?? null
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
 }
 
 export async function fetchContactPaginated(params: {

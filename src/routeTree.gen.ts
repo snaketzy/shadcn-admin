@@ -24,6 +24,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as AuthenticatedAppsIndexRouteImport } from './routes/_authenticated/apps/index'
 import { Route as AuthenticatedCollaboration_listIndexRouteImport } from './routes/_authenticated/collaboration_list/index'
+import { Route as AuthenticatedContact_detailContactIdRouteRouteImport } from './routes/_authenticated/contact_detail/$contactId/route'
 import { Route as AuthenticatedContact_listIndexRouteImport } from './routes/_authenticated/contact_list/index'
 import { Route as AuthenticatedDictionariesIndexRouteImport } from './routes/_authenticated/dictionaries/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -38,6 +39,7 @@ import { Route as AuthenticatedSupplier_detailSupplierIdRouteRouteImport } from 
 import { Route as AuthenticatedSupplier_listIndexRouteImport } from './routes/_authenticated/supplier_list/index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedVessel_listIndexRouteImport } from './routes/_authenticated/vessel_list/index'
+import { Route as AuthenticatedContact_detailContactIdIndexRouteImport } from './routes/_authenticated/contact_detail/$contactId/index'
 import { Route as AuthenticatedSupplier_detailSupplierIdIndexRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/index'
 import { Route as AuthenticatedSupplier_detailSupplierIdCooperationRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/cooperation'
 import { Route as AuthenticatedSupplier_detailSupplierIdInfoRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/info'
@@ -116,6 +118,12 @@ const AuthenticatedCollaboration_listIndexRoute =
   AuthenticatedCollaboration_listIndexRouteImport.update({
     id: '/collaboration_list/',
     path: '/collaboration_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContact_detailContactIdRouteRoute =
+  AuthenticatedContact_detailContactIdRouteRouteImport.update({
+    id: '/contact_detail/$contactId',
+    path: '/contact_detail/$contactId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedContact_listIndexRoute =
@@ -201,6 +209,12 @@ const AuthenticatedVessel_listIndexRoute =
     path: '/vessel_list/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedContact_detailContactIdIndexRoute =
+  AuthenticatedContact_detailContactIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedContact_detailContactIdRouteRoute,
+  } as any)
 const AuthenticatedSupplier_detailSupplierIdIndexRoute =
   AuthenticatedSupplier_detailSupplierIdIndexRouteImport.update({
     id: '/',
@@ -233,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
@@ -251,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
   '/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/contact_detail/$contactId/': typeof AuthenticatedContact_detailContactIdIndexRoute
   '/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -282,6 +298,7 @@ export interface FileRoutesByTo {
   '/vessel_list': typeof AuthenticatedVessel_listIndexRoute
   '/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdIndexRoute
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesById {
@@ -299,6 +316,7 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
   '/_authenticated/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
@@ -317,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
   '/_authenticated/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/_authenticated/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/_authenticated/contact_detail/$contactId/': typeof AuthenticatedContact_detailContactIdIndexRoute
   '/_authenticated/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -334,6 +353,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
+    | '/contact_detail/$contactId'
     | '/supplier_detail/$supplierId'
     | '/errors/$error'
     | '/settings/account'
@@ -352,6 +372,7 @@ export interface FileRouteTypes {
     | '/vessel_list/'
     | '/supplier_detail/$supplierId/cooperation'
     | '/supplier_detail/$supplierId/info'
+    | '/contact_detail/$contactId/'
     | '/supplier_detail/$supplierId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -383,6 +404,7 @@ export interface FileRouteTypes {
     | '/vessel_list'
     | '/supplier_detail/$supplierId/cooperation'
     | '/supplier_detail/$supplierId/info'
+    | '/contact_detail/$contactId'
     | '/supplier_detail/$supplierId'
   id:
     | '__root__'
@@ -399,6 +421,7 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/'
+    | '/_authenticated/contact_detail/$contactId'
     | '/_authenticated/supplier_detail/$supplierId'
     | '/_authenticated/errors/$error'
     | '/_authenticated/settings/account'
@@ -417,6 +440,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vessel_list/'
     | '/_authenticated/supplier_detail/$supplierId/cooperation'
     | '/_authenticated/supplier_detail/$supplierId/info'
+    | '/_authenticated/contact_detail/$contactId/'
     | '/_authenticated/supplier_detail/$supplierId/'
   fileRoutesById: FileRoutesById
 }
@@ -541,6 +565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCollaboration_listIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contact_detail/$contactId': {
+      id: '/_authenticated/contact_detail/$contactId'
+      path: '/contact_detail/$contactId'
+      fullPath: '/contact_detail/$contactId'
+      preLoaderRoute: typeof AuthenticatedContact_detailContactIdRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/contact_list/': {
       id: '/_authenticated/contact_list/'
       path: '/contact_list'
@@ -639,6 +670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVessel_listIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contact_detail/$contactId/': {
+      id: '/_authenticated/contact_detail/$contactId/'
+      path: '/'
+      fullPath: '/contact_detail/$contactId/'
+      preLoaderRoute: typeof AuthenticatedContact_detailContactIdIndexRouteImport
+      parentRoute: typeof AuthenticatedContact_detailContactIdRouteRoute
+    }
     '/_authenticated/supplier_detail/$supplierId/': {
       id: '/_authenticated/supplier_detail/$supplierId/'
       path: '/'
@@ -686,6 +724,21 @@ const AuthenticatedSettingsRouteRouteWithChildren =
     AuthenticatedSettingsRouteRouteChildren,
   )
 
+interface AuthenticatedContact_detailContactIdRouteRouteChildren {
+  AuthenticatedContact_detailContactIdIndexRoute: typeof AuthenticatedContact_detailContactIdIndexRoute
+}
+
+const AuthenticatedContact_detailContactIdRouteRouteChildren: AuthenticatedContact_detailContactIdRouteRouteChildren =
+  {
+    AuthenticatedContact_detailContactIdIndexRoute:
+      AuthenticatedContact_detailContactIdIndexRoute,
+  }
+
+const AuthenticatedContact_detailContactIdRouteRouteWithChildren =
+  AuthenticatedContact_detailContactIdRouteRoute._addFileChildren(
+    AuthenticatedContact_detailContactIdRouteRouteChildren,
+  )
+
 interface AuthenticatedSupplier_detailSupplierIdRouteRouteChildren {
   AuthenticatedSupplier_detailSupplierIdCooperationRoute: typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   AuthenticatedSupplier_detailSupplierIdInfoRoute: typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
@@ -710,6 +763,7 @@ const AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedContact_detailContactIdRouteRoute: typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
   AuthenticatedSupplier_detailSupplierIdRouteRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
@@ -726,6 +780,8 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedContact_detailContactIdRouteRoute:
+    AuthenticatedContact_detailContactIdRouteRouteWithChildren,
   AuthenticatedSupplier_detailSupplierIdRouteRoute:
     AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
