@@ -59,6 +59,18 @@ function toOptNum(s: string | null | undefined): number | null {
   const n = Number(s)
   return Number.isFinite(n) ? n : null
 }
+function toOptNumFixed2(s: string | null | undefined): number | null {
+  if (s == null || !s || s.trim() === '') return null
+  const n = Number(s)
+  if (!Number.isFinite(n)) return null
+  return Number(n.toFixed(2))
+}
+function format2Decimals(s: string | null | undefined): string {
+  if (s == null || s.trim() === '') return ''
+  const n = Number(s)
+  if (!Number.isFinite(n)) return s
+  return n.toFixed(2)
+}
 
 type UserActionDialogProps = {
   currentRow?: Vessel
@@ -86,10 +98,14 @@ export function UsersActionDialog({
           vessel_name: currentRow.vessel_name,
           building_year: currentRow.building_year ?? '',
           vessel_imo: currentRow.vessel_imo != null ? String(currentRow.vessel_imo) : '',
-          vessel_loa: currentRow.vessel_loa ?? '',
-          vessel_breadth: currentRow.vessel_breadth ?? '',
-          vessel_gross: currentRow.vessel_gross != null ? String(currentRow.vessel_gross) : '',
-          vessel_dwt: currentRow.vessel_dwt != null ? String(currentRow.vessel_dwt) : '',
+          vessel_loa: format2Decimals(currentRow.vessel_loa),
+          vessel_breadth: format2Decimals(currentRow.vessel_breadth),
+          vessel_gross: format2Decimals(
+            currentRow.vessel_gross != null ? String(currentRow.vessel_gross) : ''
+          ),
+          vessel_dwt: format2Decimals(
+            currentRow.vessel_dwt != null ? String(currentRow.vessel_dwt) : ''
+          ),
           vessel_class: currentRow.vessel_class ?? '',
           vessel_flag: currentRow.vessel_flag ?? '',
           vessel_team: currentRow.vessel_team ?? '',
@@ -117,10 +133,14 @@ export function UsersActionDialog({
           vessel_name: currentRow.vessel_name,
           building_year: currentRow.building_year ?? '',
           vessel_imo: currentRow.vessel_imo != null ? String(currentRow.vessel_imo) : '',
-          vessel_loa: currentRow.vessel_loa ?? '',
-          vessel_breadth: currentRow.vessel_breadth ?? '',
-          vessel_gross: currentRow.vessel_gross != null ? String(currentRow.vessel_gross) : '',
-          vessel_dwt: currentRow.vessel_dwt != null ? String(currentRow.vessel_dwt) : '',
+          vessel_loa: format2Decimals(currentRow.vessel_loa),
+          vessel_breadth: format2Decimals(currentRow.vessel_breadth),
+          vessel_gross: format2Decimals(
+            currentRow.vessel_gross != null ? String(currentRow.vessel_gross) : ''
+          ),
+          vessel_dwt: format2Decimals(
+            currentRow.vessel_dwt != null ? String(currentRow.vessel_dwt) : ''
+          ),
           vessel_class: currentRow.vessel_class ?? '',
           vessel_flag: currentRow.vessel_flag ?? '',
           vessel_team: currentRow.vessel_team ?? '',
@@ -178,10 +198,10 @@ export function UsersActionDialog({
       vessel_name: values.vessel_name,
       building_year: toOptStr(values.building_year),
       vessel_imo: toOptNum(values.vessel_imo),
-      vessel_loa: toOptStr(values.vessel_loa),
-      vessel_breadth: toOptStr(values.vessel_breadth),
-      vessel_gross: toOptNum(values.vessel_gross),
-      vessel_dwt: toOptNum(values.vessel_dwt),
+      vessel_loa: toOptStr(format2Decimals(values.vessel_loa)),
+      vessel_breadth: toOptStr(format2Decimals(values.vessel_breadth)),
+      vessel_gross: toOptNumFixed2(values.vessel_gross),
+      vessel_dwt: toOptNumFixed2(values.vessel_dwt),
       vessel_class: toOptStr(values.vessel_class),
       vessel_flag: toOptStr(values.vessel_flag),
       vessel_team: toOptStr(values.vessel_team),
@@ -290,8 +310,15 @@ export function UsersActionDialog({
                     <FormControl>
                       <Input
                         placeholder='总长 (m)'
+                        type='number'
+                        step='0.01'
                         className='col-span-4'
                         {...field}
+                        onBlur={(e) => {
+                          const v = format2Decimals(e.target.value)
+                          if (v !== e.target.value) field.onChange(v)
+                          field.onBlur()
+                        }}
                       />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
@@ -309,8 +336,15 @@ export function UsersActionDialog({
                     <FormControl>
                       <Input
                         placeholder='型宽 (m)'
+                        type='number'
+                        step='0.01'
                         className='col-span-4'
                         {...field}
+                        onBlur={(e) => {
+                          const v = format2Decimals(e.target.value)
+                          if (v !== e.target.value) field.onChange(v)
+                          field.onBlur()
+                        }}
                       />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
@@ -328,9 +362,15 @@ export function UsersActionDialog({
                     <FormControl>
                       <Input
                         type='number'
+                        step='0.01'
                         placeholder='总吨'
                         className='col-span-4'
                         {...field}
+                        onBlur={(e) => {
+                          const v = format2Decimals(e.target.value)
+                          if (v !== e.target.value) field.onChange(v)
+                          field.onBlur()
+                        }}
                       />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
@@ -348,9 +388,15 @@ export function UsersActionDialog({
                     <FormControl>
                       <Input
                         type='number'
+                        step='0.01'
                         placeholder='载重吨'
                         className='col-span-4'
                         {...field}
+                        onBlur={(e) => {
+                          const v = format2Decimals(e.target.value)
+                          if (v !== e.target.value) field.onChange(v)
+                          field.onBlur()
+                        }}
                       />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
