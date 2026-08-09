@@ -354,7 +354,7 @@ export function SuppliersTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
-            placeholder='按联系人ID筛选...'
+            placeholder='按联系人筛选...'
             value={contactId}
             onChange={(e) => handleTextFilterChange('contactId', e.target.value)}
             type='number'

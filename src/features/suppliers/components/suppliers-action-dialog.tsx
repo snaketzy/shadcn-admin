@@ -369,7 +369,7 @@ export function SuppliersActionDialog({
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end pt-2'>
-                      供应商联系人
+                      联系人
                     </FormLabel>
                     <div className='col-span-4'>
                       <FormControl>
@@ -428,7 +428,7 @@ export function SuppliersActionDialog({
                       )}
                       {field.value && !contactDisplay.name && (
                         <p className='mt-1 text-xs text-muted-foreground/80'>
-                          联系人ID：{field.value}（未找到对应联系人详情）
+                          联系人：{field.value}（未找到对应联系人详情）
                         </p>
                       )}
                       <FormMessage />
