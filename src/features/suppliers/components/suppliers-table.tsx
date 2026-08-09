@@ -34,6 +34,7 @@ import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getSuppliersColumns } from './suppliers-columns'
 import { fetchSupplierAll, fetchSupplierGroups } from '../api/client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
 
 const route = getRouteApi('/_authenticated/supplier_list/')
 
@@ -123,7 +124,26 @@ export function SuppliersTable(_: DataTableProps) {
   const fields = groupsData?.fields ?? []
   const advantages = groupsData?.advantages ?? []
   const fieldDict = groupsData?.fieldDict ?? []
-  const columns = useMemo(() => getSuppliersColumns(fieldDict), [fieldDict])
+
+  const { data: contactRows = [] } = useQuery({
+    queryKey: ['contact-picker-all'],
+    queryFn: fetchContactAll,
+    staleTime: 60000,
+  })
+
+  const contactNameMap = useMemo(() => {
+    const out = new Map<string, string>()
+    for (const c of contactRows as Contact[]) {
+      if (!c.contact_name) continue
+      out.set(String(c.contact_id), c.contact_name)
+    }
+    return out
+  }, [contactRows])
+
+  const columns = useMemo(
+    () => getSuppliersColumns(fieldDict, contactNameMap),
+    [fieldDict, contactNameMap]
+  )
 
   const fieldFilterOptions = useMemo(() => {
     const seen = new Set<string>()
@@ -163,6 +183,8 @@ export function SuppliersTable(_: DataTableProps) {
 
   const supplierName: string =
     (search as unknown as { supplierName?: string }).supplierName ?? ''
+  const contactId: string =
+    (search as unknown as { contactId?: string }).contactId ?? ''
 
   const shortnameFilter = useMemo(
     () =>
@@ -194,6 +216,12 @@ export function SuppliersTable(_: DataTableProps) {
         String(r.supplier_name).toLowerCase().includes(q)
       )
     }
+    if (contactId.trim() !== '') {
+      const q = Number(contactId.trim())
+      if (!isNaN(q)) {
+        result = result.filter((r) => r.supplier_contact_id === q)
+      }
+    }
     if (shortnameFilter.length > 0) {
       result = result.filter((r) =>
         shortnameFilter.includes(r.supplier_shortname ?? '')
@@ -218,13 +246,14 @@ export function SuppliersTable(_: DataTableProps) {
   }, [
     allRows,
     supplierName,
+    contactId,
     shortnameFilter,
     fieldFilter,
     advantageFilter,
   ])
 
   const handleTextFilterChange = (
-    type: 'supplierName',
+    type: 'supplierName' | 'contactId',
     value: string
   ) => {
     navigate({
@@ -242,6 +271,7 @@ export function SuppliersTable(_: DataTableProps) {
         page: undefined,
         pageSize: undefined,
         supplierName: undefined,
+        contactId: undefined,
         supplierShortname: undefined,
         supplierField: undefined,
         supplierAdvantage: undefined,
@@ -282,7 +312,8 @@ export function SuppliersTable(_: DataTableProps) {
 
   const isFiltered =
     columnFilters.length > 0 ||
-    supplierName.trim() !== ''
+    supplierName.trim() !== '' ||
+    contactId.trim() !== ''
 
   if (isLoading) {
     return (
@@ -320,6 +351,13 @@ export function SuppliersTable(_: DataTableProps) {
             placeholder='按供应商名称筛选...'
             value={supplierName}
             onChange={(e) => handleTextFilterChange('supplierName', e.target.value)}
+            className='h-8 w-37.5 lg:w-62.5'
+          />
+          <Input
+            placeholder='按联系人ID筛选...'
+            value={contactId}
+            onChange={(e) => handleTextFilterChange('contactId', e.target.value)}
+            type='number'
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>

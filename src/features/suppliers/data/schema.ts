@@ -8,7 +8,7 @@ export const supplierSchema = z.object({
   supplier_field: z.string().nullable(),
   supplier_advantage: z.string().nullable(),
   supplier_remark: z.string().nullable(),
-  supplier_contact_id: z.string().nullable(),
+  supplier_contact_id: z.number().nullable(),
 })
 
 export type Supplier = z.infer<typeof supplierSchema>

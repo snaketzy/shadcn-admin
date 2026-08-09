@@ -44,7 +44,7 @@ export interface Supplier {
   supplier_field: string | null
   supplier_advantage: string | null
   supplier_remark: string | null
-  supplier_contact_id: string | null
+  supplier_contact_id: number | null
 }
 
 export interface SupplierDictEntry {
@@ -101,7 +101,7 @@ export async function createSupplier(payload: {
   supplier_field?: string | null
   supplier_advantage?: string | null
   supplier_remark?: string | null
-  supplier_contact_id?: string | null
+  supplier_contact_id?: number | null
 }): Promise<Supplier> {
   const res = await api.post<ApiEnvelope<Supplier>>('/supplier-list/', payload)
   return res.data.data
@@ -116,7 +116,7 @@ export async function updateSupplier(
     supplier_field?: string | null
     supplier_advantage?: string | null
     supplier_remark?: string | null
-    supplier_contact_id?: string | null
+    supplier_contact_id?: number | null
   }
 ): Promise<Supplier> {
   const res = await api.put<ApiEnvelope<Supplier>>(`/supplier-list/${supplierId}`, payload)

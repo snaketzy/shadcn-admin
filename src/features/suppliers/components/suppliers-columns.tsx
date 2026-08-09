@@ -43,7 +43,8 @@ function resolveLabels(raw: unknown, { keyMap, valueMap }: DictMap): string[] {
 }
 
 export function getSuppliersColumns(
-  fieldDict: SupplierDictEntry[] = []
+  fieldDict: SupplierDictEntry[] = [],
+  contactNameMap: Map<string, string> = new Map()
 ): ColumnDef<Supplier>[] {
   const fieldMap = makeDictMap(fieldDict)
 
@@ -182,11 +183,22 @@ export function getSuppliersColumns(
     {
       accessorKey: 'supplier_contact_id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人ID' />
+        <DataTableColumnHeader column={column} title='联系人' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('supplier_contact_id') as string | null
-        return <div>{value ?? '-'}</div>
+        const value = row.getValue('supplier_contact_id') as number | null
+        if (value == null) return <div>-</div>
+        const idStr = String(value)
+        const name = contactNameMap.get(idStr)
+        if (name) {
+          return (
+            <div className='flex items-center gap-1.5'>
+              <span className='font-medium'>{name}</span>
+              <span className='text-xs text-muted-foreground/70'>(ID: {idStr})</span>
+            </div>
+          )
+        }
+        return <div>{idStr}</div>
       },
       enableSorting: false,
     },
