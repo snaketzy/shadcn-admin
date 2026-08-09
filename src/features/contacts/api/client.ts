@@ -198,6 +198,16 @@ export async function fetchDivisionSuppliers(): Promise<DivisionSupplierRow[]> {
   return res.data.data ?? []
 }
 
+export async function fetchContactsByDivision(params: {
+  type: string
+  id: string | number
+}): Promise<Contact[]> {
+  const res = await api.get<ApiEnvelope<Contact[]>>('/contact-list/by-division', {
+    params: { type: params.type, id: String(params.id) },
+  })
+  return res.data.data ?? []
+}
+
 export async function fetchDivisionCollaborations(): Promise<
   DivisionCollaborationRow[]
 > {

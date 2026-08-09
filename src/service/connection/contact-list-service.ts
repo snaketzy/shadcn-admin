@@ -32,6 +32,19 @@ export async function getAllContactList(): Promise<ContactListRow[]> {
   return rows.map(normalizeRow)
 }
 
+export async function getContactListByDivision(
+  divisionType: string,
+  divisionId: string | number
+): Promise<ContactListRow[]> {
+  const rows = await query<ContactListRow[]>(
+    `SELECT ${SELECT_COLS} FROM \`contact_list\`
+     WHERE contact_division_type = ? AND contact_division_id = ?
+     ORDER BY contact_name`,
+    [String(divisionType), String(divisionId)]
+  )
+  return rows.map(normalizeRow)
+}
+
 export async function getContactListById(contactId: number): Promise<ContactListRow | null> {
   const rows = await query<ContactListRow[]>(
     `SELECT ${SELECT_COLS} FROM \`contact_list\` WHERE contact_id = ? LIMIT 1`,

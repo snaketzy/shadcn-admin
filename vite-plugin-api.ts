@@ -54,6 +54,7 @@ import {
   getContactListById,
   getContactListGroups,
   getContactListPaginated,
+  getContactListByDivision,
   createContactList,
   updateContactList,
   deleteContactList,
@@ -834,6 +835,20 @@ async function handleContactListApi(
       if (method === 'GET') {
         const rows = await getAllContactList()
         sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+    }
+
+    if (subPath === '/by-division') {
+      if (method === 'GET') {
+        const type = toOptStr(searchParams.get('type'))
+        const id = toOptStr(searchParams.get('id'))
+        if (!type || !id) {
+          sendJson(res, 400, { success: false, message: 'Missing type or id' })
+        } else {
+          const rows = await getContactListByDivision(type, id)
+          sendJson(res, 200, { success: true, data: rows })
+        }
         return true
       }
     }
