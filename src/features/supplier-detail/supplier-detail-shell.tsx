@@ -63,15 +63,19 @@ export function SupplierDetailShell({
 
       <Main fixed>
         <div className='space-y-0.5 flex-none'>
-          <h1 className='text-2xl font-bold tracking-tight md:text-3xl truncate max-w-full'>
-            {title}
-            <span className='ml-3 text-sm font-normal text-muted-foreground'>
+          <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
+            <h1 className='text-2xl font-bold tracking-tight md:text-3xl truncate max-w-full'>
+              {title}
+            </h1>
+            <span className='text-sm font-normal text-muted-foreground'>
               ID：{supplierId}
             </span>
-          </h1>
-          <p className='text-muted-foreground'>
-            {subTitle ?? '查看并管理该供应商的基础信息与业务信息。'}
-          </p>
+            {subTitle && (
+              <span className='text-sm font-normal text-muted-foreground'>
+                {subTitle}
+              </span>
+            )}
+          </div>
         </div>
         <Separator className='my-4 lg:my-6 flex-none' />
         <div className='flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>

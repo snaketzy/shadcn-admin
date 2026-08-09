@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import {
   type SortingState,
   type VisibilityState,
@@ -181,10 +181,53 @@ export function SuppliersTable(_: DataTableProps) {
     ensurePageInRange,
   } = urlState
 
-  const supplierName: string =
+  const urlSupplierName: string =
     (search as unknown as { supplierName?: string }).supplierName ?? ''
   const contactId: string =
     (search as unknown as { contactId?: string }).contactId ?? ''
+  const [editingSupplierName, setEditingSupplierName] = useState(urlSupplierName)
+  const supplierNameComposingRef = useRef(false)
+  const commitDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    if (editingSupplierName !== urlSupplierName)
+      setEditingSupplierName(urlSupplierName)
+  }, [urlSupplierName])
+
+  const scheduleCommit = useCallback(
+    (value: string) => {
+      if (commitDebounceTimerRef.current)
+        clearTimeout(commitDebounceTimerRef.current)
+      commitDebounceTimerRef.current = setTimeout(() => {
+        if (supplierNameComposingRef.current) return
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            supplierName: value || undefined,
+            page: undefined,
+          }),
+        })
+      }, 300)
+    },
+    [navigate]
+  )
+
+  const onTextChange = (value: string) => {
+    setEditingSupplierName(value)
+    scheduleCommit(value)
+  }
+
+  const onCompositionStart = () => {
+    supplierNameComposingRef.current = true
+  }
+
+  const onCompositionEnd = (value: string) => {
+    supplierNameComposingRef.current = false
+    setEditingSupplierName(value)
+    scheduleCommit(value)
+  }
 
   const shortnameFilter = useMemo(
     () =>
@@ -209,6 +252,7 @@ export function SuppliersTable(_: DataTableProps) {
   )
 
   const filteredData: Supplier[] = useMemo(() => {
+    const supplierName = editingSupplierName
     let result = allRows
     if (supplierName.trim() !== '') {
       const q = supplierName.trim().toLowerCase()
@@ -245,7 +289,7 @@ export function SuppliersTable(_: DataTableProps) {
     return result
   }, [
     allRows,
-    supplierName,
+    editingSupplierName,
     contactId,
     shortnameFilter,
     fieldFilter,
@@ -312,7 +356,7 @@ export function SuppliersTable(_: DataTableProps) {
 
   const isFiltered =
     columnFilters.length > 0 ||
-    supplierName.trim() !== '' ||
+    editingSupplierName.trim() !== '' ||
     contactId.trim() !== ''
 
   if (isLoading) {
@@ -349,8 +393,12 @@ export function SuppliersTable(_: DataTableProps) {
         <div className='flex flex-1 flex-col items-start gap-y-2 sm:flex-row sm:flex-wrap sm:items-center sm:space-x-2'>
           <Input
             placeholder='按供应商名称筛选...'
-            value={supplierName}
-            onChange={(e) => handleTextFilterChange('supplierName', e.target.value)}
+            value={editingSupplierName}
+            onChange={(e) => onTextChange(e.target.value)}
+            onCompositionStart={onCompositionStart}
+            onCompositionEnd={(e) =>
+              onCompositionEnd((e.target as HTMLInputElement).value)
+            }
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
