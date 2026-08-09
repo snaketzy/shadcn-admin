@@ -546,7 +546,15 @@ export function DivisionPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-4xl'>
+      <DialogContent
+        className={cn(
+          divisionType === 'K1'
+            ? 'sm:max-w-[1200px]'
+            : divisionType === 'K2'
+              ? 'sm:max-w-[960px]'
+              : 'sm:max-w-4xl'
+        )}
+      >
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
