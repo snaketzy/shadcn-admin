@@ -88,11 +88,15 @@ export function DivisionPickerDialog({
   const [activeFieldFilter, setActiveFieldFilter] = useState<Set<string>>(
     new Set()
   )
+  const [activeCollabFieldFilter, setActiveCollabFieldFilter] = useState<
+    Set<string>
+  >(new Set())
 
   useEffect(() => {
     if (!open) return
     setSearchKeyword('')
     setActiveFieldFilter(new Set())
+    setActiveCollabFieldFilter(new Set())
     const next = initialSelectedId ?? null
     setSelectedId((prev) => (prev === next ? prev : next))
   }, [open, initialSelectedId])
@@ -113,10 +117,14 @@ export function DivisionPickerDialog({
   const { data: groupsData } = useQuery({
     queryKey: ['contact-list-groups'],
     queryFn: fetchContactGroups,
-    enabled: open && divisionType === 'K1',
+    enabled: open && (divisionType === 'K1' || divisionType === 'K2'),
   })
   const supplierFieldDict = useMemo<ContactDictEntry[]>(
     () => groupsData?.supplierFieldDict ?? [],
+    [groupsData]
+  )
+  const collaborationFieldDict = useMemo<ContactDictEntry[]>(
+    () => groupsData?.collaborationFieldDict ?? [],
     [groupsData]
   )
   const { fieldKeyMap, fieldValueMap } = useMemo(() => {
@@ -150,6 +158,37 @@ export function DivisionPickerDialog({
     }
     return out
   }
+  const { collabFieldKeyMap, collabFieldValueMap } = useMemo(() => {
+    const km = new Map<string, string>()
+    const vm = new Map<string, string>()
+    for (const d of collaborationFieldDict) {
+      const k = String(d.dict_key ?? '').trim()
+      const v = String(d.dict_value ?? '').trim()
+      if (!k && !v) continue
+      if (k) km.set(k.toUpperCase(), v || k)
+      if (v) vm.set(v, v)
+    }
+    return { collabFieldKeyMap: km, collabFieldValueMap: vm }
+  }, [collaborationFieldDict])
+  function resolveCollabFieldLabels(raw: unknown): string[] {
+    if (raw === null || raw === undefined || raw === '') return []
+    const parts = String(raw)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const out: string[] = []
+    const seen = new Set<string>()
+    for (const p of parts) {
+      let resolved = collabFieldKeyMap.get(p.toUpperCase())
+      if (!resolved) resolved = collabFieldValueMap.get(p)
+      if (!resolved) resolved = p
+      if (!resolved) continue
+      if (seen.has(resolved)) continue
+      seen.add(resolved)
+      out.push(resolved)
+    }
+    return out
+  }
 
   const rawRows: AnyRow[] = useMemo(() => {
     if (divisionType === 'K1') return suppliers as AnyRow[]
@@ -159,15 +198,16 @@ export function DivisionPickerDialog({
 
   const filteredRows = useMemo(() => {
     const q = searchKeyword.trim().toLowerCase()
-    const filterLabels = activeFieldFilter
+    const supplierFilterLabels = activeFieldFilter
+    const collabFilterLabels = activeCollabFieldFilter
     const temp = rawRows.filter((r) => {
       if (divisionType === 'K1') {
         const s = r as DivisionSupplierRow
         const labels = resolveFieldLabels(s.supplier_field)
-        if (filterLabels.size > 0) {
+        if (supplierFilterLabels.size > 0) {
           const labelSet = new Set(labels)
           let ok = false
-          for (const f of filterLabels) {
+          for (const f of supplierFilterLabels) {
             if (labelSet.has(f)) {
               ok = true
               break
@@ -192,20 +232,39 @@ export function DivisionPickerDialog({
           labels.some((l) => l.toLowerCase().includes(q))
         )
       } else {
-        if (!q) return true
         const c = r as DivisionCollaborationRow
+        const labels = resolveCollabFieldLabels(c.collaboration_field)
+        if (collabFilterLabels.size > 0) {
+          const labelSet = new Set(labels)
+          let ok = false
+          for (const f of collabFilterLabels) {
+            if (labelSet.has(f)) {
+              ok = true
+              break
+            }
+          }
+          if (!ok) return false
+        }
+        if (!q) return true
         return (
           String(c.collaboration_shortname ?? '')
             .toLowerCase()
             .includes(q) ||
           String(c.collaboration_name ?? '')
             .toLowerCase()
-            .includes(q)
+            .includes(q) ||
+          labels.some((l) => l.toLowerCase().includes(q))
         )
       }
     })
     return temp
-  }, [rawRows, searchKeyword, divisionType, activeFieldFilter])
+  }, [
+    rawRows,
+    searchKeyword,
+    divisionType,
+    activeFieldFilter,
+    activeCollabFieldFilter,
+  ])
 
   const fieldFilterOptions = useMemo(() => {
     const seen = new Set<string>()
@@ -229,6 +288,29 @@ export function DivisionPickerDialog({
     }
     return result
   }, [suppliers, supplierFieldDict])
+
+  const collabFieldFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const result: { label: string; value: string }[] = []
+    for (const d of collaborationFieldDict) {
+      if (!d.dict_key) continue
+      const label = d.dict_value || d.dict_key
+      if (seen.has(label)) continue
+      seen.add(label)
+      result.push({ label, value: label })
+    }
+    for (const r of collaborations) {
+      const labels = resolveCollabFieldLabels(
+        (r as DivisionCollaborationRow).collaboration_field
+      )
+      for (const l of labels) {
+        if (seen.has(l)) continue
+        seen.add(l)
+        result.push({ label: l, value: l })
+      }
+    }
+    return result
+  }, [collaborations, collaborationFieldDict])
 
   const columns = useMemo<ColumnDef<AnyRow, unknown>[]>(() => {
     if (divisionType === 'K1') {
@@ -351,6 +433,31 @@ export function DivisionPickerDialog({
           },
         },
         {
+          accessorKey: 'collaboration_field',
+          header: '协作商经营范围',
+          size: 260,
+          cell: ({ row }) => {
+            const raw = (row.original as DivisionCollaborationRow)
+              .collaboration_field
+            const labels = resolveCollabFieldLabels(raw)
+            if (labels.length === 0) return <div>-</div>
+            return (
+              <div className='flex max-w-[260px] flex-wrap gap-1'>
+                {labels.map((label) => (
+                  <Badge
+                    key={label}
+                    variant='outline'
+                    className={cn(getBadgeColor(label))}
+                  >
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            )
+          },
+          enableSorting: false,
+        },
+        {
           id: '_action',
           header: '',
           size: 100,
@@ -452,14 +559,14 @@ export function DivisionPickerDialog({
         </DialogHeader>
         <div className='flex flex-col gap-3'>
           <div className='flex flex-row flex-wrap items-center gap-3'>
-            <div className='relative flex-1 min-w-[260px] max-w-[50%]'>
+            <div className='relative max-w-[50%] min-w-[260px] flex-1'>
               <Search className='pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 placeholder={
                   divisionType === 'K1'
                     ? '按简称 / 名称 / 经营范围 / 主营业务 / 联系人搜索供应商...'
                     : divisionType === 'K2'
-                      ? '按简称 / 名称搜索协作商...'
+                      ? '按简称 / 名称 / 经营范围搜索协作商...'
                       : '请先确定所属单位类型...'
                 }
                 value={searchKeyword}
@@ -475,7 +582,7 @@ export function DivisionPickerDialog({
                     type='button'
                     variant='outline'
                     size='sm'
-                    className='h-8 gap-1 normal-case shrink-0'
+                    className='h-8 shrink-0 gap-1 normal-case'
                   >
                     经营范围
                     {activeFieldFilter.size > 0 && (
@@ -532,15 +639,75 @@ export function DivisionPickerDialog({
                 </PopoverContent>
               </Popover>
             )}
+            {divisionType === 'K2' && collabFieldFilterOptions.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    className='h-8 shrink-0 gap-1 normal-case'
+                  >
+                    经营范围
+                    {activeCollabFieldFilter.size > 0 && (
+                      <span className='ml-1 rounded-sm bg-muted-foreground/20 px-1.5 text-[11px]'>
+                        {activeCollabFieldFilter.size}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className='w-72 p-3' align='start'>
+                  <div className='flex items-center justify-between py-1'>
+                    <span className='text-xs font-medium'>经营范围</span>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      className='h-7 px-2 text-xs'
+                      disabled={activeCollabFieldFilter.size === 0}
+                      onClick={() => setActiveCollabFieldFilter(new Set())}
+                    >
+                      重置
+                    </Button>
+                  </div>
+                  <ScrollArea className='mt-1 h-60 rounded-md border'>
+                    <div className='space-y-1.5 p-2'>
+                      {collabFieldFilterOptions.map((opt) => {
+                        const checked = activeCollabFieldFilter.has(opt.value)
+                        return (
+                          <div
+                            key={opt.value}
+                            className='flex items-center gap-2 rounded-sm px-1 hover:bg-muted/50'
+                          >
+                            <Checkbox
+                              id={`cff_${opt.value}`}
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                const next = new Set(activeCollabFieldFilter)
+                                if (v) next.add(opt.value)
+                                else next.delete(opt.value)
+                                setActiveCollabFieldFilter(next)
+                              }}
+                            />
+                            <Label
+                              htmlFor={`cff_${opt.value}`}
+                              className='flex-1 cursor-pointer text-sm'
+                            >
+                              {opt.label}
+                            </Label>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           {divisionType === 'K1' && activeFieldFilter.size > 0 && (
             <div className='flex flex-wrap items-center gap-1'>
               {Array.from(activeFieldFilter).map((label) => (
-                <Badge
-                  key={label}
-                  variant='outline'
-                  className='h-6 gap-1 px-2'
-                >
+                <Badge key={label} variant='outline' className='h-6 gap-1 px-2'>
                   <span className='text-xs'>{label}</span>
                   <Button
                     type='button'
@@ -551,6 +718,29 @@ export function DivisionPickerDialog({
                       const next = new Set(activeFieldFilter)
                       next.delete(label)
                       setActiveFieldFilter(next)
+                    }}
+                    aria-label={`取消筛选 ${label}`}
+                  >
+                    ×
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          {divisionType === 'K2' && activeCollabFieldFilter.size > 0 && (
+            <div className='flex flex-wrap items-center gap-1'>
+              {Array.from(activeCollabFieldFilter).map((label) => (
+                <Badge key={label} variant='outline' className='h-6 gap-1 px-2'>
+                  <span className='text-xs'>{label}</span>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='sm'
+                    className='ml-0.5 h-auto w-auto min-w-0 p-0 text-muted-foreground hover:bg-transparent hover:text-foreground'
+                    onClick={() => {
+                      const next = new Set(activeCollabFieldFilter)
+                      next.delete(label)
+                      setActiveCollabFieldFilter(next)
                     }}
                     aria-label={`取消筛选 ${label}`}
                   >

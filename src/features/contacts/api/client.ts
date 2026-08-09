@@ -75,6 +75,7 @@ export interface DivisionCollaborationRow {
   collaboration_id: number
   collaboration_name: string
   collaboration_shortname: string | null
+  collaboration_field: string | null
 }
 
 export interface PaginatedResponse {
@@ -92,6 +93,7 @@ export interface ContactGroupsResponse {
   typeDict: ContactDictEntry[]
   divisionDict: ContactDictEntry[]
   supplierFieldDict: ContactDictEntry[]
+  collaborationFieldDict: ContactDictEntry[]
 }
 
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
@@ -134,6 +136,7 @@ export async function fetchContactGroups(): Promise<ContactGroupsResponse> {
       typeDict: [],
       divisionDict: [],
       supplierFieldDict: [],
+      collaborationFieldDict: [],
     }
   )
 }
