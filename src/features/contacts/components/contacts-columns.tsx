@@ -34,7 +34,9 @@ function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
 
 export function getContactsColumns(
   typeDict: ContactDictEntry[] = [],
-  divisionDict: ContactDictEntry[] = []
+  divisionDict: ContactDictEntry[] = [],
+  supplierShortnameMap: Map<string, string> = new Map(),
+  collaborationShortnameMap: Map<string, string> = new Map()
 ): ColumnDef<Contact>[] {
   const typeMap = makeDictMap(typeDict)
   const divisionMap = makeDictMap(divisionDict)
@@ -172,8 +174,20 @@ export function getContactsColumns(
         <DataTableColumnHeader column={column} title='所属单位' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('contact_division_id') as string | null
-        return <LongText className='max-w-50'>{value ?? '-'}</LongText>
+        const value = row.original.contact_division_id
+        const divisionType = (row.original.contact_division_type ?? '')
+          .toString()
+          .toUpperCase()
+        if (!value) return <div>-</div>
+        const idStr = String(value)
+        let label: string | undefined
+        if (divisionType === 'K1') {
+          label = supplierShortnameMap.get(idStr)
+        } else if (divisionType === 'K2') {
+          label = collaborationShortnameMap.get(idStr)
+        }
+        const display = label ?? idStr
+        return <LongText className='max-w-50'>{display}</LongText>
       },
       enableSorting: false,
     },

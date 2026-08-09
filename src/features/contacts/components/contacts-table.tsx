@@ -31,7 +31,12 @@ import { Button } from '@/components/ui/button'
 import { type Contact } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getContactsColumns } from './contacts-columns'
-import { fetchContactAll, fetchContactGroups } from '../api/client'
+import {
+  fetchContactAll,
+  fetchContactGroups,
+  fetchDivisionSuppliers,
+  fetchDivisionCollaborations,
+} from '../api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const route = getRouteApi('/_authenticated/contact_list/')
@@ -117,10 +122,47 @@ export function ContactsTable(_: DataTableProps) {
     queryKey: ['contact-list-groups'],
     queryFn: fetchContactGroups,
   })
+  const { data: supplierRows = [] } = useQuery({
+    queryKey: ['division-picker-suppliers'],
+    queryFn: fetchDivisionSuppliers,
+    staleTime: 60000,
+  })
+  const { data: collaborationRows = [] } = useQuery({
+    queryKey: ['division-picker-collaborations'],
+    queryFn: fetchDivisionCollaborations,
+    staleTime: 60000,
+  })
+  const supplierShortnameMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const s of supplierRows) {
+      const id = String(s.supplier_id)
+      const short = s.supplier_shortname?.trim()
+      if (short) m.set(id, short)
+    }
+    return m
+  }, [supplierRows])
+  const collaborationShortnameMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of collaborationRows) {
+      const id = String(c.collaboration_id)
+      const short = c.collaboration_shortname?.trim()
+      if (short) m.set(id, short)
+    }
+    return m
+  }, [collaborationRows])
   const typeDict = groupsData?.typeDict ?? []
   const divisionDict = groupsData?.divisionDict ?? []
   const types = groupsData?.types ?? []
-  const columns = useMemo(() => getContactsColumns(typeDict, divisionDict), [typeDict, divisionDict])
+  const columns = useMemo(
+    () =>
+      getContactsColumns(
+        typeDict,
+        divisionDict,
+        supplierShortnameMap,
+        collaborationShortnameMap
+      ),
+    [typeDict, divisionDict, supplierShortnameMap, collaborationShortnameMap]
+  )
 
   const typeFacetOptions = useMemo(() => {
     const result: { label: string; value: string }[] = []

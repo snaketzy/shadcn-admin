@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { type Contact } from '../data/schema'
-import { createContact, updateContact, fetchContactGroups, type ContactDictEntry } from '../api/client'
+import { createContact, updateContact, fetchContactGroups, type ContactDictEntry, fetchDivisionSuppliers, fetchDivisionCollaborations } from '../api/client'
 import {
   DivisionPickerDialog,
   type DivisionPickerResult,
@@ -95,6 +95,63 @@ export function ContactsActionDialog({
     queryFn: fetchContactGroups,
     enabled: open,
   })
+
+  const { data: supplierRows = [] } = useQuery({
+    queryKey: ['division-picker-suppliers'],
+    queryFn: fetchDivisionSuppliers,
+    staleTime: 60000,
+  })
+  const { data: collaborationRows = [] } = useQuery({
+    queryKey: ['division-picker-collaborations'],
+    queryFn: fetchDivisionCollaborations,
+    staleTime: 60000,
+  })
+  const supplierMap = useMemo(() => {
+    const m = new Map<
+      string,
+      { shortname: string; name: string }
+    >()
+    for (const s of supplierRows) {
+      const id = String(s.supplier_id)
+      m.set(id, {
+        shortname: s.supplier_shortname ?? '',
+        name: s.supplier_name ?? '',
+      })
+    }
+    return m
+  }, [supplierRows])
+  const collaborationMap = useMemo(() => {
+    const m = new Map<
+      string,
+      { shortname: string; name: string }
+    >()
+    for (const c of collaborationRows) {
+      const id = String(c.collaboration_id)
+      m.set(id, {
+        shortname: c.collaboration_shortname ?? '',
+        name: c.collaboration_name ?? '',
+      })
+    }
+    return m
+  }, [collaborationRows])
+
+  function resolveDivisionDisplay(
+    divisionType: string | null | undefined,
+    divisionId: string | null | undefined
+  ): { shortname: string; name: string } {
+    if (!divisionId) return { shortname: '', name: '' }
+    const dt = (divisionType ?? '').toString().toUpperCase()
+    const idStr = String(divisionId)
+    if (dt === 'K1') {
+      const hit = supplierMap.get(idStr)
+      return hit ?? { shortname: '', name: idStr }
+    }
+    if (dt === 'K2') {
+      const hit = collaborationMap.get(idStr)
+      return hit ?? { shortname: '', name: idStr }
+    }
+    return { shortname: '', name: idStr }
+  }
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(formSchema),
@@ -156,6 +213,10 @@ export function ContactsActionDialog({
     | ''
     | null
     | undefined
+  const currentDivisionId = form.watch('contact_division_id') as
+    | string
+    | null
+    | undefined
   const normalizedDivisionType = useMemo(
     () =>
       currentDivisionType?.toUpperCase() === 'K1'
@@ -176,7 +237,6 @@ export function ContactsActionDialog({
       shouldValidate: false,
     })
     if (!derived) {
-      setDivisionDisplay({ shortname: '', name: '' })
       const currentId = form.getValues('contact_division_id') ?? ''
       if (currentId) {
         form.setValue('contact_division_id', '', {
@@ -195,15 +255,25 @@ export function ContactsActionDialog({
 
   useEffect(() => {
     if (!open) return
-    if (isEdit && currentRow?.contact_division_id) {
-      setDivisionDisplay({
-        shortname: '',
-        name: currentRow.contact_division_id ?? '',
-      })
-    } else {
-      setDivisionDisplay({ shortname: '', name: '' })
-    }
-  }, [open, isEdit, currentRow])
+    const divisionType = isEdit
+      ? currentRow?.contact_division_type ?? currentDivisionType
+      : currentDivisionType
+    const divisionId = isEdit
+      ? currentRow?.contact_division_id ?? currentDivisionId
+      : currentDivisionId
+    const next = resolveDivisionDisplay(divisionType, divisionId)
+    setDivisionDisplay((prev) =>
+      prev.shortname === next.shortname && prev.name === next.name ? prev : next
+    )
+  }, [
+    open,
+    isEdit,
+    currentRow,
+    currentDivisionType,
+    currentDivisionId,
+    supplierMap,
+    collaborationMap,
+  ])
 
   const handleDivisionPicked = (r: DivisionPickerResult) => {
     form.setValue('contact_division_id', r.divisionId, {
