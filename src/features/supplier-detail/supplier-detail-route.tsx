@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from 'react'
 import { Outlet } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { UserRound, Briefcase, AlertCircle } from 'lucide-react'
+import { UserRound, Briefcase, AlertCircle, ClipboardList } from 'lucide-react'
 import { getRouteApi } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -91,6 +91,11 @@ export function SupplierDetailRoute() {
       title: '员工信息',
       href: `/supplier_detail/${supplierId}/info`,
       icon: <Briefcase size={18} />,
+    },
+    {
+      title: '合作记录',
+      href: `/supplier_detail/${supplierId}/cooperation`,
+      icon: <ClipboardList size={18} />,
     },
   ]
 
