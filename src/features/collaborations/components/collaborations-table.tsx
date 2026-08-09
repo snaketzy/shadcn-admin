@@ -32,7 +32,14 @@ import { Button } from '@/components/ui/button'
 import { type Collaboration } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getCollaborationsColumns } from './collaborations-columns'
-import { fetchCollaborationAll, fetchCollaborationGroups } from '../api/client'
+import {
+  fetchCollaborationAll,
+  fetchCollaborationGroups,
+} from '../api/client'
+import {
+  fetchContactAll,
+  type Contact,
+} from '@/features/contacts/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const route = getRouteApi('/_authenticated/collaboration_list/')
@@ -122,7 +129,26 @@ export function CollaborationsTable(_: DataTableProps) {
   const shortnames = groupsData?.shortnames ?? []
   const fields = groupsData?.fields ?? []
   const fieldDict = groupsData?.fieldDict ?? []
-  const columns = useMemo(() => getCollaborationsColumns(fieldDict), [fieldDict])
+
+  const { data: contactRows = [] } = useQuery({
+    queryKey: ['contact-picker-all'],
+    queryFn: fetchContactAll,
+    staleTime: 60000,
+  })
+
+  const contactNameMap = useMemo(() => {
+    const out = new Map<string, string>()
+    for (const c of contactRows as Contact[]) {
+      if (!c.contact_name) continue
+      out.set(String(c.contact_id), c.contact_name)
+    }
+    return out
+  }, [contactRows])
+
+  const columns = useMemo(
+    () => getCollaborationsColumns(fieldDict, contactNameMap),
+    [fieldDict, contactNameMap]
+  )
 
   const fieldFilterOptions = useMemo(() => {
     const seen = new Set<string>()

@@ -433,13 +433,30 @@ export function ContactsActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       联系人职级
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入职级'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择联系人职级' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.rankDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                        {(groups?.ranks ?? []).filter((t) =>
+                          !(groups?.rankDict ?? []).some((d) => d.dict_key === t || d.dict_value === t)
+                        ).map((t) => (
+                          <SelectItem key={`legacy-rank-${t}`} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}

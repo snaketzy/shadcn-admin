@@ -43,7 +43,8 @@ function resolveLabels(raw: unknown, { keyMap, valueMap }: DictMap): string[] {
 }
 
 export function getCollaborationsColumns(
-  fieldDict: CollaborationDictEntry[] = []
+  fieldDict: CollaborationDictEntry[] = [],
+  contactNameMap: Map<string, string> = new Map()
 ): ColumnDef<Collaboration>[] {
   const fieldMap = makeDictMap(fieldDict)
   return [
@@ -162,11 +163,22 @@ export function getCollaborationsColumns(
     {
       accessorKey: 'collaboration_contact_id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='联系人ID' />
+        <DataTableColumnHeader column={column} title='联系人' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('collaboration_contact_id') as number | null
-        return <div>{value != null ? value : '-'}</div>
+        if (value == null) return <div>-</div>
+        const idStr = String(value)
+        const name = contactNameMap.get(idStr)
+        if (name) {
+          return (
+            <div className='flex items-center gap-1.5'>
+              <span className='font-medium'>{name}</span>
+              <span className='text-xs text-muted-foreground/70'>(ID: {idStr})</span>
+            </div>
+          )
+        }
+        return <div>{idStr}</div>
       },
       enableSorting: false,
     },

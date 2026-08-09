@@ -154,6 +154,7 @@ export function ContactsTable(_: DataTableProps) {
   }, [collaborationRows])
   const typeDict = groupsData?.typeDict ?? []
   const divisionDict = groupsData?.divisionDict ?? []
+  const rankDict = groupsData?.rankDict ?? []
   const types = groupsData?.types ?? []
   const columns = useMemo(
     () =>
@@ -161,9 +162,10 @@ export function ContactsTable(_: DataTableProps) {
         typeDict,
         divisionDict,
         supplierShortnameMap,
-        collaborationShortnameMap
+        collaborationShortnameMap,
+        rankDict
       ),
-    [typeDict, divisionDict, supplierShortnameMap, collaborationShortnameMap]
+    [typeDict, divisionDict, supplierShortnameMap, collaborationShortnameMap, rankDict]
   )
 
   const typeFacetOptions = useMemo(() => {

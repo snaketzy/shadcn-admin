@@ -94,6 +94,7 @@ export interface ContactGroupsResponse {
   divisionDict: ContactDictEntry[]
   supplierFieldDict: ContactDictEntry[]
   collaborationFieldDict: ContactDictEntry[]
+  rankDict: ContactDictEntry[]
 }
 
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
@@ -137,6 +138,7 @@ export async function fetchContactGroups(): Promise<ContactGroupsResponse> {
       divisionDict: [],
       supplierFieldDict: [],
       collaborationFieldDict: [],
+      rankDict: [],
     }
   )
 }

@@ -36,10 +36,12 @@ export function getContactsColumns(
   typeDict: ContactDictEntry[] = [],
   divisionDict: ContactDictEntry[] = [],
   supplierShortnameMap: Map<string, string> = new Map(),
-  collaborationShortnameMap: Map<string, string> = new Map()
+  collaborationShortnameMap: Map<string, string> = new Map(),
+  rankDict: ContactDictEntry[] = []
 ): ColumnDef<Contact>[] {
   const typeMap = makeDictMap(typeDict)
   const divisionMap = makeDictMap(divisionDict)
+  const rankMap = makeDictMap(rankDict)
 
   return [
     {
@@ -119,11 +121,12 @@ export function getContactsColumns(
         <DataTableColumnHeader column={column} title='联系人职级' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('contact_rank') as string | null
-        if (!value) return <div>-</div>
+        const raw = row.original.contact_rank
+        const label = resolveLabel(raw, rankMap)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(label))}>
+            {label}
           </Badge>
         )
       },

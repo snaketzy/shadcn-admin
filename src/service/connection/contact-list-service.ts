@@ -49,6 +49,7 @@ export async function getContactListGroups(): Promise<{
   divisionDict: ContactDictEntry[]
   supplierFieldDict: ContactDictEntry[]
   collaborationFieldDict: ContactDictEntry[]
+  rankDict: ContactDictEntry[]
 }> {
   const [
     names,
@@ -59,6 +60,7 @@ export async function getContactListGroups(): Promise<{
     divisionRows,
     supplierFieldRows,
     collaborationFieldRows,
+    rankRows,
   ] = await Promise.all([
     query<{ contact_name: string | null }[]>(
       'SELECT DISTINCT contact_name FROM `contact_list` WHERE contact_name IS NOT NULL AND contact_name <> \'\' ORDER BY contact_name'
@@ -76,6 +78,7 @@ export async function getContactListGroups(): Promise<{
     getCaseDictByKeyPrefix('K'),
     getCaseDictByKeyPrefix('I'),
     getCaseDictByKeyPrefix('L'),
+    getCaseDictByKeyPrefix('M'),
   ])
   return {
     names: names.map((r) => r.contact_name!).filter(Boolean),
@@ -95,6 +98,10 @@ export async function getContactListGroups(): Promise<{
       dict_value: r.dict_value,
     })),
     collaborationFieldDict: collaborationFieldRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    rankDict: rankRows.map((r) => ({
       dict_key: String(r.dict_key),
       dict_value: r.dict_value,
     })),

@@ -5,8 +5,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { CheckIcon } from '@radix-ui/react-icons'
+import { Search, X, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,6 +49,14 @@ import {
   updateCollaboration,
   fetchCollaborationGroups,
 } from '../api/client'
+import {
+  fetchContactAll,
+  type Contact,
+} from '@/features/contacts/api/client'
+import {
+  ContactPickerDialog,
+  type ContactPickerResult,
+} from './contact-picker-dialog'
 
 const formSchema = z.object({
   collaboration_name: z.string().optional().catch(''),
@@ -105,6 +114,70 @@ export function CollaborationsActionDialog({
     enabled: open,
   })
 
+  const { data: contactRows = [] } = useQuery({
+    queryKey: ['contact-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const [contactPickerOpen, setContactPickerOpen] = useState(false)
+
+  const [contactDisplay, setContactDisplay] = useState<{
+    id: string
+    name: string
+    mobile: string
+    email: string
+  }>({ id: '', name: '', mobile: '', email: '' })
+
+  const contactMap = useMemo(() => {
+    const map = new Map<string, Contact>()
+    for (const c of contactRows as Contact[]) {
+      map.set(String(c.contact_id), c)
+    }
+    return map
+  }, [contactRows])
+
+  const resolveContactDisplay = useCallback(
+    (contactIdStr: string | number | null | undefined): {
+      id: string
+      name: string
+      mobile: string
+      email: string
+    } => {
+      const id = contactIdStr == null || contactIdStr === '' ? '' : String(contactIdStr)
+      if (!id) return { id: '', name: '', mobile: '', email: '' }
+      const c = contactMap.get(id)
+      if (c) {
+        return {
+          id,
+          name: c.contact_name ?? '',
+          mobile: c.contact_mobile ?? '',
+          email: c.contact_email ?? '',
+        }
+      }
+      return { id, name: '', mobile: '', email: '' }
+    },
+    [contactMap]
+  )
+
+  useEffect(() => {
+    if (!open) return
+    const cid = isEdit && currentRow ? currentRow.collaboration_contact_id : null
+    setContactDisplay((prev) => {
+      const next = resolveContactDisplay(cid)
+      if (
+        prev.id === next.id &&
+        prev.name === next.name &&
+        prev.mobile === next.mobile &&
+        prev.email === next.email
+      ) {
+        return prev
+      }
+      return next
+    })
+  }, [open, isEdit, currentRow, resolveContactDisplay])
+
   const form = useForm<CollaborationForm>({
     resolver: zodResolver(formSchema),
     defaultValues: isEdit
@@ -155,6 +228,30 @@ export function CollaborationsActionDialog({
       }
     }
   }, [open, isEdit, currentRow, form])
+
+  const handleContactPicked = useCallback(
+    (r: ContactPickerResult) => {
+      form.setValue('collaboration_contact_id', r.contact_id, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+      setContactDisplay({
+        id: r.contact_id,
+        name: r.contact_name,
+        mobile: r.contact_mobile ?? '',
+        email: r.contact_email ?? '',
+      })
+    },
+    [form]
+  )
+
+  const handleClearContact = useCallback(() => {
+    form.setValue('collaboration_contact_id', null, {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    setContactDisplay({ id: '', name: '', mobile: '', email: '' })
+  }, [form])
 
   const createMutation = useMutation({
     mutationFn: createCollaboration,
@@ -270,23 +367,72 @@ export function CollaborationsActionDialog({
                 control={form.control}
                 name='collaboration_contact_id'
                 render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      联系人ID
+                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end pt-2'>
+                      协作商联系人
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        placeholder='请输入联系人ID'
-                        className='col-span-4'
-                        value={field.value ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          field.onChange(val === '' ? null : val)
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <div className='relative'>
+                          <Input
+                            placeholder='点击输入框从联系人列表中选择...'
+                            className='cursor-pointer pr-20 pe-20'
+                            readOnly
+                            value={contactDisplay.name || ''}
+                            onClick={() => setContactPickerOpen(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setContactPickerOpen(true)
+                              }
+                            }}
+                          />
+                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pr-2 pe-2'>
+                            <>
+                              {field.value ? (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearContact()
+                                  }}
+                                  aria-label='清空联系人'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择联系人'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <UserRound className='mr-1 me-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </>
+                          </div>
+                        </div>
+                      </FormControl>
+                      {(contactDisplay.mobile || contactDisplay.email) && (
+                        <div className='mt-1 space-y-0.5 text-xs text-muted-foreground/80'>
+                          {contactDisplay.mobile && <div>手机：{contactDisplay.mobile}</div>}
+                          {contactDisplay.email && <div>邮箱：{contactDisplay.email}</div>}
+                        </div>
+                      )}
+                      {field.value && !contactDisplay.name && (
+                        <p className='mt-1 text-xs text-muted-foreground/80'>
+                          联系人ID：{field.value}（未找到对应联系人详情）
+                        </p>
+                      )}
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
@@ -355,6 +501,7 @@ export function CollaborationsActionDialog({
                                   return (
                                     <CommandItem
                                       key={d.dict_key}
+                                      value={d.dict_key}
                                       onSelect={() => {
                                         const current = new Set(field.value || [])
                                         if (isSelected) current.delete(d.dict_key)
@@ -448,6 +595,14 @@ export function CollaborationsActionDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {contactPickerOpen && (
+        <ContactPickerDialog
+          open={contactPickerOpen}
+          onOpenChange={setContactPickerOpen}
+          initialSelectedId={form.getValues('collaboration_contact_id') || undefined}
+          onSelect={handleContactPicked}
+        />
+      )}
     </Dialog>
   )
 }
