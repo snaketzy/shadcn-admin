@@ -111,6 +111,10 @@ export function ContactPickerDialog({
     () => makeDictMap(groupsData?.typeDict ?? []),
     [groupsData]
   )
+  const rankMap = useMemo(
+    () => makeDictMap(groupsData?.rankDict ?? []),
+    [groupsData]
+  )
 
   const filteredRows: Contact[] = useMemo(() => {
     const q = searchKeyword.trim().toLowerCase()
@@ -121,10 +125,11 @@ export function ContactPickerDialog({
         String(c.contact_mobile ?? '').toLowerCase().includes(q) ||
         String(c.contact_email ?? '').toLowerCase().includes(q) ||
         String(c.contact_remark ?? '').toLowerCase().includes(q) ||
-        resolveType(c.contact_type, typeMap).toLowerCase().includes(q)
+        resolveType(c.contact_type, typeMap).toLowerCase().includes(q) ||
+        resolveRank(c.contact_rank, rankMap).toLowerCase().includes(q)
       )
     })
-  }, [contacts, searchKeyword, typeMap])
+  }, [contacts, searchKeyword, typeMap, rankMap])
 
   const columns = useMemo<ColumnDef<Contact, unknown>[]>(() => {
     return [
@@ -144,6 +149,21 @@ export function ContactPickerDialog({
         cell: ({ row }) => {
           const raw = row.original.contact_type
           const label = resolveType(raw, typeMap)
+          if (!label) return <div>-</div>
+          return (
+            <Badge variant='outline' className={cn('bg-secondary/30')}>
+              {label}
+            </Badge>
+          )
+        },
+      },
+      {
+        accessorKey: 'contact_rank',
+        header: '联系人职级',
+        size: 160,
+        cell: ({ row }) => {
+          const raw = row.original.contact_rank
+          const label = resolveRank(raw, rankMap)
           if (!label) return <div>-</div>
           return (
             <Badge variant='outline' className={cn('bg-secondary/30')}>
@@ -204,7 +224,7 @@ export function ContactPickerDialog({
         },
       },
     ]
-  }, [selectedId, typeMap])
+  }, [selectedId, typeMap, rankMap])
 
   const table = useReactTable({
     data: filteredRows,
@@ -341,6 +361,17 @@ export function ContactPickerDialog({
 }
 
 function resolveType(raw: unknown, { keyMap, valueMap }: DictMap): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const p = String(raw).trim()
+  if (!p) return ''
+  const k = keyMap.get(p.toUpperCase())
+  if (k) return k
+  const v = valueMap.get(p)
+  if (v) return v
+  return p
+}
+
+function resolveRank(raw: unknown, { keyMap, valueMap }: DictMap): string {
   if (raw === null || raw === undefined || raw === '') return ''
   const p = String(raw).trim()
   if (!p) return ''
