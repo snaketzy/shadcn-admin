@@ -29,6 +29,12 @@ export async function fetchCaseDictAll(): Promise<CaseDict[]> {
   return res.data.data ?? []
 }
 
+export async function fetchCaseDictByKeyPrefix(prefix: string): Promise<CaseDict[]> {
+  if (!prefix) return []
+  const res = await api.get<ApiEnvelope<CaseDict[]>>(`/case-dict/by-prefix/${encodeURIComponent(prefix)}`)
+  return res.data.data ?? []
+}
+
 export async function fetchCaseDictPaginated(params: {
   page?: number
   pageSize?: number

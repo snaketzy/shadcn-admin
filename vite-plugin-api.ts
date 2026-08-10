@@ -4,6 +4,7 @@ import {
   getCaseDictById,
   getCaseDictGroups,
   getCaseDictPaginated,
+  getCaseDictByKeyPrefix,
   createCaseDict,
   updateCaseDict,
   deleteCaseDict,
@@ -156,6 +157,16 @@ async function handleCaseDictApi(
       if (method === 'GET') {
         const groups = await getCaseDictGroups()
         sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    const byPrefixMatch = subPath.match(/^\/by-prefix\/(.+)$/)
+    if (byPrefixMatch) {
+      if (method === 'GET') {
+        const prefix = decodeURIComponent(byPrefixMatch[1])
+        const rows = await getCaseDictByKeyPrefix(prefix)
+        sendJson(res, 200, { success: true, data: rows })
         return true
       }
     }
