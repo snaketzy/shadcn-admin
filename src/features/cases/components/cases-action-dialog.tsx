@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
+import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { Search, X, Ship } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +33,18 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
   fetchVesselAll,
@@ -33,7 +55,7 @@ import {
   VesselPickerDialog,
   type VesselPickerResult,
 } from '@/features/users/components/vessel-picker-dialog'
-import { createCase, updateCase } from '../api/client'
+import { createCase, fetchCaseGroups, updateCase } from '../api/client'
 import type { Case } from '../data/schema'
 
 const formSchema = z.object({
@@ -102,6 +124,13 @@ export function CasesActionDialog({
     staleTime: 60000,
   })
 
+  const { data: caseGroupsData } = useQuery({
+    queryKey: ['case-list-groups'],
+    queryFn: fetchCaseGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
+
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
@@ -111,6 +140,29 @@ export function CasesActionDialog({
     }
     return map
   }, [vesselRows])
+
+  const progressOptions = useMemo(() => {
+    return (caseGroupsData?.progressDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+  }, [caseGroupsData?.progressDict])
+
+  const resolveProgressLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = progressOptions.find(
+        (o) => o.key.toUpperCase() === p.toUpperCase()
+      )
+      if (hit) return hit.value
+      return p
+    },
+    [progressOptions]
+  )
 
   const inchargeKeyMap = useMemo(() => {
     const m = new Map<string, string>()
@@ -546,21 +598,71 @@ export function CasesActionDialog({
                 <FormField
                   control={form.control}
                   name='case_progress'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件进度
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件进度'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedLabel =
+                      progressOptions.find((o) => o.key === field.value)
+                        ?.value ?? ''
+                    return (
+                      <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                        <FormLabel className='col-span-2 text-end'>
+                          案件进度
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl className='col-span-4'>
+                              <Button
+                                variant='outline'
+                                role='combobox'
+                                className={cn(
+                                  'col-span-4 w-full justify-between',
+                                  !field.value && 'text-muted-foreground'
+                                )}
+                              >
+                                {selectedLabel || '请选择案件进度'}
+                                <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className='w-[480px] p-0'
+                            align='start'
+                          >
+                            <Command>
+                              <CommandInput placeholder='搜索案件进度...' />
+                              <CommandList>
+                                <CommandEmpty>暂无结果</CommandEmpty>
+                                <CommandGroup>
+                                  {progressOptions.map((o) => (
+                                    <CommandItem
+                                      value={o.value}
+                                      key={o.key}
+                                      onSelect={() => {
+                                        form.setValue('case_progress', o.key, {
+                                          shouldDirty: true,
+                                          shouldValidate: false,
+                                        })
+                                      }}
+                                    >
+                                      <CheckIcon
+                                        className={cn(
+                                          'size-4',
+                                          o.key === field.value
+                                            ? 'opacity-100'
+                                            : 'opacity-0'
+                                        )}
+                                      />
+                                      {o.value}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage className='col-span-4 col-start-3' />
+                      </FormItem>
+                    )
+                  }}
                 />
                 <FormField
                   control={form.control}

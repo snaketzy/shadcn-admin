@@ -8,7 +8,35 @@ import { getBadgeColor } from '../data/data'
 import { type Case } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export function getCasesColumns(): ColumnDef<Case>[] {
+export type ProgressDict = {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
+function makeProgressMap(dict: ProgressDict[] | undefined) {
+  const keyMap = new Map<string, string>()
+  for (const d of dict ?? []) {
+    keyMap.set(String(d.dict_key ?? '').toUpperCase(), String(d.dict_value ?? ''))
+  }
+  return keyMap
+}
+
+export function resolveProgressLabel(
+  raw: unknown,
+  progressDict: ProgressDict[] | undefined
+): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const p = String(raw).trim()
+  if (!p) return ''
+  const keyMap = makeProgressMap(progressDict)
+  const v = keyMap.get(p.toUpperCase())
+  if (v) return v
+  return p
+}
+
+export function getCasesColumns(
+  progressDict?: ProgressDict[]
+): ColumnDef<Case>[] {
   return [
     {
       id: 'select',
@@ -157,10 +185,11 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_progress') as string | null
-        if (!value) return <div>-</div>
+        const label = resolveProgressLabel(value, progressDict)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
+            {label}
           </Badge>
         )
       },

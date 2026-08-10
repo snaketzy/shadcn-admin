@@ -69,6 +69,14 @@ export interface Case {
   case_rank: string | null
 }
 
+export interface CaseDictEntry {
+  dict_id: number
+  dict_group: string | null
+  dict_value: string | null
+  dict_value_remark: string | null
+  dict_key: string | number | null
+}
+
 export interface CaseGroupsResponse {
   vesselNames: string[]
   invoiceNumbers: string[]
@@ -77,6 +85,7 @@ export interface CaseGroupsResponse {
   caseInquiryTypes: string[]
   caseInCharges: string[]
   caseRanks: string[]
+  progressDict: CaseDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -118,21 +127,30 @@ export async function fetchCasePaginated(params: {
     params,
   })
   return (
-    res.data.data ?? { rows: [], total: 0, page: params.page ?? 1, pageSize: params.pageSize ?? 10 }
+    res.data.data ?? {
+      rows: [],
+      total: 0,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 10,
+    }
   )
 }
 
 export async function fetchCaseGroups(): Promise<CaseGroupsResponse> {
-  const res = await api.get<ApiEnvelope<CaseGroupsResponse>>('/case-list/groups')
-  return res.data.data ?? {
-    vesselNames: [],
-    invoiceNumbers: [],
-    orderNumbers: [],
-    caseProgresses: [],
-    caseInquiryTypes: [],
-    caseInCharges: [],
-    caseRanks: [],
-  }
+  const res =
+    await api.get<ApiEnvelope<CaseGroupsResponse>>('/case-list/groups')
+  return (
+    res.data.data ?? {
+      vesselNames: [],
+      invoiceNumbers: [],
+      orderNumbers: [],
+      caseProgresses: [],
+      caseInquiryTypes: [],
+      caseInCharges: [],
+      caseRanks: [],
+      progressDict: [],
+    }
+  )
 }
 
 export async function createCase(payload: {

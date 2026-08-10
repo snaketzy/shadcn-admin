@@ -5,6 +5,7 @@ import {
   auditDelete,
   auditBulkDelete,
 } from './log-list-service'
+import { getCaseDictByKeyPrefix, type CaseDictRow } from './case-dict-service'
 
 export interface CaseListRow {
   case_id: number
@@ -94,6 +95,7 @@ export async function getCaseListGroups(): Promise<{
   caseInquiryTypes: string[]
   caseInCharges: string[]
   caseRanks: string[]
+  progressDict: CaseDictRow[]
 }> {
   const [
     vesselNames,
@@ -103,6 +105,7 @@ export async function getCaseListGroups(): Promise<{
     caseInquiryTypes,
     caseInCharges,
     caseRanks,
+    progressDict,
   ] = await Promise.all([
     query<{ vessel_name: string | null }[]>(
       "SELECT DISTINCT vessel_name FROM `case_list` WHERE vessel_name IS NOT NULL AND vessel_name <> '' ORDER BY vessel_name"
@@ -125,6 +128,7 @@ export async function getCaseListGroups(): Promise<{
     query<{ case_rank: string | null }[]>(
       "SELECT DISTINCT case_rank FROM `case_list` WHERE case_rank IS NOT NULL AND case_rank <> '' ORDER BY case_rank"
     ),
+    getCaseDictByKeyPrefix('R'),
   ])
   return {
     vesselNames: flattenUnique(vesselNames.map((r) => r.vessel_name)),
@@ -134,6 +138,7 @@ export async function getCaseListGroups(): Promise<{
     caseInquiryTypes: flattenUnique(caseInquiryTypes.map((r) => r.case_inquiry_type)),
     caseInCharges: flattenUnique(caseInCharges.map((r) => r.case_incharge)),
     caseRanks: flattenUnique(caseRanks.map((r) => r.case_rank)),
+    progressDict,
   }
 }
 

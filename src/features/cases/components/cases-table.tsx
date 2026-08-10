@@ -1,4 +1,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { Cross2Icon } from '@radix-ui/react-icons'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import {
   type SortingState,
   type VisibilityState,
@@ -11,10 +14,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { SearchIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   TableBody,
   TableCell,
@@ -25,15 +30,10 @@ import {
 import { DataTablePagination } from '@/components/data-table'
 import { DataTableFacetedFilter } from '@/components/data-table/faceted-filter'
 import { DataTableViewOptions } from '@/components/data-table/view-options'
-import { Cross2Icon } from '@radix-ui/react-icons'
-import { SearchIcon } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { type Case } from '../data/schema'
-import { DataTableBulkActions } from './data-table-bulk-actions'
-import { getCasesColumns } from './cases-columns'
 import { fetchCaseAll, fetchCaseGroups } from '../api/client'
-import { Skeleton } from '@/components/ui/skeleton'
+import { type Case } from '../data/schema'
+import { getCasesColumns } from './cases-columns'
+import { DataTableBulkActions } from './data-table-bulk-actions'
 
 const route = getRouteApi('/_authenticated/case_list/')
 
@@ -174,18 +174,25 @@ export function CasesTable(_: DataTableProps) {
   const caseInquiryTypes = groupsData?.caseInquiryTypes ?? []
   const caseInCharges = groupsData?.caseInCharges ?? []
   const caseRanks = groupsData?.caseRanks ?? []
+  const progressDict = groupsData?.progressDict ?? []
 
-  const columns = useMemo(() => getCasesColumns(), [])
+  const columns = useMemo(() => getCasesColumns(progressDict), [progressDict])
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
-    navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
+    navigate: navigate as unknown as Parameters<
+      typeof useTableUrlState
+    >[0]['navigate'],
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     columnFilters: [
       { columnId: 'invoice_number', searchKey: 'invoiceNumber', type: 'array' },
       { columnId: 'order_number', searchKey: 'orderNumber', type: 'array' },
       { columnId: 'case_progress', searchKey: 'caseProgress', type: 'array' },
-      { columnId: 'case_inquiry_type', searchKey: 'caseInquiryType', type: 'array' },
+      {
+        columnId: 'case_inquiry_type',
+        searchKey: 'caseInquiryType',
+        type: 'array',
+      },
       { columnId: 'case_incharge', searchKey: 'caseIncharge', type: 'array' },
       { columnId: 'case_rank', searchKey: 'caseRank', type: 'array' },
     ],
@@ -201,24 +208,25 @@ export function CasesTable(_: DataTableProps) {
   const urlVesselName: string =
     (search as unknown as { vesselName?: string }).vesselName ?? ''
   const urlKeyword: string =
-    (search as unknown as { caseInquiryKeyword?: string }).caseInquiryKeyword ?? ''
+    (search as unknown as { caseInquiryKeyword?: string }).caseInquiryKeyword ??
+    ''
 
   const [editingVesselName, setEditingVesselName] = useState(urlVesselName)
   const vesselNameComposingRef = useRef(false)
-  const vesselNameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const vesselNameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
 
   const [editingKeyword, setEditingKeyword] = useState(urlKeyword)
   const keywordComposingRef = useRef(false)
   const keywordDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (editingVesselName !== urlVesselName)
-      setEditingVesselName(urlVesselName)
+    if (editingVesselName !== urlVesselName) setEditingVesselName(urlVesselName)
   }, [urlVesselName])
 
   useEffect(() => {
-    if (editingKeyword !== urlKeyword)
-      setEditingKeyword(urlKeyword)
+    if (editingKeyword !== urlKeyword) setEditingKeyword(urlKeyword)
   }, [urlKeyword])
 
   const scheduleVesselNameCommit = useCallback(
@@ -241,8 +249,7 @@ export function CasesTable(_: DataTableProps) {
 
   const scheduleKeywordCommit = useCallback(
     (value: string) => {
-      if (keywordDebounceRef.current)
-        clearTimeout(keywordDebounceRef.current)
+      if (keywordDebounceRef.current) clearTimeout(keywordDebounceRef.current)
       keywordDebounceRef.current = setTimeout(() => {
         if (keywordComposingRef.current) return
         navigate({
@@ -323,13 +330,17 @@ export function CasesTable(_: DataTableProps) {
     if (vesselName.trim() !== '') {
       const q = vesselName.trim().toLowerCase()
       result = result.filter((r) =>
-        String(r.vessel_name ?? '').toLowerCase().includes(q)
+        String(r.vessel_name ?? '')
+          .toLowerCase()
+          .includes(q)
       )
     }
     if (keyword.trim() !== '') {
       const q = keyword.trim().toLowerCase()
       result = result.filter((r) =>
-        String(r.case_inquiry_keyword ?? '').toLowerCase().includes(q)
+        String(r.case_inquiry_keyword ?? '')
+          .toLowerCase()
+          .includes(q)
       )
     }
     if (caseProgressFilter.length > 0) {
@@ -348,9 +359,7 @@ export function CasesTable(_: DataTableProps) {
       )
     }
     if (caseRankFilter.length > 0) {
-      result = result.filter((r) =>
-        caseRankFilter.includes(r.case_rank ?? '')
-      )
+      result = result.filter((r) => caseRankFilter.includes(r.case_rank ?? ''))
     }
     return result
   }, [
@@ -469,20 +478,29 @@ export function CasesTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
-            {caseProgresses.length > 0 && table.getColumn('case_progress') && (
+            {progressDict.length > 0 && table.getColumn('case_progress') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_progress')!}
                 title='案件进度'
-                options={caseProgresses.map((s) => ({ label: s, value: s }))}
+                options={progressDict
+                  .filter((d) => d.dict_key && d.dict_value)
+                  .map((d) => ({
+                    label: String(d.dict_value ?? ''),
+                    value: String(d.dict_key ?? ''),
+                  }))}
               />
             )}
-            {caseInquiryTypes.length > 0 && table.getColumn('case_inquiry_type') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('case_inquiry_type')!}
-                title='需求類型'
-                options={caseInquiryTypes.map((s) => ({ label: s, value: s }))}
-              />
-            )}
+            {caseInquiryTypes.length > 0 &&
+              table.getColumn('case_inquiry_type') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_inquiry_type')!}
+                  title='需求類型'
+                  options={caseInquiryTypes.map((s) => ({
+                    label: s,
+                    value: s,
+                  }))}
+                />
+              )}
             {caseInCharges.length > 0 && table.getColumn('case_incharge') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_incharge')!}
@@ -516,7 +534,9 @@ export function CasesTable(_: DataTableProps) {
             className='h-8 gap-1'
             onClick={async () => {
               await queryClient.refetchQueries({ queryKey: ['case-list'] })
-              await queryClient.refetchQueries({ queryKey: ['case-list-groups'] })
+              await queryClient.refetchQueries({
+                queryKey: ['case-list-groups'],
+              })
             }}
           >
             <SearchIcon className='size-4' />
