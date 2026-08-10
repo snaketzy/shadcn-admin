@@ -456,7 +456,7 @@ export function CasesTable(_: DataTableProps) {
             onCompositionEnd={(e) =>
               onVesselNameCompositionEnd((e.target as HTMLInputElement).value)
             }
-            className='h-8 w-37.5 lg:w-62.5'
+            className='h-8 w-34 lg:w-50'
           />
           <Input
             placeholder='按需求编号/名称筛选...'
