@@ -60,6 +60,7 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         )
       },
       meta: {
+        label: '船名',
         className: cn(
           'sticky left-12 z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
@@ -84,6 +85,7 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         )
       },
       meta: {
+        label: '发票号',
         className: cn(
           'sticky left-[248px] z-20 w-[160px] min-w-[160px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
@@ -109,6 +111,7 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         )
       },
       meta: {
+        label: '订单编号',
         className: cn(
           'sticky left-[408px] z-20 w-[180px] min-w-[180px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
@@ -134,6 +137,7 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         )
       },
       meta: {
+        label: '需求编号/名称',
         className: cn(
           'sticky left-[588px] z-20 w-[220px] min-w-[220px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
@@ -160,6 +164,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
           </Badge>
         )
       },
+      meta: {
+        label: '案件进度',
+      },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
       },
@@ -179,6 +186,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
           </Badge>
         )
       },
+      meta: {
+        label: '紧急案件',
+      },
       enableSorting: false,
     },
     {
@@ -195,6 +205,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
           </Badge>
         )
       },
+      meta: {
+        label: '需求類型',
+      },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
       },
@@ -209,6 +222,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_inquiry_date') as string | null
         return <div>{value ?? '-'}</div>
       },
+      meta: {
+        label: '询价日期',
+      },
       enableSorting: false,
     },
     {
@@ -220,6 +236,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_follow_date') as string | null
         return <div>{value ?? '-'}</div>
       },
+      meta: {
+        label: '开始日期',
+      },
       enableSorting: false,
     },
     {
@@ -230,6 +249,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_uptodate_date') as string | null
         return <div>{value ?? '-'}</div>
+      },
+      meta: {
+        label: '跟进日期',
       },
       enableSorting: false,
     },
@@ -247,6 +269,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
           </Badge>
         )
       },
+      meta: {
+        label: '当日需处理',
+      },
       enableSorting: false,
     },
     {
@@ -257,6 +282,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('owner_following') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+      },
+      meta: {
+        label: '船東联络人',
       },
       enableSorting: false,
     },
@@ -269,6 +297,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('shipyard_business') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
       },
+      meta: {
+        label: '船厂经营',
+      },
       enableSorting: false,
     },
     {
@@ -279,6 +310,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_agent') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+      },
+      meta: {
+        label: '案件代理',
       },
       enableSorting: false,
     },
@@ -291,6 +325,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_superintendent') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
       },
+      meta: {
+        label: '案件机务',
+      },
       enableSorting: false,
     },
     {
@@ -301,6 +338,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_surveyor') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+      },
+      meta: {
+        label: '案件船检',
       },
       enableSorting: false,
     },
@@ -313,6 +353,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_delivery_or_service_incharge') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
       },
+      meta: {
+        label: '承运人｜服务负责人',
+      },
       enableSorting: false,
     },
     {
@@ -323,6 +366,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_delivery_or_service_deadline') as string | null
         return <div>{value ?? '-'}</div>
+      },
+      meta: {
+        label: '运输｜服务截止日',
       },
       enableSorting: false,
     },
@@ -335,6 +381,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_eta_cargo_ready_date') as string | null
         return <div>{value ?? '-'}</div>
       },
+      meta: {
+        label: '船舶到港 | 备货完成',
+      },
       enableSorting: false,
     },
     {
@@ -345,6 +394,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_etb_cargo_departure_date') as string | null
         return <div>{value ?? '-'}</div>
+      },
+      meta: {
+        label: '船舶靠港 ｜ 货物发出',
       },
       enableSorting: false,
     },
@@ -357,6 +409,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_etd_cargo_delivery_date') as string | null
         return <div>{value ?? '-'}</div>
       },
+      meta: {
+        label: '船舶开航 ｜ 货物签收',
+      },
       enableSorting: false,
     },
     {
@@ -367,6 +422,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('vessel_position') as string | null
         return <LongText className='max-w-50'>{value ?? '-'}</LongText>
+      },
+      meta: {
+        label: '船舶位置',
       },
       enableSorting: false,
     },
@@ -384,6 +442,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
           </Badge>
         )
       },
+      meta: {
+        label: '案件结算完成',
+      },
       enableSorting: false,
     },
     {
@@ -395,6 +456,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_epd') as string | null
         return <div>{value ?? '-'}</div>
       },
+      meta: {
+        label: '船东结账日期',
+      },
       enableSorting: false,
     },
     {
@@ -405,6 +469,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_spd') as string | null
         return <div>{value ?? '-'}</div>
+      },
+      meta: {
+        label: '供应商结账日期',
       },
       enableSorting: false,
     },
@@ -422,6 +489,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
           </Badge>
         )
       },
+      meta: {
+        label: '案件负责人',
+      },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
       },
@@ -436,6 +506,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
         const value = row.getValue('case_memo_name') as string | null
         return <LongText className='max-w-50'>{value ?? '-'}</LongText>
       },
+      meta: {
+        label: '案件备忘录名称',
+      },
       enableSorting: false,
     },
     {
@@ -446,6 +519,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_memo_address') as string | null
         return <LongText className='max-w-60'>{value ?? '-'}</LongText>
+      },
+      meta: {
+        label: '案件备忘录地址',
       },
       enableSorting: false,
     },
@@ -462,6 +538,9 @@ export function getCasesColumns(): ColumnDef<Case>[] {
             {value}
           </Badge>
         )
+      },
+      meta: {
+        label: '案件评级',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
