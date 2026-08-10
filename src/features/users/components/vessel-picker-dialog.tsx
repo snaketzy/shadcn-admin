@@ -31,7 +31,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { LongText } from '@/components/long-text'
-import { fetchVesselAll, fetchVesselGroups, type Vessel, type VesselDictEntry } from '../api/client'
+import {
+  fetchVesselAll,
+  fetchVesselGroups,
+  type Vessel,
+  type VesselDictEntry,
+} from '../api/client'
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
 
@@ -169,13 +174,24 @@ export function VesselPickerDialog({
     if (!q) return vessels as Vessel[]
     return (vessels as Vessel[]).filter((v) => {
       return (
-        String(v.vessel_name ?? '').toLowerCase().includes(q) ||
-        String(v.vessel_flag ?? '').toLowerCase().includes(q) ||
-        String(v.vessel_class ?? '').toLowerCase().includes(q) ||
-        String(v.vessel_team ?? '').toLowerCase().includes(q) ||
-        resolveLabel(v.vessel_incharge, inchargeMap).toLowerCase().includes(q) ||
-        resolveLabel(v.vessel_fleet_manager, fleetManagerMap).toLowerCase().includes(q) ||
-        (v.vessel_imo != null && String(v.vessel_imo).includes(q)) ||
+        String(v.vessel_name ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(v.vessel_flag ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(v.vessel_class ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(v.vessel_team ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        resolveLabel(v.vessel_incharge, inchargeMap)
+          .toLowerCase()
+          .includes(q) ||
+        resolveLabel(v.vessel_fleet_manager, fleetManagerMap)
+          .toLowerCase()
+          .includes(q) ||
         String(v.building_year ?? '').includes(q)
       )
     })
@@ -284,26 +300,6 @@ export function VesselPickerDialog({
         meta: { label: '建造年份' },
       },
       {
-        accessorKey: 'vessel_imo',
-        header: 'IMO',
-        size: 130,
-        cell: ({ row }) => {
-          const v = row.original.vessel_imo
-          return <span>{v ?? '-'}</span>
-        },
-        meta: { label: 'IMO' },
-      },
-      {
-        accessorKey: 'vessel_dwt',
-        header: '载重吨(DWT)',
-        size: 120,
-        cell: ({ row }) => {
-          const v = row.original.vessel_dwt
-          return <span>{v ?? '-'}</span>
-        },
-        meta: { label: '载重吨(DWT)' },
-      },
-      {
         id: '_action',
         header: '',
         size: 100,
@@ -393,7 +389,7 @@ export function VesselPickerDialog({
             <div className='relative w-[420px] min-w-[360px]'>
               <Search className='pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
-                placeholder='按船名 / 船旗 / 船级 / 船队 / 负责人 / IMO 搜索...'
+                placeholder='按船名 / 船旗 / 船级 / 船队 / 负责人 / 建造年份搜索...'
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 className='ps-9 pl-9'
@@ -426,8 +422,7 @@ export function VesselPickerDialog({
                               'sticky top-0 z-10',
                             h.column.columnDef.meta?.thClassName,
                             h.column.columnDef.meta?.className as
-                              | string
-                              | undefined
+                              string | undefined
                           )}
                         >
                           {h.isPlaceholder
@@ -470,11 +465,11 @@ export function VesselPickerDialog({
                         <TableRow
                           key={row.id}
                           data-state={isSelectedRow && 'selected'}
-                          className={
+                          className={cn(
                             isSelectedRow
-                              ? 'cursor-pointer bg-muted/70'
-                              : 'cursor-pointer'
-                          }
+                              ? 'cursor-pointer bg-muted/70 hover:bg-muted/80'
+                              : 'cursor-pointer hover:bg-muted/40'
+                          )}
                           onClick={() => handleRowClick(row)}
                           onDoubleClick={() => handleRowClick(row)}
                         >
@@ -484,15 +479,12 @@ export function VesselPickerDialog({
                               style={{
                                 width: cell.column.getSize(),
                                 minWidth: cell.column.getSize(),
-                                ...(FIXED_COL_STYLES[
-                                  cell.column.id ?? ''
-                                ]?.td ?? {}),
+                                ...(FIXED_COL_STYLES[cell.column.id ?? '']
+                                  ?.td ?? {}),
                               }}
                               className={cn(
-                                'bg-background',
                                 cell.column.columnDef.meta?.className as
-                                  | string
-                                  | undefined,
+                                  string | undefined,
                                 (cell.column.columnDef.meta as any)?.tdClassName
                               )}
                             >
