@@ -175,8 +175,12 @@ export function CasesTable(_: DataTableProps) {
   const caseInCharges = groupsData?.caseInCharges ?? []
   const caseRanks = groupsData?.caseRanks ?? []
   const progressDict = groupsData?.progressDict ?? []
+  const urgentDict = groupsData?.urgentDict ?? []
 
-  const columns = useMemo(() => getCasesColumns(progressDict), [progressDict])
+  const columns = useMemo(
+    () => getCasesColumns(progressDict, urgentDict),
+    [progressDict, urgentDict]
+  )
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
@@ -188,6 +192,7 @@ export function CasesTable(_: DataTableProps) {
       { columnId: 'invoice_number', searchKey: 'invoiceNumber', type: 'array' },
       { columnId: 'order_number', searchKey: 'orderNumber', type: 'array' },
       { columnId: 'case_progress', searchKey: 'caseProgress', type: 'array' },
+      { columnId: 'case_urgent', searchKey: 'caseUrgent', type: 'array' },
       {
         columnId: 'case_inquiry_type',
         searchKey: 'caseInquiryType',
@@ -322,6 +327,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const caseUrgentFilter = useMemo(
+    () =>
+      Array.isArray((search as any).caseUrgent)
+        ? ((search as any).caseUrgent as string[])
+        : [],
+    [search]
+  )
 
   const filteredData: Case[] = useMemo(() => {
     const vesselName = editingVesselName
@@ -361,6 +373,11 @@ export function CasesTable(_: DataTableProps) {
     if (caseRankFilter.length > 0) {
       result = result.filter((r) => caseRankFilter.includes(r.case_rank ?? ''))
     }
+    if (caseUrgentFilter.length > 0) {
+      result = result.filter((r) =>
+        caseUrgentFilter.includes(r.case_urgent ?? '')
+      )
+    }
     return result
   }, [
     allRows,
@@ -370,6 +387,7 @@ export function CasesTable(_: DataTableProps) {
     caseInquiryTypeFilter,
     caseInchargeFilter,
     caseRankFilter,
+    caseUrgentFilter,
   ])
 
   const handleResetFilters = () => {
@@ -382,6 +400,7 @@ export function CasesTable(_: DataTableProps) {
         invoiceNumber: undefined,
         orderNumber: undefined,
         caseProgress: undefined,
+        caseUrgent: undefined,
         caseInquiryType: undefined,
         caseIncharge: undefined,
         caseRank: undefined,
@@ -506,6 +525,18 @@ export function CasesTable(_: DataTableProps) {
                 column={table.getColumn('case_incharge')!}
                 title='案件负责人'
                 options={caseInCharges.map((s) => ({ label: s, value: s }))}
+              />
+            )}
+            {urgentDict.length > 0 && table.getColumn('case_urgent') && (
+              <DataTableFacetedFilter
+                column={table.getColumn('case_urgent')!}
+                title='紧急案件'
+                options={urgentDict
+                  .filter((d) => d.dict_key && d.dict_value)
+                  .map((d) => ({
+                    label: String(d.dict_value ?? ''),
+                    value: String(d.dict_key ?? ''),
+                  }))}
               />
             )}
             {caseRanks.length > 0 && table.getColumn('case_rank') && (

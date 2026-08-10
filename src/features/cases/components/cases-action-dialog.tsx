@@ -33,11 +33,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -150,6 +152,39 @@ export function CasesActionDialog({
       .filter((o) => o.key && o.value)
   }, [caseGroupsData?.progressDict])
 
+  const urgentOptions = useMemo(() => {
+    const opts = (caseGroupsData?.urgentDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+    const hasNo = opts.some((o) => o.value.toUpperCase() === 'NO')
+    if (!hasNo && opts.length === 0) {
+      opts.unshift({ key: 'NO', value: 'NO' })
+    }
+    return opts
+  }, [caseGroupsData?.urgentDict])
+
+  const defaultUrgentKey = useMemo(() => {
+    const noOpt = urgentOptions.find((o) => o.value.toUpperCase() === 'NO')
+    return noOpt?.key ?? urgentOptions[0]?.key ?? ''
+  }, [urgentOptions])
+
+  const resolveUrgentLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = urgentOptions.find(
+        (o) => o.key.toUpperCase() === p.toUpperCase()
+      )
+      if (hit) return hit.value
+      return p
+    },
+    [urgentOptions]
+  )
+
   const resolveProgressLabel = useCallback(
     (raw: unknown): string => {
       if (raw === null || raw === undefined || raw === '') return ''
@@ -225,7 +260,7 @@ export function CasesActionDialog({
         order_number: currentRow.order_number ?? '',
         case_inquiry_keyword: currentRow.case_inquiry_keyword ?? '',
         case_progress: currentRow.case_progress ?? '',
-        case_urgent: currentRow.case_urgent ?? '',
+        case_urgent: currentRow.case_urgent ?? defaultUrgentKey,
         case_inquiry_type: currentRow.case_inquiry_type ?? '',
         case_inquiry_date: currentRow.case_inquiry_date ?? '',
         case_follow_date: currentRow.case_follow_date ?? '',
@@ -260,7 +295,7 @@ export function CasesActionDialog({
         order_number: '',
         case_inquiry_keyword: '',
         case_progress: '',
-        case_urgent: '',
+        case_urgent: defaultUrgentKey,
         case_inquiry_type: '',
         case_inquiry_date: '',
         case_follow_date: '',
@@ -327,6 +362,18 @@ export function CasesActionDialog({
     if (open || didResetRef.current) return
     didResetRef.current = false
   }, [open])
+
+  useEffect(() => {
+    if (!open || isEdit) return
+    if (!defaultUrgentKey) return
+    const current = form.getValues('case_urgent')
+    const validKeys = new Set(urgentOptions.map((o) => o.key))
+    if (current && validKeys.has(current)) return
+    form.setValue('case_urgent', defaultUrgentKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [defaultUrgentKey, open, isEdit, urgentOptions, form])
 
   const handleVesselPicked = useCallback(
     (r: VesselPickerResult) => {
@@ -672,13 +719,32 @@ export function CasesActionDialog({
                       <FormLabel className='col-span-2 text-end'>
                         紧急案件
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入紧急案件标识'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
+                      >
+                        {urgentOptions.map((o) => (
+                          <FormItem
+                            key={o.key}
+                            className='flex items-center space-y-0'
+                          >
+                            <FormControl>
+                              <RadioGroupItem
+                                value={o.key}
+                                id={`case-urgent-${o.key}`}
+                              />
+                            </FormControl>
+                            <Label
+                              htmlFor={`case-urgent-${o.key}`}
+                              className='ms-2 cursor-pointer font-normal select-none'
+                            >
+                              {o.value}
+                            </Label>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}

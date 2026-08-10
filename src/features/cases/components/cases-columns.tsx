@@ -13,10 +13,18 @@ export type ProgressDict = {
   dict_value: string | null
 }
 
+export type UrgentDict = {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
 function makeProgressMap(dict: ProgressDict[] | undefined) {
   const keyMap = new Map<string, string>()
   for (const d of dict ?? []) {
-    keyMap.set(String(d.dict_key ?? '').toUpperCase(), String(d.dict_value ?? ''))
+    keyMap.set(
+      String(d.dict_key ?? '').toUpperCase(),
+      String(d.dict_value ?? '')
+    )
   }
   return keyMap
 }
@@ -34,8 +42,33 @@ export function resolveProgressLabel(
   return p
 }
 
+function makeUrgentMap(dict: UrgentDict[] | undefined) {
+  const keyMap = new Map<string, string>()
+  for (const d of dict ?? []) {
+    keyMap.set(
+      String(d.dict_key ?? '').toUpperCase(),
+      String(d.dict_value ?? '')
+    )
+  }
+  return keyMap
+}
+
+export function resolveUrgentLabel(
+  raw: unknown,
+  urgentDict: UrgentDict[] | undefined
+): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const p = String(raw).trim()
+  if (!p) return ''
+  const keyMap = makeUrgentMap(urgentDict)
+  const v = keyMap.get(p.toUpperCase())
+  if (v) return v
+  return p
+}
+
 export function getCasesColumns(
-  progressDict?: ProgressDict[]
+  progressDict?: ProgressDict[],
+  urgentDict?: UrgentDict[]
 ): ColumnDef<Case>[] {
   return [
     {
@@ -81,9 +114,7 @@ export function getCasesColumns(
             className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium'
             title={String(value ?? '')}
           >
-            <LongText className='max-w-50 truncate'>
-              {value ?? '-'}
-            </LongText>
+            <LongText className='max-w-50 truncate'>{value ?? '-'}</LongText>
           </span>
         )
       },
@@ -108,9 +139,7 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('invoice_number') as string | null
         if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-40'>{value}</LongText>
-        )
+        return <LongText className='max-w-40'>{value}</LongText>
       },
       meta: {
         label: '发票号',
@@ -134,9 +163,7 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('order_number') as string | null
         if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-45'>{value}</LongText>
-        )
+        return <LongText className='max-w-45'>{value}</LongText>
       },
       meta: {
         label: '订单编号',
@@ -160,9 +187,7 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_keyword') as string | null
         if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-55'>{value}</LongText>
-        )
+        return <LongText className='max-w-55'>{value}</LongText>
       },
       meta: {
         label: '需求编号/名称',
@@ -208,15 +233,19 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_urgent') as string | null
-        if (!value) return <div>-</div>
+        const label = resolveUrgentLabel(value, urgentDict)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
+            {label}
           </Badge>
         )
       },
       meta: {
         label: '紧急案件',
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
       },
       enableSorting: false,
     },
@@ -379,7 +408,8 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='承运人｜服务负责人' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_incharge') as string | null
+        const value = row.getValue('case_delivery_or_service_incharge') as
+          string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
       },
       meta: {
@@ -393,7 +423,8 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='运输｜服务截止日' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_deadline') as string | null
+        const value = row.getValue('case_delivery_or_service_deadline') as
+          string | null
         return <div>{value ?? '-'}</div>
       },
       meta: {
@@ -421,7 +452,8 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='船舶靠港 ｜ 货物发出' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_etb_cargo_departure_date') as string | null
+        const value = row.getValue('case_etb_cargo_departure_date') as
+          string | null
         return <div>{value ?? '-'}</div>
       },
       meta: {
@@ -435,7 +467,8 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='船舶开航 ｜ 货物签收' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_etd_cargo_delivery_date') as string | null
+        const value = row.getValue('case_etd_cargo_delivery_date') as
+          string | null
         return <div>{value ?? '-'}</div>
       },
       meta: {

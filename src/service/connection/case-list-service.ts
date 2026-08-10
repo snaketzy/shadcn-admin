@@ -96,6 +96,7 @@ export async function getCaseListGroups(): Promise<{
   caseInCharges: string[]
   caseRanks: string[]
   progressDict: CaseDictRow[]
+  urgentDict: CaseDictRow[]
 }> {
   const [
     vesselNames,
@@ -106,6 +107,7 @@ export async function getCaseListGroups(): Promise<{
     caseInCharges,
     caseRanks,
     progressDict,
+    urgentDict,
   ] = await Promise.all([
     query<{ vessel_name: string | null }[]>(
       "SELECT DISTINCT vessel_name FROM `case_list` WHERE vessel_name IS NOT NULL AND vessel_name <> '' ORDER BY vessel_name"
@@ -129,6 +131,7 @@ export async function getCaseListGroups(): Promise<{
       "SELECT DISTINCT case_rank FROM `case_list` WHERE case_rank IS NOT NULL AND case_rank <> '' ORDER BY case_rank"
     ),
     getCaseDictByKeyPrefix('R'),
+    getCaseDictByKeyPrefix('B'),
   ])
   return {
     vesselNames: flattenUnique(vesselNames.map((r) => r.vessel_name)),
@@ -139,6 +142,7 @@ export async function getCaseListGroups(): Promise<{
     caseInCharges: flattenUnique(caseInCharges.map((r) => r.case_incharge)),
     caseRanks: flattenUnique(caseRanks.map((r) => r.case_rank)),
     progressDict,
+    urgentDict,
   }
 }
 
