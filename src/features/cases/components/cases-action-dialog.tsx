@@ -1,9 +1,10 @@
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { Search, X, Ship } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,6 +26,14 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import type { Case } from '../data/schema'
 import { createCase, updateCase } from '../api/client'
+import {
+  fetchVesselAll,
+  type Vessel,
+} from '@/features/users/api/client'
+import {
+  VesselPickerDialog,
+  type VesselPickerResult,
+} from '@/features/users/components/vessel-picker-dialog'
 
 const formSchema = z.object({
   vessel_name: z.string().optional().catch(''),
@@ -77,6 +86,55 @@ export function CasesActionDialog({
 }: CasesActionDialogProps) {
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
+
+  const { data: vesselRows = [] } = useQuery({
+    queryKey: ['vessel-picker-all'],
+    queryFn: fetchVesselAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
+  const [vesselDisplay, setVesselDisplay] = useState<{
+    name: string
+    flag: string
+    vesselClass: string
+    team: string
+    incharge: string
+  }>({ name: '', flag: '', vesselClass: '', team: '', incharge: '' })
+
+  const vesselNameMap = useMemo(() => {
+    const map = new Map<string, Vessel>()
+    for (const v of vesselRows as Vessel[]) {
+      if (v.vessel_name) map.set(String(v.vessel_name), v)
+    }
+    return map
+  }, [vesselRows])
+
+  const resolveVesselDisplay = useCallback(
+    (vesselName: string | null | undefined): {
+      name: string
+      flag: string
+      vesselClass: string
+      team: string
+      incharge: string
+    } => {
+      const name = vesselName ?? ''
+      if (!name) return { name: '', flag: '', vesselClass: '', team: '', incharge: '' }
+      const v = vesselNameMap.get(name)
+      if (v) {
+        return {
+          name: v.vessel_name ?? '',
+          flag: v.vessel_flag ?? '',
+          vesselClass: v.vessel_class ?? '',
+          team: v.vessel_team ?? '',
+          incharge: v.vessel_incharge ?? '',
+        }
+      }
+      return { name, flag: '', vesselClass: '', team: '', incharge: '' }
+    },
+    [vesselNameMap]
+  )
 
   const defaultValues = isEdit
     ? {
@@ -150,8 +208,47 @@ export function CasesActionDialog({
   useEffect(() => {
     if (open) {
       form.reset(defaultValues)
+      const vn = isEdit && currentRow ? currentRow.vessel_name : ''
+      setVesselDisplay((prev) => {
+        const next = resolveVesselDisplay(vn)
+        if (
+          prev.name === next.name &&
+          prev.flag === next.flag &&
+          prev.vesselClass === next.vesselClass &&
+          prev.team === next.team &&
+          prev.incharge === next.incharge
+        ) {
+          return prev
+        }
+        return next
+      })
     }
-  }, [open, isEdit, currentRow, form])
+  }, [open, isEdit, currentRow, form, defaultValues, resolveVesselDisplay])
+
+  const handleVesselPicked = useCallback(
+    (r: VesselPickerResult) => {
+      form.setValue('vessel_name', r.vessel_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+      setVesselDisplay({
+        name: r.vessel_name,
+        flag: r.vessel_flag ?? '',
+        vesselClass: r.vessel_class ?? '',
+        team: r.vessel_team ?? '',
+        incharge: r.vessel_incharge ?? '',
+      })
+    },
+    [form]
+  )
+
+  const handleClearVessel = useCallback(() => {
+    form.setValue('vessel_name', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    setVesselDisplay({ name: '', flag: '', vesselClass: '', team: '', incharge: '' })
+  }, [form])
 
   const createMutation = useMutation({
     mutationFn: createCase,
@@ -224,605 +321,673 @@ export function CasesActionDialog({
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(state) => {
-        if (!state) {
-          form.reset()
-        }
-        onOpenChange(state)
-      }}
-    >
-      <DialogContent className='sm:max-w-3xl'>
-        <DialogHeader className='text-start'>
-          <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
-          <DialogDescription>
-            {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
-            完成后点击保存。
-          </DialogDescription>
-        </DialogHeader>
-        <div className='h-[560px] w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
-          <Form {...form}>
-            <form
-              id='cases-form'
-              onSubmit={form.handleSubmit(onSubmit)}
-              className='grid grid-cols-2 gap-4 px-0.5'
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(state) => {
+          if (!state) {
+            form.reset()
+          }
+          onOpenChange(state)
+        }}
+      >
+        <DialogContent className='sm:max-w-3xl'>
+          <DialogHeader className='text-start'>
+            <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
+            <DialogDescription>
+              {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
+              完成后点击保存。
+            </DialogDescription>
+          </DialogHeader>
+          <div className='h-[560px] w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
+            <Form {...form}>
+              <form
+                id='cases-form'
+                onSubmit={form.handleSubmit(onSubmit)}
+                className='grid grid-cols-2 gap-4 px-0.5'
+              >
+                <FormField
+                  control={form.control}
+                  name='vessel_name'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end pt-2'>
+                        船名
+                      </FormLabel>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击输入框从船队列表中选择...'
+                              className='cursor-pointer pr-20 pe-20'
+                              readOnly
+                              value={vesselDisplay.name || ''}
+                              onClick={() => setVesselPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setVesselPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pr-2 pe-2'>
+                              {field.value ? (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearVessel()
+                                  }}
+                                  aria-label='清空船名'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择船只'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Ship className='mr-1 me-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(vesselDisplay.flag ||
+                          vesselDisplay.vesselClass ||
+                          vesselDisplay.team ||
+                          vesselDisplay.incharge) && (
+                          <div className='mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground/80'>
+                            {vesselDisplay.flag && <div>船旗：{vesselDisplay.flag}</div>}
+                            {vesselDisplay.vesselClass && <div>船级：{vesselDisplay.vesselClass}</div>}
+                            {vesselDisplay.team && <div>船队：{vesselDisplay.team}</div>}
+                            {vesselDisplay.incharge && <div>负责人：{vesselDisplay.incharge}</div>}
+                          </div>
+                        )}
+                        {field.value && !vesselDisplay.name && (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            船名：{field.value}（未找到对应船只详情）
+                          </p>
+                        )}
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='invoice_number'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        发票号
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入发票号'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='order_number'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        订单编号
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入订单编号'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_inquiry_keyword'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        需求编号/名称
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入需求编号/名称'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_progress'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件进度
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件进度'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_urgent'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        紧急案件
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入紧急案件标识'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_inquiry_type'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        需求類型
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入需求類型'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_incharge'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件负责人
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件负责人'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_rank'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件评级
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件评级'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_should_handle_today'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        当日需处理
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入当日需处理标识'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_inquiry_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        询价日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_follow_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        开始日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_uptodate_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        跟进日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_delivery_or_service_deadline'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        运输｜服务截止日
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_eta_cargo_ready_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船舶到港 | 备货完成
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_etb_cargo_departure_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船舶靠港 ｜ 货物发出
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_etd_cargo_delivery_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船舶开航 ｜ 货物签收
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_epd'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船东结账日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_spd'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        供应商结账日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='owner_following'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船東联络人
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入船東联络人'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='shipyard_business'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船厂经营
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入船厂经营'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_agent'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件代理
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件代理'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_superintendent'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件机务
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件机务'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_surveyor'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件船检
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件船检'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_delivery_or_service_incharge'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
+                      <FormLabel className='col-span-2 text-end pt-2'>
+                        承运人｜服务负责人
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入承运人｜服务负责人'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='vessel_position'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
+                      <FormLabel className='col-span-2 text-end pt-2'>
+                        船舶位置
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入船舶位置'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_settlement_done'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件结算完成
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件结算完成标识'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_memo_name'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件备忘录名称
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件备忘录名称'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_memo_address'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
+                      <FormLabel className='col-span-2 text-end pt-2'>
+                        案件备忘录地址
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder='请输入案件备忘录地址'
+                          className='col-span-4 min-h-20 resize-y'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </div>
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => {
+                form.reset()
+                onOpenChange(false)
+              }}
+              disabled={isSubmitting}
             >
-              <FormField
-                control={form.control}
-                name='vessel_name'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船名
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船名'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='invoice_number'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      发票号
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入发票号'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='order_number'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      订单编号
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入订单编号'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_inquiry_keyword'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      需求编号/名称
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入需求编号/名称'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_progress'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件进度
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件进度'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_urgent'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      紧急案件
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入紧急案件标识'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_inquiry_type'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      需求類型
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入需求類型'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_incharge'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件负责人
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件负责人'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_rank'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件评级
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件评级'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_should_handle_today'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      当日需处理
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入当日需处理标识'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_inquiry_date'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      询价日期
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_follow_date'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      开始日期
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_uptodate_date'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      跟进日期
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_delivery_or_service_deadline'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      运输｜服务截止日
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_eta_cargo_ready_date'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船舶到港 | 备货完成
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_etb_cargo_departure_date'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船舶靠港 ｜ 货物发出
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_etd_cargo_delivery_date'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船舶开航 ｜ 货物签收
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_epd'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船东结账日期
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_spd'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      供应商结账日期
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='date'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='owner_following'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船東联络人
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船東联络人'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='shipyard_business'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船厂经营
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船厂经营'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_agent'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件代理
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件代理'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_superintendent'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件机务
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件机务'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_surveyor'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件船检
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件船检'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_delivery_or_service_incharge'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 text-end'>
-                      承运人｜服务负责人
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入承运人｜服务负责人'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='vessel_position'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 text-end'>
-                      船舶位置
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入船舶位置'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_settlement_done'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件结算完成
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件结算完成标识'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_memo_name'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      案件备忘录名称
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='请输入案件备忘录名称'
-                        className='col-span-4'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='case_memo_address'
-                render={({ field }) => (
-                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                    <FormLabel className='col-span-2 text-end pt-2'>
-                      案件备忘录地址
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder='请输入案件备忘录地址'
-                        className='col-span-4 min-h-20 resize-y'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className='col-span-4 col-start-3' />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </div>
-        <DialogFooter>
-          <Button
-            type='button'
-            variant='outline'
-            onClick={() => {
-              form.reset()
-              onOpenChange(false)
-            }}
-            disabled={isSubmitting}
-          >
-            取消
-          </Button>
-          <Button
-            type='submit'
-            form='cases-form'
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? '保存中...' : '保存'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+              取消
+            </Button>
+            <Button
+              type='submit'
+              form='cases-form'
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {vesselPickerOpen && (
+        <VesselPickerDialog
+          open={vesselPickerOpen}
+          onOpenChange={setVesselPickerOpen}
+          initialSelectedName={form.getValues('vessel_name') || undefined}
+          onSelect={handleVesselPicked}
+        />
+      )}
+    </>
   )
 }
