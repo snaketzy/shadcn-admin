@@ -164,6 +164,23 @@ export function VesselPickerDialog({
     const q = searchKeyword.trim().toLowerCase()
     if (!q) return vessels as Vessel[]
     return (vessels as Vessel[]).filter((v) => {
+      const built = v.building_year
+      let ageText = ''
+      if (built) {
+        const builtDate = new Date(built)
+        if (!Number.isNaN(builtDate.getTime())) {
+          const today = new Date()
+          let age = today.getFullYear() - builtDate.getFullYear()
+          const monthDiff = today.getMonth() - builtDate.getMonth()
+          if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && today.getDate() < builtDate.getDate())
+          ) {
+            age--
+          }
+          if (age >= 0) ageText = `${age}`
+        }
+      }
       return (
         String(v.vessel_name ?? '')
           .toLowerCase()
@@ -180,13 +197,11 @@ export function VesselPickerDialog({
         resolveLabel(v.vessel_incharge, inchargeMap)
           .toLowerCase()
           .includes(q) ||
-        resolveLabel(v.vessel_fleet_manager, fleetManagerMap)
-          .toLowerCase()
-          .includes(q) ||
-        String(v.building_year ?? '').includes(q)
+        String(v.building_year ?? '').includes(q) ||
+        (ageText && ageText.includes(q))
       )
     })
-  }, [vessels, searchKeyword, inchargeMap, fleetManagerMap])
+  }, [vessels, searchKeyword, inchargeMap])
 
   const columns = useMemo<ColumnDef<Vessel, unknown>[]>(() => {
     return [
@@ -243,7 +258,7 @@ export function VesselPickerDialog({
       },
       {
         accessorKey: 'vessel_team',
-        header: '船队',
+        header: 'Team',
         size: 120,
         cell: ({ row }) => {
           const raw = row.original.vessel_team
@@ -254,7 +269,7 @@ export function VesselPickerDialog({
             </Badge>
           )
         },
-        meta: { label: '船队' },
+        meta: { label: 'Team' },
       },
       {
         accessorKey: 'vessel_incharge',
@@ -269,18 +284,6 @@ export function VesselPickerDialog({
         meta: { label: '负责人' },
       },
       {
-        accessorKey: 'vessel_fleet_manager',
-        header: '船队总管',
-        size: 120,
-        cell: ({ row }) => {
-          const raw = row.original.vessel_fleet_manager
-          const label = resolveLabel(raw, fleetManagerMap)
-          if (!label) return <div>-</div>
-          return <span>{label}</span>
-        },
-        meta: { label: '船队总管' },
-      },
-      {
         accessorKey: 'building_year',
         header: '建造年份',
         size: 110,
@@ -289,6 +292,28 @@ export function VesselPickerDialog({
           return <span>{v ?? '-'}</span>
         },
         meta: { label: '建造年份' },
+      },
+      {
+        id: 'vessel_age',
+        header: '船龄',
+        size: 90,
+        cell: ({ row }) => {
+          const built = row.original.building_year
+          if (!built) return <span>-</span>
+          const builtDate = new Date(built)
+          if (Number.isNaN(builtDate.getTime())) return <span>-</span>
+          const today = new Date()
+          let age = today.getFullYear() - builtDate.getFullYear()
+          const monthDiff = today.getMonth() - builtDate.getMonth()
+          if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && today.getDate() < builtDate.getDate())
+          ) {
+            age--
+          }
+          return <span>{age < 0 ? '-' : `${age}年`}</span>
+        },
+        meta: { label: '船龄' },
       },
       {
         id: '_action',
@@ -382,7 +407,7 @@ export function VesselPickerDialog({
             <div className='relative w-[420px] min-w-[360px]'>
               <Search className='pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
-                placeholder='按船名 / 船旗 / 船级 / 船队 / 负责人 / 建造年份搜索...'
+                placeholder='按船名 / 船旗 / 船级 / Team / 负责人 / 建造年份 / 船龄搜索...'
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 className='ps-9 pl-9'

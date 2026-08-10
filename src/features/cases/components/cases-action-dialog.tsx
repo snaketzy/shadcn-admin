@@ -24,7 +24,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { fetchVesselAll, type Vessel } from '@/features/users/api/client'
+import {
+  fetchVesselAll,
+  fetchVesselGroups,
+  type Vessel,
+} from '@/features/users/api/client'
 import {
   VesselPickerDialog,
   type VesselPickerResult,
@@ -91,6 +95,13 @@ export function CasesActionDialog({
     staleTime: 60000,
   })
 
+  const { data: vesselGroupsData } = useQuery({
+    queryKey: ['vessel-picker-groups'],
+    queryFn: fetchVesselGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
+
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
@@ -100,6 +111,32 @@ export function CasesActionDialog({
     }
     return map
   }, [vesselRows])
+
+  const inchargeKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        vesselGroupsData as
+          | { inchargeDict?: { dict_key: string; dict_value: string }[] }
+          | undefined
+      )?.inchargeDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [vesselGroupsData])
+
+  const resolveInchargeLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const byKey = inchargeKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
+      return p
+    },
+    [inchargeKeyMap]
+  )
 
   const resolveVesselDisplay = useCallback(
     (
@@ -121,12 +158,12 @@ export function CasesActionDialog({
           flag: v.vessel_flag ?? '',
           vesselClass: v.vessel_class ?? '',
           team: v.vessel_team ?? '',
-          incharge: v.vessel_incharge ?? '',
+          incharge: resolveInchargeLabel(v.vessel_incharge),
         }
       }
       return { name, flag: '', vesselClass: '', team: '', incharge: '' }
     },
-    [vesselNameMap]
+    [vesselNameMap, resolveInchargeLabel]
   )
 
   const defaultValues = isEdit
@@ -203,10 +240,25 @@ export function CasesActionDialog({
   })
 
   const formVesselName = form.watch('vessel_name')
+  const formInquiryKeyword = form.watch('case_inquiry_keyword')
+  const formInquiryDate = form.watch('case_inquiry_date')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
   }, [formVesselName, resolveVesselDisplay])
+
+  useEffect(() => {
+    const parts = [
+      formVesselName ?? '',
+      formInquiryKeyword ?? '',
+      formInquiryDate ?? '',
+    ].filter((p) => p && p.trim().length > 0)
+    const memoName = parts.join(' / ')
+    form.setValue('case_memo_name', memoName, {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form, formVesselName, formInquiryKeyword, formInquiryDate])
 
   const didResetRef = useRef(false)
   useEffect(() => {
@@ -335,7 +387,7 @@ export function CasesActionDialog({
           onOpenChange(state)
         }}
       >
-        <DialogContent className='sm:max-w-3xl'>
+        <DialogContent className='sm:max-w-5xl'>
           <DialogHeader className='text-start'>
             <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
             <DialogDescription>
@@ -409,7 +461,7 @@ export function CasesActionDialog({
                           vesselDisplay.vesselClass ||
                           vesselDisplay.team ||
                           vesselDisplay.incharge) && (
-                          <div className='mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground/80'>
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
                             {vesselDisplay.flag && (
                               <div>船旗：{vesselDisplay.flag}</div>
                             )}
@@ -417,7 +469,7 @@ export function CasesActionDialog({
                               <div>船级：{vesselDisplay.vesselClass}</div>
                             )}
                             {vesselDisplay.team && (
-                              <div>船队：{vesselDisplay.team}</div>
+                              <div>Team：{vesselDisplay.team}</div>
                             )}
                             {vesselDisplay.incharge && (
                               <div>负责人：{vesselDisplay.incharge}</div>
@@ -839,7 +891,7 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_delivery_or_service_incharge'
                   render={({ field }) => (
-                    <FormItem className='col-span-2 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 pt-2 text-end'>
                         承运人｜服务负责人
                       </FormLabel>
@@ -858,7 +910,7 @@ export function CasesActionDialog({
                   control={form.control}
                   name='vessel_position'
                   render={({ field }) => (
-                    <FormItem className='col-span-2 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 pt-2 text-end'>
                         船舶位置
                       </FormLabel>
@@ -877,7 +929,7 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_settlement_done'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
                         案件结算完成
                       </FormLabel>
@@ -894,15 +946,15 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
-                  name='case_memo_name'
+                  name='case_memo_address'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
-                        案件备忘录名称
+                        案件备忘录地址
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder='请输入案件备忘录名称'
+                          placeholder='请输入案件备忘录地址'
                           className='col-span-4'
                           {...field}
                         />
@@ -913,20 +965,21 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
-                  name='case_memo_address'
+                  name='case_memo_name'
                   render={({ field }) => (
-                    <FormItem className='col-span-2 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        案件备忘录地址
+                    <FormItem className='col-span-2 grid grid-cols-12 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        案件备忘录名称
                       </FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder='请输入案件备忘录地址'
-                          className='col-span-4 min-h-20 resize-y'
+                        <Input
+                          placeholder='由「船名」// 「需求名称」//「询价日期」生成'
+                          className='col-span-10 cursor-not-allowed bg-muted/40'
+                          readOnly
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <FormMessage className='col-span-10 col-start-3' />
                     </FormItem>
                   )}
                 />
