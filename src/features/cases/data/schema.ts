@@ -1,0 +1,36 @@
+import { z } from 'zod'
+
+export const caseSchema = z.object({
+  case_id: z.number(),
+  vessel_name: z.string().nullable(),
+  invoice_number: z.string().nullable(),
+  order_number: z.string().nullable(),
+  case_inquiry_keyword: z.string().nullable(),
+  case_progress: z.string().nullable(),
+  case_urgent: z.string().nullable(),
+  case_inquiry_type: z.string().nullable(),
+  case_inquiry_date: z.string().nullable(),
+  case_follow_date: z.string().nullable(),
+  case_uptodate_date: z.string().nullable(),
+  case_should_handle_today: z.string().nullable(),
+  owner_following: z.string().nullable(),
+  shipyard_business: z.string().nullable(),
+  case_agent: z.string().nullable(),
+  case_superintendent: z.string().nullable(),
+  case_surveyor: z.string().nullable(),
+  case_delivery_or_service_incharge: z.string().nullable(),
+  case_delivery_or_service_deadline: z.string().nullable(),
+  case_eta_cargo_ready_date: z.string().nullable(),
+  case_etb_cargo_departure_date: z.string().nullable(),
+  case_etd_cargo_delivery_date: z.string().nullable(),
+  vessel_position: z.string().nullable(),
+  case_settlement_done: z.string().nullable(),
+  case_epd: z.string().nullable(),
+  case_spd: z.string().nullable(),
+  case_incharge: z.string().nullable(),
+  case_memo_name: z.string().nullable(),
+  case_memo_address: z.string().nullable(),
+  case_rank: z.string().nullable(),
+})
+
+export type Case = z.infer<typeof caseSchema>

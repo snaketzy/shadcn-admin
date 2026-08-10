@@ -61,6 +61,16 @@ import {
   deleteContactList,
   deleteContactListBulk,
 } from './src/service/connection/contact-list-service'
+import {
+  getAllCaseList,
+  getCaseListById,
+  getCaseListGroups,
+  getCaseListPaginated,
+  createCaseList,
+  updateCaseList,
+  deleteCaseList,
+  deleteCaseListBulk,
+} from './src/service/connection/case-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -932,6 +942,184 @@ async function handleContactListApi(
   }
 }
 
+async function handleCaseListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname, searchParams } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/case-list')) {
+    return false
+  }
+
+  const subPath = pathname.slice('/api/case-list'.length) || '/'
+
+  function toOptStr(s: string | null | unknown): string | undefined {
+    if (s === null) return undefined
+    if (s === undefined) return undefined
+    const str = String(s)
+    if (str === '') return undefined
+    return str
+  }
+
+  try {
+    if (subPath === '/' || subPath === '') {
+      if (method === 'GET') {
+        const page = Number(searchParams.get('page') ?? 1)
+        const pageSize = Number(searchParams.get('pageSize') ?? 1000)
+        const result = await getCaseListPaginated({
+          page,
+          pageSize,
+          vesselName: toOptStr(searchParams.get('vesselName')),
+          invoiceNumber: toOptStr(searchParams.get('invoiceNumber')),
+          orderNumber: toOptStr(searchParams.get('orderNumber')),
+          caseInquiryKeyword: toOptStr(searchParams.get('caseInquiryKeyword')),
+          caseProgress: toOptStr(searchParams.get('caseProgress')),
+          caseIncharge: toOptStr(searchParams.get('caseIncharge')),
+        })
+        sendJson(res, 200, { success: true, data: result })
+        return true
+      }
+      if (method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const created = await createCaseList({
+          vessel_name: toOptStr(body.vessel_name),
+          invoice_number: toOptStr(body.invoice_number),
+          order_number: toOptStr(body.order_number),
+          case_inquiry_keyword: toOptStr(body.case_inquiry_keyword),
+          case_progress: toOptStr(body.case_progress),
+          case_urgent: toOptStr(body.case_urgent),
+          case_inquiry_type: toOptStr(body.case_inquiry_type),
+          case_inquiry_date: toOptStr(body.case_inquiry_date),
+          case_follow_date: toOptStr(body.case_follow_date),
+          case_uptodate_date: toOptStr(body.case_uptodate_date),
+          case_should_handle_today: toOptStr(body.case_should_handle_today),
+          owner_following: toOptStr(body.owner_following),
+          shipyard_business: toOptStr(body.shipyard_business),
+          case_agent: toOptStr(body.case_agent),
+          case_superintendent: toOptStr(body.case_superintendent),
+          case_surveyor: toOptStr(body.case_surveyor),
+          case_delivery_or_service_incharge: toOptStr(body.case_delivery_or_service_incharge),
+          case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
+          case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
+          case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),
+          case_etd_cargo_delivery_date: toOptStr(body.case_etd_cargo_delivery_date),
+          vessel_position: toOptStr(body.vessel_position),
+          case_settlement_done: toOptStr(body.case_settlement_done),
+          case_epd: toOptStr(body.case_epd),
+          case_spd: toOptStr(body.case_spd),
+          case_incharge: toOptStr(body.case_incharge),
+          case_memo_name: toOptStr(body.case_memo_name),
+          case_memo_address: toOptStr(body.case_memo_address),
+          case_rank: toOptStr(body.case_rank),
+        })
+        sendJson(res, 200, { success: true, data: created })
+        return true
+      }
+    }
+
+    if (subPath === '/all') {
+      if (method === 'GET') {
+        const rows = await getAllCaseList()
+        sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+    }
+
+    if (subPath === '/groups') {
+      if (method === 'GET') {
+        const groups = await getCaseListGroups()
+        sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/bulk-delete') {
+      if (method === 'POST') {
+        const body = (await readBody(req)) as { ids?: number[] } | undefined
+        const ids = body?.ids ?? []
+        const n = await deleteCaseListBulk(ids)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const idMatch = subPath.match(/^\/(\d+)$/)
+    if (idMatch) {
+      const caseId = Number(idMatch[1])
+      if (method === 'GET') {
+        const row = await getCaseListById(caseId)
+        if (!row) {
+          sendJson(res, 404, { success: false, message: 'Not found' })
+        } else {
+          sendJson(res, 200, { success: true, data: row })
+        }
+        return true
+      }
+      if (method === 'PUT') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        if (!body) {
+          sendJson(res, 400, { success: false, message: 'Missing body' })
+          return true
+        }
+        const updated = await updateCaseList(caseId, {
+          vessel_name: toOptStr(body.vessel_name),
+          invoice_number: toOptStr(body.invoice_number),
+          order_number: toOptStr(body.order_number),
+          case_inquiry_keyword: toOptStr(body.case_inquiry_keyword),
+          case_progress: toOptStr(body.case_progress),
+          case_urgent: toOptStr(body.case_urgent),
+          case_inquiry_type: toOptStr(body.case_inquiry_type),
+          case_inquiry_date: toOptStr(body.case_inquiry_date),
+          case_follow_date: toOptStr(body.case_follow_date),
+          case_uptodate_date: toOptStr(body.case_uptodate_date),
+          case_should_handle_today: toOptStr(body.case_should_handle_today),
+          owner_following: toOptStr(body.owner_following),
+          shipyard_business: toOptStr(body.shipyard_business),
+          case_agent: toOptStr(body.case_agent),
+          case_superintendent: toOptStr(body.case_superintendent),
+          case_surveyor: toOptStr(body.case_surveyor),
+          case_delivery_or_service_incharge: toOptStr(body.case_delivery_or_service_incharge),
+          case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
+          case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
+          case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),
+          case_etd_cargo_delivery_date: toOptStr(body.case_etd_cargo_delivery_date),
+          vessel_position: toOptStr(body.vessel_position),
+          case_settlement_done: toOptStr(body.case_settlement_done),
+          case_epd: toOptStr(body.case_epd),
+          case_spd: toOptStr(body.case_spd),
+          case_incharge: toOptStr(body.case_incharge),
+          case_memo_name: toOptStr(body.case_memo_name),
+          case_memo_address: toOptStr(body.case_memo_address),
+          case_rank: toOptStr(body.case_rank),
+        })
+        sendJson(res, 200, { success: true, data: updated })
+        return true
+      }
+      if (method === 'DELETE') {
+        const ok = await deleteCaseList(caseId)
+        sendJson(res, 200, { success: ok, data: { deleted: ok ? 1 : 0 } })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[case-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -965,6 +1153,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/contact-list')) {
             const handled = await handleContactListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/case-list')) {
+            const handled = await handleCaseListApi(req, res)
             if (handled) return
           }
           next()
