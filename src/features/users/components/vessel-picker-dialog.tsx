@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   type ColumnDef,
@@ -129,15 +129,6 @@ export function VesselPickerDialog({
   const [selectedName, setSelectedName] = useState<string | null>(
     initialSelectedName ?? null
   )
-
-  const onSelectRef = useRef(onSelect)
-  const onOpenChangeRef = useRef(onOpenChange)
-  useEffect(() => {
-    onSelectRef.current = onSelect
-  }, [onSelect])
-  useEffect(() => {
-    onOpenChangeRef.current = onOpenChange
-  }, [onOpenChange])
 
   useEffect(() => {
     if (!open) return
@@ -327,7 +318,7 @@ export function VesselPickerDialog({
                   e.stopPropagation()
                   const v = row.original
                   setSelectedName(v.vessel_name)
-                  onSelectRef.current({
+                  const result: VesselPickerResult = {
                     vessel_id: String(v.vessel_id),
                     vessel_name: v.vessel_name ?? '',
                     vessel_flag: v.vessel_flag ?? undefined,
@@ -335,8 +326,9 @@ export function VesselPickerDialog({
                     vessel_team: v.vessel_team ?? undefined,
                     vessel_incharge:
                       resolveLabel(v.vessel_incharge, inchargeMap) || undefined,
-                  })
-                  onOpenChangeRef.current(false)
+                  }
+                  onSelect(result)
+                  queueMicrotask(() => onOpenChange(false))
                 }}
               >
                 {isSelected ? '已选择' : '选择'}
@@ -346,7 +338,7 @@ export function VesselPickerDialog({
         },
       },
     ]
-  }, [selectedName, inchargeMap, fleetManagerMap])
+  }, [selectedName, inchargeMap, onSelect, onOpenChange])
 
   const table = useReactTable({
     data: filteredRows,
@@ -361,7 +353,7 @@ export function VesselPickerDialog({
     (row: { original: Vessel }) => {
       const v = row.original
       setSelectedName(v.vessel_name)
-      onSelectRef.current({
+      const result: VesselPickerResult = {
         vessel_id: String(v.vessel_id),
         vessel_name: v.vessel_name ?? '',
         vessel_flag: v.vessel_flag ?? undefined,
@@ -369,10 +361,11 @@ export function VesselPickerDialog({
         vessel_team: v.vessel_team ?? undefined,
         vessel_incharge:
           resolveLabel(v.vessel_incharge, inchargeMap) || undefined,
-      })
-      onOpenChangeRef.current(false)
+      }
+      onSelect(result)
+      queueMicrotask(() => onOpenChange(false))
     },
-    [inchargeMap]
+    [inchargeMap, onSelect, onOpenChange]
   )
 
   return (

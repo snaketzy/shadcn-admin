@@ -1,10 +1,10 @@
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Search, X, Ship } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,16 +24,13 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import type { Case } from '../data/schema'
-import { createCase, updateCase } from '../api/client'
-import {
-  fetchVesselAll,
-  type Vessel,
-} from '@/features/users/api/client'
+import { fetchVesselAll, type Vessel } from '@/features/users/api/client'
 import {
   VesselPickerDialog,
   type VesselPickerResult,
 } from '@/features/users/components/vessel-picker-dialog'
+import { createCase, updateCase } from '../api/client'
+import type { Case } from '../data/schema'
 
 const formSchema = z.object({
   vessel_name: z.string().optional().catch(''),
@@ -95,13 +92,6 @@ export function CasesActionDialog({
   })
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
-  const [vesselDisplay, setVesselDisplay] = useState<{
-    name: string
-    flag: string
-    vesselClass: string
-    team: string
-    incharge: string
-  }>({ name: '', flag: '', vesselClass: '', team: '', incharge: '' })
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -112,7 +102,9 @@ export function CasesActionDialog({
   }, [vesselRows])
 
   const resolveVesselDisplay = useCallback(
-    (vesselName: string | null | undefined): {
+    (
+      vesselName: string | null | undefined
+    ): {
       name: string
       flag: string
       vesselClass: string
@@ -120,7 +112,8 @@ export function CasesActionDialog({
       incharge: string
     } => {
       const name = vesselName ?? ''
-      if (!name) return { name: '', flag: '', vesselClass: '', team: '', incharge: '' }
+      if (!name)
+        return { name: '', flag: '', vesselClass: '', team: '', incharge: '' }
       const v = vesselNameMap.get(name)
       if (v) {
         return {
@@ -154,11 +147,15 @@ export function CasesActionDialog({
         case_agent: currentRow.case_agent ?? '',
         case_superintendent: currentRow.case_superintendent ?? '',
         case_surveyor: currentRow.case_surveyor ?? '',
-        case_delivery_or_service_incharge: currentRow.case_delivery_or_service_incharge ?? '',
-        case_delivery_or_service_deadline: currentRow.case_delivery_or_service_deadline ?? '',
+        case_delivery_or_service_incharge:
+          currentRow.case_delivery_or_service_incharge ?? '',
+        case_delivery_or_service_deadline:
+          currentRow.case_delivery_or_service_deadline ?? '',
         case_eta_cargo_ready_date: currentRow.case_eta_cargo_ready_date ?? '',
-        case_etb_cargo_departure_date: currentRow.case_etb_cargo_departure_date ?? '',
-        case_etd_cargo_delivery_date: currentRow.case_etd_cargo_delivery_date ?? '',
+        case_etb_cargo_departure_date:
+          currentRow.case_etb_cargo_departure_date ?? '',
+        case_etd_cargo_delivery_date:
+          currentRow.case_etd_cargo_delivery_date ?? '',
         vessel_position: currentRow.vessel_position ?? '',
         case_settlement_done: currentRow.case_settlement_done ?? '',
         case_epd: currentRow.case_epd ?? '',
@@ -205,38 +202,33 @@ export function CasesActionDialog({
     defaultValues,
   })
 
+  const formVesselName = form.watch('vessel_name')
+
+  const vesselDisplay = useMemo(() => {
+    return resolveVesselDisplay(formVesselName ?? '')
+  }, [formVesselName, resolveVesselDisplay])
+
+  const didResetRef = useRef(false)
   useEffect(() => {
-    if (open) {
-      form.reset(defaultValues)
-      const vn = isEdit && currentRow ? currentRow.vessel_name : ''
-      setVesselDisplay((prev) => {
-        const next = resolveVesselDisplay(vn)
-        if (
-          prev.name === next.name &&
-          prev.flag === next.flag &&
-          prev.vesselClass === next.vesselClass &&
-          prev.team === next.team &&
-          prev.incharge === next.incharge
-        ) {
-          return prev
-        }
-        return next
-      })
+    if (!open) {
+      didResetRef.current = false
+      return
     }
-  }, [open, isEdit, currentRow, form, defaultValues, resolveVesselDisplay])
+    if (didResetRef.current) return
+    didResetRef.current = true
+    form.reset(defaultValues)
+  }, [open, form, defaultValues])
+
+  useEffect(() => {
+    if (open || didResetRef.current) return
+    didResetRef.current = false
+  }, [open])
 
   const handleVesselPicked = useCallback(
     (r: VesselPickerResult) => {
       form.setValue('vessel_name', r.vessel_name, {
         shouldDirty: true,
         shouldValidate: false,
-      })
-      setVesselDisplay({
-        name: r.vessel_name,
-        flag: r.vessel_flag ?? '',
-        vesselClass: r.vessel_class ?? '',
-        team: r.vessel_team ?? '',
-        incharge: r.vessel_incharge ?? '',
       })
     },
     [form]
@@ -247,7 +239,6 @@ export function CasesActionDialog({
       shouldDirty: true,
       shouldValidate: false,
     })
-    setVesselDisplay({ name: '', flag: '', vesselClass: '', team: '', incharge: '' })
   }, [form])
 
   const createMutation = useMutation({
@@ -265,8 +256,13 @@ export function CasesActionDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updateCase>[1] }) =>
-      updateCase(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: Parameters<typeof updateCase>[1]
+    }) => updateCase(id, data),
     onSuccess: () => {
       toast.success('案件更新成功')
       queryClient.invalidateQueries({ queryKey: ['case-list'] })
@@ -297,11 +293,19 @@ export function CasesActionDialog({
       case_agent: toOptStr(values.case_agent),
       case_superintendent: toOptStr(values.case_superintendent),
       case_surveyor: toOptStr(values.case_surveyor),
-      case_delivery_or_service_incharge: toOptStr(values.case_delivery_or_service_incharge),
-      case_delivery_or_service_deadline: toOptStr(values.case_delivery_or_service_deadline),
+      case_delivery_or_service_incharge: toOptStr(
+        values.case_delivery_or_service_incharge
+      ),
+      case_delivery_or_service_deadline: toOptStr(
+        values.case_delivery_or_service_deadline
+      ),
       case_eta_cargo_ready_date: toOptStr(values.case_eta_cargo_ready_date),
-      case_etb_cargo_departure_date: toOptStr(values.case_etb_cargo_departure_date),
-      case_etd_cargo_delivery_date: toOptStr(values.case_etd_cargo_delivery_date),
+      case_etb_cargo_departure_date: toOptStr(
+        values.case_etb_cargo_departure_date
+      ),
+      case_etd_cargo_delivery_date: toOptStr(
+        values.case_etd_cargo_delivery_date
+      ),
       vessel_position: toOptStr(values.vessel_position),
       case_settlement_done: toOptStr(values.case_settlement_done),
       case_epd: toOptStr(values.case_epd),
@@ -351,7 +355,7 @@ export function CasesActionDialog({
                   name='vessel_name'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end pt-2'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         船名
                       </FormLabel>
                       <div className='col-span-4'>
@@ -359,9 +363,9 @@ export function CasesActionDialog({
                           <div className='relative'>
                             <Input
                               placeholder='点击输入框从船队列表中选择...'
-                              className='cursor-pointer pr-20 pe-20'
+                              className='cursor-pointer pe-20 pr-20'
                               readOnly
-                              value={vesselDisplay.name || ''}
+                              value={field.value || ''}
                               onClick={() => setVesselPickerOpen(true)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -370,7 +374,7 @@ export function CasesActionDialog({
                                 }
                               }}
                             />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pr-2 pe-2'>
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
                               {field.value ? (
                                 <Button
                                   type='button'
@@ -397,7 +401,7 @@ export function CasesActionDialog({
                               >
                                 <Search className='h-3.5 w-3.5' />
                               </Button>
-                              <Ship className='mr-1 me-1 h-3.5 w-3.5 text-muted-foreground' />
+                              <Ship className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                             </div>
                           </div>
                         </FormControl>
@@ -406,10 +410,18 @@ export function CasesActionDialog({
                           vesselDisplay.team ||
                           vesselDisplay.incharge) && (
                           <div className='mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground/80'>
-                            {vesselDisplay.flag && <div>船旗：{vesselDisplay.flag}</div>}
-                            {vesselDisplay.vesselClass && <div>船级：{vesselDisplay.vesselClass}</div>}
-                            {vesselDisplay.team && <div>船队：{vesselDisplay.team}</div>}
-                            {vesselDisplay.incharge && <div>负责人：{vesselDisplay.incharge}</div>}
+                            {vesselDisplay.flag && (
+                              <div>船旗：{vesselDisplay.flag}</div>
+                            )}
+                            {vesselDisplay.vesselClass && (
+                              <div>船级：{vesselDisplay.vesselClass}</div>
+                            )}
+                            {vesselDisplay.team && (
+                              <div>船队：{vesselDisplay.team}</div>
+                            )}
+                            {vesselDisplay.incharge && (
+                              <div>负责人：{vesselDisplay.incharge}</div>
+                            )}
                           </div>
                         )}
                         {field.value && !vesselDisplay.name && (
@@ -602,11 +614,7 @@ export function CasesActionDialog({
                         询价日期
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -621,11 +629,7 @@ export function CasesActionDialog({
                         开始日期
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -640,11 +644,7 @@ export function CasesActionDialog({
                         跟进日期
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -659,11 +659,7 @@ export function CasesActionDialog({
                         运输｜服务截止日
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -678,11 +674,7 @@ export function CasesActionDialog({
                         船舶到港 | 备货完成
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -697,11 +689,7 @@ export function CasesActionDialog({
                         船舶靠港 ｜ 货物发出
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -716,11 +704,7 @@ export function CasesActionDialog({
                         船舶开航 ｜ 货物签收
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -735,11 +719,7 @@ export function CasesActionDialog({
                         船东结账日期
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -754,11 +734,7 @@ export function CasesActionDialog({
                         供应商结账日期
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -863,8 +839,8 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_delivery_or_service_incharge'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                      <FormLabel className='col-span-2 text-end pt-2'>
+                    <FormItem className='col-span-2 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         承运人｜服务负责人
                       </FormLabel>
                       <FormControl>
@@ -882,8 +858,8 @@ export function CasesActionDialog({
                   control={form.control}
                   name='vessel_position'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                      <FormLabel className='col-span-2 text-end pt-2'>
+                    <FormItem className='col-span-2 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         船舶位置
                       </FormLabel>
                       <FormControl>
@@ -939,8 +915,8 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_memo_address'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1 col-span-2'>
-                      <FormLabel className='col-span-2 text-end pt-2'>
+                    <FormItem className='col-span-2 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         案件备忘录地址
                       </FormLabel>
                       <FormControl>
@@ -969,25 +945,19 @@ export function CasesActionDialog({
             >
               取消
             </Button>
-            <Button
-              type='submit'
-              form='cases-form'
-              disabled={isSubmitting}
-            >
+            <Button type='submit' form='cases-form' disabled={isSubmitting}>
               {isSubmitting ? '保存中...' : '保存'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {vesselPickerOpen && (
-        <VesselPickerDialog
-          open={vesselPickerOpen}
-          onOpenChange={setVesselPickerOpen}
-          initialSelectedName={form.getValues('vessel_name') || undefined}
-          onSelect={handleVesselPicked}
-        />
-      )}
+      <VesselPickerDialog
+        open={vesselPickerOpen}
+        onOpenChange={setVesselPickerOpen}
+        initialSelectedName={form.getValues('vessel_name') || undefined}
+        onSelect={handleVesselPicked}
+      />
     </>
   )
 }
