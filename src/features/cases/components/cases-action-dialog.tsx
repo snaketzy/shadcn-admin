@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { Search, X, Ship, UserRound } from 'lucide-react'
+import { Search, X, Ship, UserRound, Factory } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -49,6 +49,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
+import {
+  ShipyardPickerDialog,
+  type ShipyardPickerResult,
+} from '@/features/contacts/components/shipyard-picker-dialog'
 import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import {
   OwnerPickerDialog,
@@ -139,8 +144,22 @@ export function CasesActionDialog({
     staleTime: 60000,
   })
 
+  const { data: shipyardRows = [] } = useQuery({
+    queryKey: ['shipyard-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+    select: useCallback((rows: Contact[]) => {
+      return rows.filter((r) => {
+        const t = String(r.contact_type ?? '').trim()
+        return t.toUpperCase() === 'J4' || t === 'J4' || t.includes('J4')
+      })
+    }, []),
+  })
+
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
   const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
+  const [shipyardPickerOpen, setShipyardPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -157,6 +176,14 @@ export function CasesActionDialog({
     }
     return map
   }, [ownerRows])
+
+  const shipyardNameMap = useMemo(() => {
+    const map = new Map<string, Contact>()
+    for (const v of shipyardRows as Contact[]) {
+      if (v.contact_name) map.set(String(v.contact_name), v)
+    }
+    return map
+  }, [shipyardRows])
 
   const { data: caseGroupsData } = useQuery({
     queryKey: ['case-list-groups'],
@@ -407,6 +434,54 @@ export function CasesActionDialog({
     [ownerNameMap]
   )
 
+  const resolveShipyardDisplay = useCallback(
+    (
+      contactName: string | null | undefined
+    ): {
+      name: string
+      mobile: string
+      email: string
+      type: string
+      rank: string
+      division: string
+      remark: string
+    } => {
+      const name = contactName ?? ''
+      if (!name)
+        return {
+          name: '',
+          mobile: '',
+          email: '',
+          type: '',
+          rank: '',
+          division: '',
+          remark: '',
+        }
+      const v = shipyardNameMap.get(name)
+      if (v) {
+        return {
+          name: v.contact_name ?? '',
+          mobile: v.contact_mobile ?? '',
+          email: v.contact_email ?? '',
+          type: v.contact_type ?? '',
+          rank: v.contact_rank ?? '',
+          division: v.contact_division_type ?? '',
+          remark: v.contact_remark ?? '',
+        }
+      }
+      return {
+        name,
+        mobile: '',
+        email: '',
+        type: '',
+        rank: '',
+        division: '',
+        remark: '',
+      }
+    },
+    [shipyardNameMap]
+  )
+
   const defaultValues = isEdit
     ? {
         vessel_name: currentRow.vessel_name ?? '',
@@ -485,6 +560,7 @@ export function CasesActionDialog({
   const formInquiryKeyword = form.watch('case_inquiry_keyword')
   const formInquiryDate = form.watch('case_inquiry_date')
   const formOwnerFollowing = form.watch('owner_following')
+  const formShipyardBusiness = form.watch('shipyard_business')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
@@ -493,6 +569,10 @@ export function CasesActionDialog({
   const ownerDisplay = useMemo(() => {
     return resolveOwnerDisplay(formOwnerFollowing ?? '')
   }, [formOwnerFollowing, resolveOwnerDisplay])
+
+  const shipyardDisplay = useMemo(() => {
+    return resolveShipyardDisplay(formShipyardBusiness ?? '')
+  }, [formShipyardBusiness, resolveShipyardDisplay])
 
   useEffect(() => {
     const parts = [
@@ -576,6 +656,23 @@ export function CasesActionDialog({
 
   const handleClearOwner = useCallback(() => {
     form.setValue('owner_following', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleShipyardPicked = useCallback(
+    (r: ShipyardPickerResult) => {
+      form.setValue('shipyard_business', r.contact_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearShipyard = useCallback(() => {
+    form.setValue('shipyard_business', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1365,7 +1462,8 @@ export function CasesActionDialog({
                         )}
                         {field.value && !ownerDisplay.name && (
                           <p className='mt-1 text-xs text-muted-foreground/80'>
-                            联络人：{field.value}（未找到对应联络人详情，将直接保存）
+                            联络人：{field.value}
+                            （未找到对应联络人详情，将直接保存）
                           </p>
                         )}
                         <FormMessage />
@@ -1377,18 +1475,88 @@ export function CasesActionDialog({
                   control={form.control}
                   name='shipyard_business'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         船厂经营
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入船厂经营'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击输入框从船厂经营列表中选择...'
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={field.value || ''}
+                              onClick={() => setShipyardPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setShipyardPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                              {field.value ? (
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  type='button'
+                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearShipyard()
+                                  }}
+                                  aria-label='清空船厂经营'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择船厂经营'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Factory className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(shipyardDisplay.mobile ||
+                          shipyardDisplay.email ||
+                          shipyardDisplay.type ||
+                          shipyardDisplay.rank ||
+                          shipyardDisplay.division) && (
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                            {shipyardDisplay.mobile && (
+                              <div>手机：{shipyardDisplay.mobile}</div>
+                            )}
+                            {shipyardDisplay.email && (
+                              <div>邮箱：{shipyardDisplay.email}</div>
+                            )}
+                            {shipyardDisplay.type && (
+                              <div>类型：{shipyardDisplay.type}</div>
+                            )}
+                            {shipyardDisplay.division && (
+                              <div>业务归属：{shipyardDisplay.division}</div>
+                            )}
+                            {shipyardDisplay.rank && (
+                              <div>职级：{shipyardDisplay.rank}</div>
+                            )}
+                          </div>
+                        )}
+                        {field.value && !shipyardDisplay.name && (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            船厂经营：{field.value}
+                            （未找到对应船厂经营详情，将直接保存）
+                          </p>
+                        )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1579,6 +1747,13 @@ export function CasesActionDialog({
         onOpenChange={setOwnerPickerOpen}
         initialSelectedName={form.getValues('owner_following') || undefined}
         onSelect={handleOwnerPicked}
+      />
+
+      <ShipyardPickerDialog
+        open={shipyardPickerOpen}
+        onOpenChange={setShipyardPickerOpen}
+        initialSelectedName={form.getValues('shipyard_business') || undefined}
+        onSelect={handleShipyardPicked}
       />
     </>
   )
