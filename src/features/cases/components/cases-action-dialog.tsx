@@ -929,74 +929,79 @@ export function CasesActionDialog({
     ]
   )
 
-  const defaultValues = isEdit
-    ? {
-        vessel_name: currentRow.vessel_name ?? '',
-        invoice_number: currentRow.invoice_number ?? '',
-        order_number: currentRow.order_number ?? '',
-        case_inquiry_keyword: currentRow.case_inquiry_keyword ?? '',
-        case_progress: currentRow.case_progress ?? '',
-        case_urgent: currentRow.case_urgent ?? defaultUrgentKey,
-        case_inquiry_type: currentRow.case_inquiry_type ?? '',
-        case_inquiry_date: currentRow.case_inquiry_date ?? '',
-        case_follow_date: currentRow.case_follow_date ?? '',
-        case_uptodate_date: currentRow.case_uptodate_date ?? '',
-        case_should_handle_today:
-          currentRow.case_should_handle_today ?? defaultHandleTodayKey,
-        owner_following: currentRow.owner_following ?? '',
-        shipyard_business: currentRow.shipyard_business ?? '',
-        case_agent: currentRow.case_agent ?? '',
-        case_superintendent: currentRow.case_superintendent ?? '',
-        case_surveyor: currentRow.case_surveyor ?? '',
-        case_delivery_or_service_incharge:
-          currentRow.case_delivery_or_service_incharge ?? '',
-        case_delivery_or_service_deadline:
-          currentRow.case_delivery_or_service_deadline ?? '',
-        case_eta_cargo_ready_date: currentRow.case_eta_cargo_ready_date ?? '',
-        case_etb_cargo_departure_date:
-          currentRow.case_etb_cargo_departure_date ?? '',
-        case_etd_cargo_delivery_date:
-          currentRow.case_etd_cargo_delivery_date ?? '',
-        vessel_position: currentRow.vessel_position ?? '',
-        case_settlement_done: currentRow.case_settlement_done ?? '',
-        case_epd: currentRow.case_epd ?? '',
-        case_spd: currentRow.case_spd ?? '',
-        case_incharge: currentRow.case_incharge ?? '',
-        case_memo_name: currentRow.case_memo_name ?? '',
-        case_memo_address: currentRow.case_memo_address ?? '',
-        case_rank: currentRow.case_rank ?? '',
-      }
-    : {
-        vessel_name: '',
-        invoice_number: '',
-        order_number: '',
-        case_inquiry_keyword: '',
-        case_progress: '',
-        case_urgent: defaultUrgentKey,
-        case_inquiry_type: '',
-        case_inquiry_date: '',
-        case_follow_date: '',
-        case_uptodate_date: '',
-        case_should_handle_today: defaultHandleTodayKey,
-        owner_following: '',
-        shipyard_business: '',
-        case_agent: '',
-        case_superintendent: '',
-        case_surveyor: '',
-        case_delivery_or_service_incharge: '',
-        case_delivery_or_service_deadline: '',
-        case_eta_cargo_ready_date: '',
-        case_etb_cargo_departure_date: '',
-        case_etd_cargo_delivery_date: '',
-        vessel_position: '',
-        case_settlement_done: '',
-        case_epd: '',
-        case_spd: '',
-        case_incharge: '',
-        case_memo_name: '',
-        case_memo_address: '',
-        case_rank: '',
-      }
+  const defaultValues = useMemo(
+    () =>
+      isEdit
+        ? {
+            vessel_name: currentRow.vessel_name ?? '',
+            invoice_number: currentRow.invoice_number ?? '',
+            order_number: currentRow.order_number ?? '',
+            case_inquiry_keyword: currentRow.case_inquiry_keyword ?? '',
+            case_progress: currentRow.case_progress ?? '',
+            case_urgent: currentRow.case_urgent ?? defaultUrgentKey,
+            case_inquiry_type: currentRow.case_inquiry_type ?? '',
+            case_inquiry_date: currentRow.case_inquiry_date ?? '',
+            case_follow_date: currentRow.case_follow_date ?? '',
+            case_uptodate_date: currentRow.case_uptodate_date ?? '',
+            case_should_handle_today:
+              currentRow.case_should_handle_today ?? defaultHandleTodayKey,
+            owner_following: currentRow.owner_following ?? '',
+            shipyard_business: currentRow.shipyard_business ?? '',
+            case_agent: currentRow.case_agent ?? '',
+            case_superintendent: currentRow.case_superintendent ?? '',
+            case_surveyor: currentRow.case_surveyor ?? '',
+            case_delivery_or_service_incharge:
+              currentRow.case_delivery_or_service_incharge ?? '',
+            case_delivery_or_service_deadline:
+              currentRow.case_delivery_or_service_deadline ?? '',
+            case_eta_cargo_ready_date:
+              currentRow.case_eta_cargo_ready_date ?? '',
+            case_etb_cargo_departure_date:
+              currentRow.case_etb_cargo_departure_date ?? '',
+            case_etd_cargo_delivery_date:
+              currentRow.case_etd_cargo_delivery_date ?? '',
+            vessel_position: currentRow.vessel_position ?? '',
+            case_settlement_done: currentRow.case_settlement_done ?? '',
+            case_epd: currentRow.case_epd ?? '',
+            case_spd: currentRow.case_spd ?? '',
+            case_incharge: currentRow.case_incharge ?? '',
+            case_memo_name: currentRow.case_memo_name ?? '',
+            case_memo_address: currentRow.case_memo_address ?? '',
+            case_rank: currentRow.case_rank ?? '',
+          }
+        : {
+            vessel_name: '',
+            invoice_number: '',
+            order_number: '',
+            case_inquiry_keyword: '',
+            case_progress: '',
+            case_urgent: defaultUrgentKey,
+            case_inquiry_type: '',
+            case_inquiry_date: '',
+            case_follow_date: '',
+            case_uptodate_date: '',
+            case_should_handle_today: defaultHandleTodayKey,
+            owner_following: '',
+            shipyard_business: '',
+            case_agent: '',
+            case_superintendent: '',
+            case_surveyor: '',
+            case_delivery_or_service_incharge: '',
+            case_delivery_or_service_deadline: '',
+            case_eta_cargo_ready_date: '',
+            case_etb_cargo_departure_date: '',
+            case_etd_cargo_delivery_date: '',
+            vessel_position: '',
+            case_settlement_done: '',
+            case_epd: '',
+            case_spd: '',
+            case_incharge: '',
+            case_memo_name: '',
+            case_memo_address: '',
+            case_rank: '',
+          },
+    [currentRow, isEdit, defaultUrgentKey, defaultHandleTodayKey]
+  )
 
   const form = useForm<CaseForm>({
     resolver: zodResolver(formSchema),
@@ -1037,6 +1042,7 @@ export function CasesActionDialog({
   }, [formCaseSurveyor, resolveSurveyorDisplay])
 
   useEffect(() => {
+    if (!open) return
     const parts = [
       formVesselName ?? '',
       formInquiryKeyword ?? '',
@@ -1047,7 +1053,7 @@ export function CasesActionDialog({
       shouldDirty: true,
       shouldValidate: false,
     })
-  }, [form, formVesselName, formInquiryKeyword, formInquiryDate])
+  }, [open, formVesselName, formInquiryKeyword, formInquiryDate])
 
   const didResetRef = useRef(false)
   useEffect(() => {
@@ -1058,7 +1064,7 @@ export function CasesActionDialog({
     if (didResetRef.current) return
     didResetRef.current = true
     form.reset(defaultValues)
-  }, [open, form, defaultValues])
+  }, [open, defaultValues, currentRow?.case_id])
 
   useEffect(() => {
     if (open || didResetRef.current) return
@@ -1075,7 +1081,7 @@ export function CasesActionDialog({
       shouldDirty: false,
       shouldValidate: false,
     })
-  }, [defaultUrgentKey, open, isEdit, urgentOptions, form])
+  }, [defaultUrgentKey, open, isEdit, urgentOptions])
 
   useEffect(() => {
     if (!open || isEdit) return
@@ -1087,7 +1093,7 @@ export function CasesActionDialog({
       shouldDirty: false,
       shouldValidate: false,
     })
-  }, [defaultHandleTodayKey, open, isEdit, handleTodayOptions, form])
+  }, [defaultHandleTodayKey, open, isEdit, handleTodayOptions])
 
   const handleVesselPicked = useCallback(
     (r: VesselPickerResult) => {

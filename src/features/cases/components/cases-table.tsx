@@ -171,9 +171,13 @@ export function CasesTable(_: DataTableProps) {
     queryFn: fetchCaseGroups,
   })
   const caseProgresses = groupsData?.caseProgresses ?? []
+  void caseProgresses
   const caseInquiryTypes = groupsData?.caseInquiryTypes ?? []
+  void caseInquiryTypes
   const caseInCharges = groupsData?.caseInCharges ?? []
+  void caseInCharges
   const caseRanks = groupsData?.caseRanks ?? []
+  void caseRanks
   const progressDict = groupsData?.progressDict ?? []
   const urgentDict = groupsData?.urgentDict ?? []
   const inquiryTypeDict = groupsData?.inquiryTypeDict ?? []
@@ -478,9 +482,23 @@ export function CasesTable(_: DataTableProps) {
   })
 
   const pageCount = table.getPageCount()
+  const ensurePageInRangeRef = useRef(ensurePageInRange)
+  ensurePageInRangeRef.current = ensurePageInRange
   useEffect(() => {
-    ensurePageInRange(pageCount)
-  }, [pageCount, ensurePageInRange])
+    if (pageCount <= 0) return
+    const currentPage = (search as unknown as { page?: number }).page
+    const pageNum = typeof currentPage === 'number' ? currentPage : 1
+    if (pageCount > 0 && pageNum > pageCount) {
+      navigate({
+        replace: true,
+        search: (prev: any) => ({
+          ...(prev ?? {}),
+          page: undefined,
+        }),
+      })
+    }
+  }, [pageCount])
+  void ensurePageInRangeRef
 
   const isFiltered =
     columnFilters.length > 0 ||
