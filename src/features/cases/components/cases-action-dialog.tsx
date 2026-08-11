@@ -57,7 +57,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
+import {
+  fetchContactAll,
+  fetchContactGroups,
+  type Contact,
+} from '@/features/contacts/api/client'
 import {
   AgentPickerDialog,
   type AgentPickerResult,
@@ -70,7 +74,11 @@ import {
   SurveyorPickerDialog,
   type SurveyorPickerResult,
 } from '@/features/contacts/components/surveyor-picker-dialog'
-import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
+import {
+  fetchOwnerAll,
+  fetchOwnerGroups,
+  type Owner,
+} from '@/features/owners/api/client'
 import {
   OwnerPickerDialog,
   type OwnerPickerResult,
@@ -225,6 +233,20 @@ export function CasesActionDialog({
         return t.toUpperCase() === 'F1' || t === 'F1' || t.includes('F1')
       })
     }, []),
+  })
+
+  const { data: ownerGroupsData } = useQuery({
+    queryKey: ['owner-picker-groups'],
+    queryFn: fetchOwnerGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const { data: contactGroupsData } = useQuery({
+    queryKey: ['contact-picker-groups'],
+    queryFn: fetchContactGroups,
+    enabled: open,
+    staleTime: 60000,
   })
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
@@ -483,6 +505,63 @@ export function CasesActionDialog({
     [inchargeKeyMap]
   )
 
+  const ownerTeamKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const d of ownerGroupsData?.teamDict ?? []) {
+      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
+    }
+    return m
+  }, [ownerGroupsData?.teamDict])
+
+  const ownerDeptKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const d of ownerGroupsData?.departmentDict ?? []) {
+      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
+    }
+    return m
+  }, [ownerGroupsData?.departmentDict])
+
+  const ownerRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const d of ownerGroupsData?.rankDict ?? []) {
+      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
+    }
+    return m
+  }, [ownerGroupsData?.rankDict])
+
+  const contactTypeKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const d of contactGroupsData?.typeDict ?? []) {
+      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
+    }
+    return m
+  }, [contactGroupsData?.typeDict])
+
+  const contactRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const d of contactGroupsData?.rankDict ?? []) {
+      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
+    }
+    return m
+  }, [contactGroupsData?.rankDict])
+
+  const contactDivisionKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const d of contactGroupsData?.divisionDict ?? []) {
+      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
+    }
+    return m
+  }, [contactGroupsData?.divisionDict])
+
+  const resolveDictLabel = (map: Map<string, string>, raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const byKey = map.get(p.toUpperCase())
+    if (byKey) return byKey
+    return p
+  }
+
   const resolveVesselDisplay = useCallback(
     (
       vesselName: string | null | undefined
@@ -538,9 +617,9 @@ export function CasesActionDialog({
           name: v.owner_name ?? '',
           phone: v.owner_phone ?? '',
           email: v.owner_email ?? '',
-          team: v.owner_team ?? '',
-          department: v.owner_department ?? '',
-          rank: v.owner_rank ?? '',
+          team: resolveDictLabel(ownerTeamKeyMap, v.owner_team),
+          department: resolveDictLabel(ownerDeptKeyMap, v.owner_department),
+          rank: resolveDictLabel(ownerRankKeyMap, v.owner_rank),
         }
       }
       return {
@@ -552,7 +631,7 @@ export function CasesActionDialog({
         rank: '',
       }
     },
-    [ownerNameMap]
+    [ownerNameMap, ownerTeamKeyMap, ownerDeptKeyMap, ownerRankKeyMap]
   )
 
   const resolveShipyardDisplay = useCallback(
@@ -584,9 +663,12 @@ export function CasesActionDialog({
           name: v.contact_name ?? '',
           mobile: v.contact_mobile ?? '',
           email: v.contact_email ?? '',
-          type: v.contact_type ?? '',
-          rank: v.contact_rank ?? '',
-          division: v.contact_division_type ?? '',
+          type: resolveDictLabel(contactTypeKeyMap, v.contact_type),
+          rank: resolveDictLabel(contactRankKeyMap, v.contact_rank),
+          division: resolveDictLabel(
+            contactDivisionKeyMap,
+            v.contact_division_type
+          ),
           remark: v.contact_remark ?? '',
         }
       }
@@ -600,7 +682,12 @@ export function CasesActionDialog({
         remark: '',
       }
     },
-    [shipyardNameMap]
+    [
+      shipyardNameMap,
+      contactTypeKeyMap,
+      contactRankKeyMap,
+      contactDivisionKeyMap,
+    ]
   )
 
   const resolveAgentDisplay = useCallback(
@@ -632,9 +719,12 @@ export function CasesActionDialog({
           name: v.contact_name ?? '',
           mobile: v.contact_mobile ?? '',
           email: v.contact_email ?? '',
-          type: v.contact_type ?? '',
-          rank: v.contact_rank ?? '',
-          division: v.contact_division_type ?? '',
+          type: resolveDictLabel(contactTypeKeyMap, v.contact_type),
+          rank: resolveDictLabel(contactRankKeyMap, v.contact_rank),
+          division: resolveDictLabel(
+            contactDivisionKeyMap,
+            v.contact_division_type
+          ),
           remark: v.contact_remark ?? '',
         }
       }
@@ -648,7 +738,7 @@ export function CasesActionDialog({
         remark: '',
       }
     },
-    [agentNameMap]
+    [agentNameMap, contactTypeKeyMap, contactRankKeyMap, contactDivisionKeyMap]
   )
 
   const resolveSuperintendentDisplay = useCallback(
@@ -678,9 +768,9 @@ export function CasesActionDialog({
           name: v.owner_name ?? '',
           phone: v.owner_phone ?? '',
           email: v.owner_email ?? '',
-          team: v.owner_team ?? '',
-          department: v.owner_department ?? '',
-          rank: v.owner_rank ?? '',
+          team: resolveDictLabel(ownerTeamKeyMap, v.owner_team),
+          department: resolveDictLabel(ownerDeptKeyMap, v.owner_department),
+          rank: resolveDictLabel(ownerRankKeyMap, v.owner_rank),
         }
       }
       return {
@@ -692,7 +782,7 @@ export function CasesActionDialog({
         rank: '',
       }
     },
-    [superintendentNameMap]
+    [superintendentNameMap, ownerTeamKeyMap, ownerDeptKeyMap, ownerRankKeyMap]
   )
 
   const resolveSurveyorDisplay = useCallback(
@@ -724,9 +814,12 @@ export function CasesActionDialog({
           name: v.contact_name ?? '',
           mobile: v.contact_mobile ?? '',
           email: v.contact_email ?? '',
-          type: v.contact_type ?? '',
-          rank: v.contact_rank ?? '',
-          division: v.contact_division_type ?? '',
+          type: resolveDictLabel(contactTypeKeyMap, v.contact_type),
+          rank: resolveDictLabel(contactRankKeyMap, v.contact_rank),
+          division: resolveDictLabel(
+            contactDivisionKeyMap,
+            v.contact_division_type
+          ),
           remark: v.contact_remark ?? '',
         }
       }
@@ -740,7 +833,12 @@ export function CasesActionDialog({
         remark: '',
       }
     },
-    [surveyorNameMap]
+    [
+      surveyorNameMap,
+      contactTypeKeyMap,
+      contactRankKeyMap,
+      contactDivisionKeyMap,
+    ]
   )
 
   const defaultValues = isEdit
