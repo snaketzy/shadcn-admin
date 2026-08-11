@@ -349,6 +349,8 @@ export function CasesActionDialog({
   const [superintendentPickerOpen, setSuperintendentPickerOpen] =
     useState(false)
   const [surveyorPickerOpen, setSurveyorPickerOpen] = useState(false)
+  const [progressPopoverOpen, setProgressPopoverOpen] = useState(false)
+  const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
 
   // #region debug-point D:mount-unmount nav-detect (H4 unmount setState)
   useEffect(() => {
@@ -1582,7 +1584,12 @@ export function CasesActionDialog({
                         <FormLabel className='col-span-2 text-end'>
                           案件进度
                         </FormLabel>
-                        <Popover>
+                        <Popover
+                          open={progressPopoverOpen}
+                          onOpenChange={(nextOpen) =>
+                            setProgressPopoverOpen(nextOpen)
+                          }
+                        >
                           <PopoverTrigger asChild>
                             <FormControl className='col-span-4'>
                               <Button
@@ -1616,6 +1623,9 @@ export function CasesActionDialog({
                                           shouldDirty: true,
                                           shouldValidate: false,
                                         })
+                                        queueMicrotask(() =>
+                                          setProgressPopoverOpen(false)
+                                        )
                                       }}
                                     >
                                       <CheckIcon
@@ -1792,7 +1802,12 @@ export function CasesActionDialog({
                         <FormLabel className='col-span-2 text-end'>
                           案件评级
                         </FormLabel>
-                        <Popover>
+                        <Popover
+                          open={rankPopoverOpen}
+                          onOpenChange={(nextOpen) =>
+                            setRankPopoverOpen(nextOpen)
+                          }
+                        >
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
@@ -1828,6 +1843,9 @@ export function CasesActionDialog({
                                         shouldDirty: true,
                                         shouldValidate: false,
                                       })
+                                      queueMicrotask(() =>
+                                        setRankPopoverOpen(false)
+                                      )
                                     }}
                                   >
                                     <CheckIcon
@@ -2015,96 +2033,6 @@ export function CasesActionDialog({
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
                         跟进日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_delivery_or_service_deadline'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        运输｜服务截止日
-                      </FormLabel>
-                      <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_eta_cargo_ready_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船舶到港 | 备货完成
-                      </FormLabel>
-                      <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_etb_cargo_departure_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船舶靠港 ｜ 货物发出
-                      </FormLabel>
-                      <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_etd_cargo_delivery_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船舶开航 ｜ 货物签收
-                      </FormLabel>
-                      <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_epd'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船东结账日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_spd'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        供应商结账日期
                       </FormLabel>
                       <FormControl>
                         <Input type='date' className='col-span-4' {...field} />
@@ -2468,6 +2396,96 @@ export function CasesActionDialog({
                         )}
                         <FormMessage />
                       </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_delivery_or_service_deadline'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        运输｜服务截止日
+                      </FormLabel>
+                      <FormControl>
+                        <Input type='date' className='col-span-4' {...field} />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_eta_cargo_ready_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船舶到港 | 备货完成
+                      </FormLabel>
+                      <FormControl>
+                        <Input type='date' className='col-span-4' {...field} />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_etb_cargo_departure_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船舶靠港 ｜ 货物发出
+                      </FormLabel>
+                      <FormControl>
+                        <Input type='date' className='col-span-4' {...field} />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_etd_cargo_delivery_date'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船舶开航 ｜ 货物签收
+                      </FormLabel>
+                      <FormControl>
+                        <Input type='date' className='col-span-4' {...field} />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_epd'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        船东结账日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input type='date' className='col-span-4' {...field} />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='case_spd'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        供应商结账日期
+                      </FormLabel>
+                      <FormControl>
+                        <Input type='date' className='col-span-4' {...field} />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
                 />
