@@ -91,36 +91,47 @@ import {
 import { createCase, fetchCaseGroups, updateCase } from '../api/client'
 import type { Case } from '../data/schema'
 
+const zOptStr = z.string().optional().catch('')
+const zOptDateStr = z.preprocess(
+  (v) =>
+    v instanceof Date
+      ? v.toISOString().slice(0, 10)
+      : v == null
+        ? ''
+        : String(v),
+  z.string().optional().catch('')
+)
+
 const formSchema = z.object({
-  vessel_name: z.string().optional().catch(''),
-  invoice_number: z.string().optional().catch(''),
-  order_number: z.string().optional().catch(''),
-  case_inquiry_keyword: z.string().optional().catch(''),
-  case_progress: z.string().optional().catch(''),
-  case_urgent: z.string().optional().catch(''),
-  case_inquiry_type: z.string().optional().catch(''),
-  case_inquiry_date: z.string().optional().catch(''),
-  case_follow_date: z.string().optional().catch(''),
-  case_uptodate_date: z.string().optional().catch(''),
-  case_should_handle_today: z.string().optional().catch(''),
-  owner_following: z.string().optional().catch(''),
-  shipyard_business: z.string().optional().catch(''),
-  case_agent: z.string().optional().catch(''),
-  case_superintendent: z.string().optional().catch(''),
-  case_surveyor: z.string().optional().catch(''),
-  case_delivery_or_service_incharge: z.string().optional().catch(''),
-  case_delivery_or_service_deadline: z.string().optional().catch(''),
-  case_eta_cargo_ready_date: z.string().optional().catch(''),
-  case_etb_cargo_departure_date: z.string().optional().catch(''),
-  case_etd_cargo_delivery_date: z.string().optional().catch(''),
-  vessel_position: z.string().optional().catch(''),
-  case_settlement_done: z.string().optional().catch(''),
-  case_epd: z.string().optional().catch(''),
-  case_spd: z.string().optional().catch(''),
-  case_incharge: z.string().optional().catch(''),
-  case_memo_name: z.string().optional().catch(''),
-  case_memo_address: z.string().optional().catch(''),
-  case_rank: z.string().optional().catch(''),
+  vessel_name: zOptStr,
+  invoice_number: zOptStr,
+  order_number: zOptStr,
+  case_inquiry_keyword: zOptStr,
+  case_progress: zOptStr,
+  case_urgent: zOptStr,
+  case_inquiry_type: zOptStr,
+  case_inquiry_date: zOptDateStr,
+  case_follow_date: zOptDateStr,
+  case_uptodate_date: zOptDateStr,
+  case_should_handle_today: zOptStr,
+  owner_following: zOptStr,
+  shipyard_business: zOptStr,
+  case_agent: zOptStr,
+  case_superintendent: zOptStr,
+  case_surveyor: zOptStr,
+  case_delivery_or_service_incharge: zOptStr,
+  case_delivery_or_service_deadline: zOptDateStr,
+  case_eta_cargo_ready_date: zOptDateStr,
+  case_etb_cargo_departure_date: zOptDateStr,
+  case_etd_cargo_delivery_date: zOptDateStr,
+  vessel_position: zOptStr,
+  case_settlement_done: zOptDateStr,
+  case_epd: zOptDateStr,
+  case_spd: zOptDateStr,
+  case_incharge: zOptStr,
+  case_memo_name: zOptStr,
+  case_memo_address: zOptStr,
+  case_rank: zOptStr,
 })
 type CaseForm = z.infer<typeof formSchema>
 
