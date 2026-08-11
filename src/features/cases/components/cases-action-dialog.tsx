@@ -216,6 +216,29 @@ export function CasesActionDialog({
     return keys.filter((k) => k && k.trim()).join(',')
   }, [])
 
+  const rankOptions = useMemo(() => {
+    return (caseGroupsData?.rankDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+  }, [caseGroupsData?.rankDict])
+
+  const resolveRankLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = rankOptions.find(
+        (o) => o.key.toUpperCase() === p.toUpperCase()
+      )
+      if (hit) return hit.value
+      return p
+    },
+    [rankOptions]
+  )
+
   const resolveUrgentLabel = useCallback(
     (raw: unknown): string => {
       if (raw === null || raw === undefined || raw === '') return ''
@@ -902,21 +925,71 @@ export function CasesActionDialog({
                 <FormField
                   control={form.control}
                   name='case_rank'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件评级
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件评级'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedLabel = resolveRankLabel(field.value)
+                    return (
+                      <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                        <FormLabel className='col-span-2 text-end'>
+                          案件评级
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant='outline'
+                                role='combobox'
+                                className={cn(
+                                  'col-span-4 w-full justify-between',
+                                  !field.value && 'text-muted-foreground'
+                                )}
+                              >
+                                {field.value ? selectedLabel : '请选择案件评级'}
+                                <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className='w-[480px] p-0'
+                            align='start'
+                          >
+                            <Command>
+                              <CommandInput
+                                placeholder='搜索案件评级...'
+                                className='h-9'
+                              />
+                              <CommandEmpty>暂无结果</CommandEmpty>
+                              <CommandGroup>
+                                {rankOptions.map((o) => (
+                                  <CommandItem
+                                    value={o.value}
+                                    key={o.key}
+                                    onSelect={() => {
+                                      form.setValue('case_rank', o.key, {
+                                        shouldDirty: true,
+                                        shouldValidate: false,
+                                      })
+                                    }}
+                                  >
+                                    <CheckIcon
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        o.key.toUpperCase() ===
+                                          (field.value ?? '').toUpperCase()
+                                          ? 'opacity-100'
+                                          : 'opacity-0'
+                                      )}
+                                    />
+                                    {o.value}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage className='col-span-4 col-start-3' />
+                      </FormItem>
+                    )
+                  }}
                 />
                 <FormField
                   control={form.control}

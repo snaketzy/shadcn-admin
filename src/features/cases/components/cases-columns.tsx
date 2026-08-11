@@ -28,6 +28,11 @@ export type InchargeDict = {
   dict_value: string | null
 }
 
+export type RankDict = {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
 function splitCsv(raw: unknown): string[] {
   if (raw === null || raw === undefined || raw === '') return []
   return String(raw)
@@ -133,11 +138,36 @@ export function resolveInchargeLabel(
   return parts.join('，')
 }
 
+function makeRankMap(dict: RankDict[] | undefined) {
+  const keyMap = new Map<string, string>()
+  for (const d of dict ?? []) {
+    keyMap.set(
+      String(d.dict_key ?? '').toUpperCase(),
+      String(d.dict_value ?? '')
+    )
+  }
+  return keyMap
+}
+
+export function resolveRankLabel(
+  raw: unknown,
+  rankDict: RankDict[] | undefined
+): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const p = String(raw).trim()
+  if (!p) return ''
+  const keyMap = makeRankMap(rankDict)
+  const v = keyMap.get(p.toUpperCase())
+  if (v) return v
+  return p
+}
+
 export function getCasesColumns(
   progressDict?: ProgressDict[],
   urgentDict?: UrgentDict[],
   inquiryTypeDict?: InquiryTypeDict[],
-  inchargeDict?: InchargeDict[]
+  inchargeDict?: InchargeDict[],
+  rankDict?: RankDict[]
 ): ColumnDef<Case>[] {
   return [
     {
@@ -683,10 +713,11 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_rank') as string | null
-        if (!value) return <div>-</div>
+        const label = resolveRankLabel(value, rankDict)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
+            {label}
           </Badge>
         )
       },
