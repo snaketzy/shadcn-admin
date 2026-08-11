@@ -91,6 +91,7 @@ export interface CaseGroupsResponse {
   inchargeDict: CaseDictEntry[]
   rankDict: CaseDictEntry[]
   handleTodayDict: CaseDictEntry[]
+  vesselPositionDict: CaseDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -159,6 +160,7 @@ export async function fetchCaseGroups(): Promise<CaseGroupsResponse> {
       inchargeDict: [],
       rankDict: [],
       handleTodayDict: [],
+      vesselPositionDict: [],
     }
   )
 }

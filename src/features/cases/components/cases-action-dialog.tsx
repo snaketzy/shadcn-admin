@@ -330,6 +330,29 @@ export function CasesActionDialog({
     [inquiryTypeOptions]
   )
 
+  const positionOptions = useMemo(() => {
+    return (caseGroupsData?.vesselPositionDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+  }, [caseGroupsData?.vesselPositionDict])
+
+  const resolvePositionLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = positionOptions.find(
+        (o) => o.key.toUpperCase() === p.toUpperCase()
+      )
+      if (hit) return hit.value
+      return p
+    },
+    [positionOptions]
+  )
+
   const inchargeOptions = useMemo(() => {
     return (caseGroupsData?.inchargeDict ?? [])
       .map((d) => ({
@@ -2145,17 +2168,36 @@ export function CasesActionDialog({
                   control={form.control}
                   name='vessel_position'
                   render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
                         船舶位置
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入船舶位置'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value || ''}
+                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
+                      >
+                        {positionOptions.map((o) => (
+                          <FormItem
+                            key={o.key}
+                            className='flex items-center space-y-0'
+                          >
+                            <FormControl>
+                              <RadioGroupItem
+                                value={o.key}
+                                id={`case-position-${o.key}`}
+                              />
+                            </FormControl>
+                            <Label
+                              htmlFor={`case-position-${o.key}`}
+                              className='ms-2 cursor-pointer font-normal select-none'
+                            >
+                              {o.value}
+                            </Label>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
