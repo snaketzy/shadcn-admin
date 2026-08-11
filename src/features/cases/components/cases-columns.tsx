@@ -8,7 +8,18 @@ import { getBadgeColor } from '../data/data'
 import { type Case } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export function getCasesColumns(): ColumnDef<Case>[] {
+export function getCasesColumns(params?: {
+  urgentBMap?: Map<string, string>
+}): ColumnDef<Case>[] {
+  const urgentBMap = params?.urgentBMap
+  const resolveUrgentBLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = urgentBMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
   return [
     {
       id: 'select',
@@ -180,14 +191,18 @@ export function getCasesColumns(): ColumnDef<Case>[] {
       cell: ({ row }) => {
         const value = row.getValue('case_urgent') as string | null
         if (!value) return <div>-</div>
+        const display = resolveUrgentBLabel(value)
         return (
           <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+            {display}
           </Badge>
         )
       },
       meta: {
         label: '紧急案件',
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
       },
       enableSorting: false,
     },
