@@ -220,6 +220,41 @@ export function CasesActionDialog({
     return first ? String(first.dict_key ?? '') : ''
   }, [urgentBRows])
 
+  const { data: vesselPositionCRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-C'],
+    queryFn: () => fetchCaseDictByKeyPrefix('C'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const vesselPositionCOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (vesselPositionCRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [vesselPositionCRows])
+
+  const vesselPositionCKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of vesselPositionCOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [vesselPositionCOptions])
+
+  const resolveVesselPositionCLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = vesselPositionCKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [vesselPositionCKeyToLabel]
+  )
+
   const { data: inqTypeARows = [] } = useQuery({
     queryKey: ['case-dict-prefix-A'],
     queryFn: () => fetchCaseDictByKeyPrefix('A'),
@@ -2015,17 +2050,43 @@ export function CasesActionDialog({
                   control={form.control}
                   name='vessel_position'
                   render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-1 text-end'>
                         船舶位置
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入船舶位置'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
+                          >
+                            {vesselPositionCOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              vesselPositionCOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`vessel_position_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`vessel_position_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}

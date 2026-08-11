@@ -267,6 +267,28 @@ export function CasesTable(_: DataTableProps) {
     return m
   }, [rankDOptions])
 
+  const { data: vesselPositionCRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-C-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('C'),
+    staleTime: 60000,
+  })
+
+  const vesselPositionCOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (vesselPositionCRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [vesselPositionCRowsData])
+
+  const vesselPositionCMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of vesselPositionCOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [vesselPositionCOptions])
+
   const columns = useMemo(
     () =>
       getCasesColumns({
@@ -274,8 +296,9 @@ export function CasesTable(_: DataTableProps) {
         inqTypeAMap,
         inchargeEMap,
         rankDMap,
+        vesselPositionCMap,
       }),
-    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap]
+    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap, vesselPositionCMap]
   )
 
   const urlState = useTableUrlState({
@@ -301,6 +324,7 @@ export function CasesTable(_: DataTableProps) {
       },
       { columnId: 'case_incharge', searchKey: 'caseIncharge', type: 'array' },
       { columnId: 'case_rank', searchKey: 'caseRank', type: 'array' },
+      { columnId: 'vessel_position', searchKey: 'vesselPosition', type: 'array' },
     ],
   })
   const {
@@ -442,6 +466,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const vesselPositionFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselPosition)
+        ? ((search as any).vesselPosition as string[])
+        : [],
+    [search]
+  )
 
   const filteredData: Case[] = useMemo(() => {
     const vesselName = editingVesselName
@@ -501,6 +532,11 @@ export function CasesTable(_: DataTableProps) {
         caseShouldHandleTodayFilter.includes(r.case_should_handle_today ?? '')
       )
     }
+    if (vesselPositionFilter.length > 0) {
+      result = result.filter((r) =>
+        vesselPositionFilter.includes(r.vessel_position ?? '')
+      )
+    }
     return result
   }, [
     allRows,
@@ -512,6 +548,7 @@ export function CasesTable(_: DataTableProps) {
     caseRankFilter,
     caseUrgentFilter,
     caseShouldHandleTodayFilter,
+    vesselPositionFilter,
   ])
 
   const handleResetFilters = () => {
@@ -529,6 +566,7 @@ export function CasesTable(_: DataTableProps) {
         caseRank: undefined,
         caseUrgent: undefined,
         caseShouldHandleToday: undefined,
+        vesselPosition: undefined,
       } as any,
     })
   }
@@ -667,6 +705,14 @@ export function CasesTable(_: DataTableProps) {
                 options={rankDOptions}
               />
             )}
+            {vesselPositionCOptions.length > 0 &&
+              table.getColumn('vessel_position') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('vessel_position')!}
+                  title='船舶位置'
+                  options={vesselPositionCOptions}
+                />
+              )}
           </div>
           {isFiltered && (
             <Button
