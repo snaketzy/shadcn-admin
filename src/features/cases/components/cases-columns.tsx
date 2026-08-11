@@ -18,6 +18,11 @@ export type UrgentDict = {
   dict_value: string | null
 }
 
+export type InquiryTypeDict = {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
 function makeProgressMap(dict: ProgressDict[] | undefined) {
   const keyMap = new Map<string, string>()
   for (const d of dict ?? []) {
@@ -66,9 +71,34 @@ export function resolveUrgentLabel(
   return p
 }
 
+function makeInquiryTypeMap(dict: InquiryTypeDict[] | undefined) {
+  const keyMap = new Map<string, string>()
+  for (const d of dict ?? []) {
+    keyMap.set(
+      String(d.dict_key ?? '').toUpperCase(),
+      String(d.dict_value ?? '')
+    )
+  }
+  return keyMap
+}
+
+export function resolveInquiryTypeLabel(
+  raw: unknown,
+  inquiryTypeDict: InquiryTypeDict[] | undefined
+): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const p = String(raw).trim()
+  if (!p) return ''
+  const keyMap = makeInquiryTypeMap(inquiryTypeDict)
+  const v = keyMap.get(p.toUpperCase())
+  if (v) return v
+  return p
+}
+
 export function getCasesColumns(
   progressDict?: ProgressDict[],
-  urgentDict?: UrgentDict[]
+  urgentDict?: UrgentDict[],
+  inquiryTypeDict?: InquiryTypeDict[]
 ): ColumnDef<Case>[] {
   return [
     {
@@ -256,10 +286,11 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_type') as string | null
-        if (!value) return <div>-</div>
+        const label = resolveInquiryTypeLabel(value, inquiryTypeDict)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
+            {label}
           </Badge>
         )
       },

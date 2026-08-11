@@ -176,10 +176,11 @@ export function CasesTable(_: DataTableProps) {
   const caseRanks = groupsData?.caseRanks ?? []
   const progressDict = groupsData?.progressDict ?? []
   const urgentDict = groupsData?.urgentDict ?? []
+  const inquiryTypeDict = groupsData?.inquiryTypeDict ?? []
 
   const columns = useMemo(
-    () => getCasesColumns(progressDict, urgentDict),
-    [progressDict, urgentDict]
+    () => getCasesColumns(progressDict, urgentDict, inquiryTypeDict),
+    [progressDict, urgentDict, inquiryTypeDict]
   )
 
   const urlState = useTableUrlState({
@@ -509,15 +510,17 @@ export function CasesTable(_: DataTableProps) {
                   }))}
               />
             )}
-            {caseInquiryTypes.length > 0 &&
+            {inquiryTypeDict.length > 0 &&
               table.getColumn('case_inquiry_type') && (
                 <DataTableFacetedFilter
                   column={table.getColumn('case_inquiry_type')!}
                   title='需求類型'
-                  options={caseInquiryTypes.map((s) => ({
-                    label: s,
-                    value: s,
-                  }))}
+                  options={inquiryTypeDict
+                    .filter((d) => d.dict_key && d.dict_value)
+                    .map((d) => ({
+                      label: String(d.dict_value ?? ''),
+                      value: String(d.dict_key ?? ''),
+                    }))}
                 />
               )}
             {caseInCharges.length > 0 && table.getColumn('case_incharge') && (
