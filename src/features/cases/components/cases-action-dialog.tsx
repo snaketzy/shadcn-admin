@@ -179,43 +179,6 @@ export function CasesActionDialog({
   open,
   onOpenChange,
 }: CasesActionDialogProps) {
-  // #region debug-point A:render-count (H1 infinite loop detection)
-  const _dbgRenderRef = useRef(0)
-  const _dbgLastTsRef = useRef(Date.now())
-  ;(() => {
-    const DBG_URL = 'http://127.0.0.1:7777/event'
-    const DBG_SID = 'case-list-nav-freeze'
-    _dbgRenderRef.current += 1
-    const n = _dbgRenderRef.current
-    const now = Date.now()
-    const delta = now - _dbgLastTsRef.current
-    _dbgLastTsRef.current = now
-    const payload = JSON.stringify({
-      sessionId: DBG_SID,
-      runId: 'pre-fix',
-      hypothesisId: 'A',
-      location: 'cases-action-dialog.tsx:162',
-      msg: `[DEBUG] CasesActionDialog render #${n} deltaMs=${delta} open=${open}`,
-      data: { renderN: n, deltaMs: delta, open: !!open, isEdit: !!currentRow },
-      ts: now,
-    })
-    try {
-      if (typeof navigator !== 'undefined' && (navigator as any).sendBeacon) {
-        ;(navigator as any).sendBeacon(
-          DBG_URL,
-          new Blob([payload], { type: 'application/json' })
-        )
-      } else {
-        fetch(DBG_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          keepalive: true,
-          body: payload,
-        }).catch(() => {})
-      }
-    } catch {}
-  })()
-  // #endregion
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
 
@@ -304,34 +267,6 @@ export function CasesActionDialog({
     queryFn: fetchOwnerGroups,
     enabled: open,
     staleTime: 60000,
-    onSettled: (d, err) => {
-      // #region debug-point B:owner-groups-settled (H2 query storm)
-      ;(() => {
-        const DBG_URL = 'http://127.0.0.1:7777/event'
-        const DBG_SID = 'case-list-nav-freeze'
-        const payload = JSON.stringify({
-          sessionId: DBG_SID,
-          runId: 'pre-fix',
-          hypothesisId: 'B',
-          location: 'cases-action-dialog.tsx:ownerGroups useQuery',
-          msg: `[DEBUG] owner-picker-groups onSettled hasData=${!!d} hasError=${!!err}`,
-          data: {
-            keys: d ? Object.keys(d as any).join(',') : null,
-            err: err ? String(err).slice(0, 200) : null,
-          },
-          ts: Date.now(),
-        })
-        try {
-          fetch(DBG_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            keepalive: true,
-            body: payload,
-          }).catch(() => {})
-        } catch {}
-      })()
-      // #endregion
-    },
   })
 
   const { data: contactGroupsData } = useQuery({
@@ -339,34 +274,6 @@ export function CasesActionDialog({
     queryFn: fetchContactGroups,
     enabled: open,
     staleTime: 60000,
-    onSettled: (d, err) => {
-      // #region debug-point B:contact-groups-settled (H2 query storm)
-      ;(() => {
-        const DBG_URL = 'http://127.0.0.1:7777/event'
-        const DBG_SID = 'case-list-nav-freeze'
-        const payload = JSON.stringify({
-          sessionId: DBG_SID,
-          runId: 'pre-fix',
-          hypothesisId: 'B',
-          location: 'cases-action-dialog.tsx:contactGroups useQuery',
-          msg: `[DEBUG] contact-picker-groups onSettled hasData=${!!d} hasError=${!!err}`,
-          data: {
-            keys: d ? Object.keys(d as any).join(',') : null,
-            err: err ? String(err).slice(0, 200) : null,
-          },
-          ts: Date.now(),
-        })
-        try {
-          fetch(DBG_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            keepalive: true,
-            body: payload,
-          }).catch(() => {})
-        } catch {}
-      })()
-      // #endregion
-    },
   })
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
@@ -378,70 +285,6 @@ export function CasesActionDialog({
   const [surveyorPickerOpen, setSurveyorPickerOpen] = useState(false)
   const [progressPopoverOpen, setProgressPopoverOpen] = useState(false)
   const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
-
-  // #region debug-point D:mount-unmount nav-detect (H4 unmount setState)
-  useEffect(() => {
-    const DBG_URL = 'http://127.0.0.1:7777/event'
-    const DBG_SID = 'case-list-nav-freeze'
-    const send = (msg: string, extra?: any) => {
-      try {
-        const payload = JSON.stringify({
-          sessionId: DBG_SID,
-          runId: 'pre-fix',
-          hypothesisId: 'D',
-          location: 'cases-action-dialog.tsx:mount-effect',
-          msg: `[DEBUG] ${msg} path=${location.pathname}`,
-          data: Object.assign(
-            { path: location.pathname, href: location.href },
-            extra || {}
-          ),
-          ts: Date.now(),
-        })
-        if (typeof navigator !== 'undefined' && (navigator as any).sendBeacon) {
-          ;(navigator as any).sendBeacon(
-            DBG_URL,
-            new Blob([payload], { type: 'application/json' })
-          )
-        } else {
-          fetch(DBG_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            keepalive: true,
-            body: payload,
-          }).catch(() => {})
-        }
-      } catch {}
-    }
-    send('CasesActionDialog MOUNT', {
-      ua:
-        typeof navigator !== 'undefined'
-          ? navigator.userAgent.slice(0, 100)
-          : null,
-    })
-    const onPop = () => send('popstate fired (browser back/forward)')
-    const onBeforeUnload = () => send('beforeunload fired')
-    let lastHref = location.href
-    const iv = setInterval(() => {
-      if (location.href !== lastHref) {
-        const old = lastHref
-        lastHref = location.href
-        send('href changed via interval poll', { old, now: lastHref })
-      }
-    }, 100)
-    if (typeof window !== 'undefined') {
-      window.addEventListener('popstate', onPop)
-      window.addEventListener('beforeunload', onBeforeUnload)
-    }
-    return () => {
-      send('CasesActionDialog UNMOUNT cleanup')
-      clearInterval(iv)
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('popstate', onPop)
-        window.removeEventListener('beforeunload', onBeforeUnload)
-      }
-    }
-  }, [])
-  // #endregion
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -806,66 +649,6 @@ export function CasesActionDialog({
     if (byKey) return byKey
     return p
   }
-
-  // #region debug-point C:keymap-identity-stability (H3 dependency chain loop)
-  const _dbgKeymapRef = useRef<{
-    otk?: any
-    odk?: any
-    ork?: any
-    ctk?: any
-    crk?: any
-    cdk?: any
-    rod?: any
-  }>({})
-  ;(() => {
-    const DBG_URL = 'http://127.0.0.1:7777/event'
-    const DBG_SID = 'case-list-nav-freeze'
-    const prev = _dbgKeymapRef.current
-    const changed: Record<string, boolean> = {}
-    changed.ownerTeamKeyMap = prev.otk !== ownerTeamKeyMap
-    changed.ownerDeptKeyMap = prev.odk !== ownerDeptKeyMap
-    changed.ownerRankKeyMap = prev.ork !== ownerRankKeyMap
-    changed.contactTypeKeyMap = prev.ctk !== contactTypeKeyMap
-    changed.contactRankKeyMap = prev.crk !== contactRankKeyMap
-    changed.contactDivisionKeyMap = prev.cdk !== contactDivisionKeyMap
-    prev.otk = ownerTeamKeyMap
-    prev.odk = ownerDeptKeyMap
-    prev.ork = ownerRankKeyMap
-    prev.ctk = contactTypeKeyMap
-    prev.crk = contactRankKeyMap
-    prev.cdk = contactDivisionKeyMap
-    const anyChanged = Object.values(changed).some(Boolean)
-    const payload = JSON.stringify({
-      sessionId: DBG_SID,
-      runId: 'pre-fix',
-      hypothesisId: 'C',
-      location: 'cases-action-dialog.tsx:after-resolveDictLabel',
-      msg: `[DEBUG] keyMap identity stable=${!anyChanged} changes=${JSON.stringify(changed)}`,
-      data: {
-        anyChanged,
-        changed,
-        teamMapSize: ownerTeamKeyMap.size,
-        contactTypeMapSize: contactTypeKeyMap.size,
-      },
-      ts: Date.now(),
-    })
-    try {
-      if (typeof navigator !== 'undefined' && (navigator as any).sendBeacon) {
-        ;(navigator as any).sendBeacon(
-          DBG_URL,
-          new Blob([payload], { type: 'application/json' })
-        )
-      } else {
-        fetch(DBG_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          keepalive: true,
-          body: payload,
-        }).catch(() => {})
-      }
-    } catch {}
-  })()
-  // #endregion
 
   const resolveVesselDisplay = useCallback(
     (
