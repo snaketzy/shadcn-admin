@@ -100,6 +100,7 @@ export async function getCaseListGroups(): Promise<{
   inquiryTypeDict: CaseDictRow[]
   inchargeDict: CaseDictRow[]
   rankDict: CaseDictRow[]
+  handleTodayDict: CaseDictRow[]
 }> {
   const [
     vesselNames,
@@ -155,6 +156,7 @@ export async function getCaseListGroups(): Promise<{
     inquiryTypeDict,
     inchargeDict,
     rankDict,
+    handleTodayDict: urgentDict,
   }
 }
 

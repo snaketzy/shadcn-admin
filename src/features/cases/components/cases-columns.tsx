@@ -33,6 +33,11 @@ export type RankDict = {
   dict_value: string | null
 }
 
+export type HandleTodayDict = {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
 function splitCsv(raw: unknown): string[] {
   if (raw === null || raw === undefined || raw === '') return []
   return String(raw)
@@ -162,12 +167,37 @@ export function resolveRankLabel(
   return p
 }
 
+function makeHandleTodayMap(dict: HandleTodayDict[] | undefined) {
+  const keyMap = new Map<string, string>()
+  for (const d of dict ?? []) {
+    keyMap.set(
+      String(d.dict_key ?? '').toUpperCase(),
+      String(d.dict_value ?? '')
+    )
+  }
+  return keyMap
+}
+
+export function resolveHandleTodayLabel(
+  raw: unknown,
+  handleTodayDict: HandleTodayDict[] | undefined
+): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const p = String(raw).trim()
+  if (!p) return ''
+  const keyMap = makeHandleTodayMap(handleTodayDict)
+  const v = keyMap.get(p.toUpperCase())
+  if (v) return v
+  return p
+}
+
 export function getCasesColumns(
   progressDict?: ProgressDict[],
   urgentDict?: UrgentDict[],
   inquiryTypeDict?: InquiryTypeDict[],
   inchargeDict?: InchargeDict[],
-  rankDict?: RankDict[]
+  rankDict?: RankDict[],
+  handleTodayDict?: HandleTodayDict[]
 ): ColumnDef<Case>[] {
   return [
     {
@@ -420,15 +450,19 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_should_handle_today') as string | null
-        if (!value) return <div>-</div>
+        const label = resolveHandleTodayLabel(value, handleTodayDict)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
+            {label}
           </Badge>
         )
       },
       meta: {
         label: '当日需处理',
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
       },
       enableSorting: false,
     },

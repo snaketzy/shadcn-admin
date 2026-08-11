@@ -179,6 +179,7 @@ export function CasesTable(_: DataTableProps) {
   const inquiryTypeDict = groupsData?.inquiryTypeDict ?? []
   const inchargeDict = groupsData?.inchargeDict ?? []
   const rankDict = groupsData?.rankDict ?? []
+  const handleTodayDict = groupsData?.handleTodayDict ?? []
 
   const columns = useMemo(
     () =>
@@ -187,9 +188,17 @@ export function CasesTable(_: DataTableProps) {
         urgentDict,
         inquiryTypeDict,
         inchargeDict,
-        rankDict
+        rankDict,
+        handleTodayDict
       ),
-    [progressDict, urgentDict, inquiryTypeDict, inchargeDict, rankDict]
+    [
+      progressDict,
+      urgentDict,
+      inquiryTypeDict,
+      inchargeDict,
+      rankDict,
+      handleTodayDict,
+    ]
   )
 
   const urlState = useTableUrlState({
@@ -203,6 +212,11 @@ export function CasesTable(_: DataTableProps) {
       { columnId: 'order_number', searchKey: 'orderNumber', type: 'array' },
       { columnId: 'case_progress', searchKey: 'caseProgress', type: 'array' },
       { columnId: 'case_urgent', searchKey: 'caseUrgent', type: 'array' },
+      {
+        columnId: 'case_should_handle_today',
+        searchKey: 'caseShouldHandleToday',
+        type: 'array',
+      },
       {
         columnId: 'case_inquiry_type',
         searchKey: 'caseInquiryType',
@@ -344,6 +358,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const caseHandleTodayFilter = useMemo(
+    () =>
+      Array.isArray((search as any).caseShouldHandleToday)
+        ? ((search as any).caseShouldHandleToday as string[])
+        : [],
+    [search]
+  )
 
   const filteredData: Case[] = useMemo(() => {
     const vesselName = editingVesselName
@@ -393,6 +414,11 @@ export function CasesTable(_: DataTableProps) {
         caseUrgentFilter.includes(r.case_urgent ?? '')
       )
     }
+    if (caseHandleTodayFilter.length > 0) {
+      result = result.filter((r) =>
+        caseHandleTodayFilter.includes(r.case_should_handle_today ?? '')
+      )
+    }
     return result
   }, [
     allRows,
@@ -403,6 +429,7 @@ export function CasesTable(_: DataTableProps) {
     caseInchargeFilter,
     caseRankFilter,
     caseUrgentFilter,
+    caseHandleTodayFilter,
   ])
 
   const handleResetFilters = () => {
@@ -416,6 +443,7 @@ export function CasesTable(_: DataTableProps) {
         orderNumber: undefined,
         caseProgress: undefined,
         caseUrgent: undefined,
+        caseShouldHandleToday: undefined,
         caseInquiryType: undefined,
         caseIncharge: undefined,
         caseRank: undefined,
@@ -561,6 +589,19 @@ export function CasesTable(_: DataTableProps) {
                   }))}
               />
             )}
+            {handleTodayDict.length > 0 &&
+              table.getColumn('case_should_handle_today') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_should_handle_today')!}
+                  title='当日需处理'
+                  options={handleTodayDict
+                    .filter((d) => d.dict_key && d.dict_value)
+                    .map((d) => ({
+                      label: String(d.dict_value ?? ''),
+                      value: String(d.dict_key ?? ''),
+                    }))}
+                />
+              )}
             {rankDict.length > 0 && table.getColumn('case_rank') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_rank')!}

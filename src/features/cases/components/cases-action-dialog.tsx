@@ -239,6 +239,27 @@ export function CasesActionDialog({
     [rankOptions]
   )
 
+  const handleTodayOptions = useMemo(() => {
+    const opts = (caseGroupsData?.handleTodayDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+    if (
+      !opts.some((o) => o.value.toUpperCase() === 'NO') &&
+      opts.length === 0
+    ) {
+      opts.unshift({ key: 'NO', value: 'NO' })
+    }
+    return opts
+  }, [caseGroupsData?.handleTodayDict])
+
+  const defaultHandleTodayKey = useMemo(() => {
+    const noOpt = handleTodayOptions.find((o) => o.value.toUpperCase() === 'NO')
+    return noOpt?.key ?? handleTodayOptions[0]?.key ?? ''
+  }, [handleTodayOptions])
+
   const resolveUrgentLabel = useCallback(
     (raw: unknown): string => {
       if (raw === null || raw === undefined || raw === '') return ''
@@ -333,7 +354,8 @@ export function CasesActionDialog({
         case_inquiry_date: currentRow.case_inquiry_date ?? '',
         case_follow_date: currentRow.case_follow_date ?? '',
         case_uptodate_date: currentRow.case_uptodate_date ?? '',
-        case_should_handle_today: currentRow.case_should_handle_today ?? '',
+        case_should_handle_today:
+          currentRow.case_should_handle_today ?? defaultHandleTodayKey,
         owner_following: currentRow.owner_following ?? '',
         shipyard_business: currentRow.shipyard_business ?? '',
         case_agent: currentRow.case_agent ?? '',
@@ -368,7 +390,7 @@ export function CasesActionDialog({
         case_inquiry_date: '',
         case_follow_date: '',
         case_uptodate_date: '',
-        case_should_handle_today: '',
+        case_should_handle_today: defaultHandleTodayKey,
         owner_following: '',
         shipyard_business: '',
         case_agent: '',
@@ -442,6 +464,18 @@ export function CasesActionDialog({
       shouldValidate: false,
     })
   }, [defaultUrgentKey, open, isEdit, urgentOptions, form])
+
+  useEffect(() => {
+    if (!open || isEdit) return
+    if (!defaultHandleTodayKey) return
+    const current = form.getValues('case_should_handle_today')
+    const validKeys = new Set(handleTodayOptions.map((o) => o.key))
+    if (current && validKeys.has(current)) return
+    form.setValue('case_should_handle_today', defaultHandleTodayKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [defaultHandleTodayKey, open, isEdit, handleTodayOptions, form])
 
   const handleVesselPicked = useCallback(
     (r: VesselPickerResult) => {
@@ -999,13 +1033,32 @@ export function CasesActionDialog({
                       <FormLabel className='col-span-2 text-end'>
                         当日需处理
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入当日需处理标识'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
+                      >
+                        {handleTodayOptions.map((o) => (
+                          <FormItem
+                            key={o.key}
+                            className='flex items-center space-y-0'
+                          >
+                            <FormControl>
+                              <RadioGroupItem
+                                value={o.key}
+                                id={`case-handle-today-${o.key}`}
+                              />
+                            </FormControl>
+                            <Label
+                              htmlFor={`case-handle-today-${o.key}`}
+                              className='ms-2 cursor-pointer font-normal select-none'
+                            >
+                              {o.value}
+                            </Label>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
