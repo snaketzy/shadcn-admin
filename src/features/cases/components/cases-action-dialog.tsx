@@ -4,7 +4,15 @@ import { useForm } from 'react-hook-form'
 import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { Search, X, Ship, UserRound, Factory, Briefcase } from 'lucide-react'
+import {
+  Search,
+  X,
+  Ship,
+  UserRound,
+  Factory,
+  Briefcase,
+  Cog,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -63,6 +71,10 @@ import {
   OwnerPickerDialog,
   type OwnerPickerResult,
 } from '@/features/owners/components/owner-picker-dialog'
+import {
+  SuperintendentPickerDialog,
+  type SuperintendentPickerResult,
+} from '@/features/owners/components/superintendent-picker-dialog'
 import {
   fetchVesselAll,
   fetchVesselGroups,
@@ -174,10 +186,25 @@ export function CasesActionDialog({
     }, []),
   })
 
+  const { data: superintendentRows = [] } = useQuery({
+    queryKey: ['superintendent-picker-all'],
+    queryFn: fetchOwnerAll,
+    enabled: open,
+    staleTime: 60000,
+    select: useCallback((rows: Owner[]) => {
+      return rows.filter((r) => {
+        const t = String(r.owner_department ?? '').trim()
+        return t.toUpperCase() === 'F1' || t === 'F1' || t.includes('F1')
+      })
+    }, []),
+  })
+
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
   const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
   const [shipyardPickerOpen, setShipyardPickerOpen] = useState(false)
   const [agentPickerOpen, setAgentPickerOpen] = useState(false)
+  const [superintendentPickerOpen, setSuperintendentPickerOpen] =
+    useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -210,6 +237,14 @@ export function CasesActionDialog({
     }
     return map
   }, [agentRows])
+
+  const superintendentNameMap = useMemo(() => {
+    const map = new Map<string, Owner>()
+    for (const v of superintendentRows as Owner[]) {
+      if (v.owner_name) map.set(String(v.owner_name), v)
+    }
+    return map
+  }, [superintendentRows])
 
   const { data: caseGroupsData } = useQuery({
     queryKey: ['case-list-groups'],
@@ -556,6 +591,50 @@ export function CasesActionDialog({
     [agentNameMap]
   )
 
+  const resolveSuperintendentDisplay = useCallback(
+    (
+      ownerName: string | null | undefined
+    ): {
+      name: string
+      phone: string
+      email: string
+      team: string
+      department: string
+      rank: string
+    } => {
+      const name = ownerName ?? ''
+      if (!name)
+        return {
+          name: '',
+          phone: '',
+          email: '',
+          team: '',
+          department: '',
+          rank: '',
+        }
+      const v = superintendentNameMap.get(name)
+      if (v) {
+        return {
+          name: v.owner_name ?? '',
+          phone: v.owner_phone ?? '',
+          email: v.owner_email ?? '',
+          team: v.owner_team ?? '',
+          department: v.owner_department ?? '',
+          rank: v.owner_rank ?? '',
+        }
+      }
+      return {
+        name,
+        phone: '',
+        email: '',
+        team: '',
+        department: '',
+        rank: '',
+      }
+    },
+    [superintendentNameMap]
+  )
+
   const defaultValues = isEdit
     ? {
         vessel_name: currentRow.vessel_name ?? '',
@@ -636,6 +715,7 @@ export function CasesActionDialog({
   const formOwnerFollowing = form.watch('owner_following')
   const formShipyardBusiness = form.watch('shipyard_business')
   const formCaseAgent = form.watch('case_agent')
+  const formCaseSuperintendent = form.watch('case_superintendent')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
@@ -652,6 +732,10 @@ export function CasesActionDialog({
   const agentDisplay = useMemo(() => {
     return resolveAgentDisplay(formCaseAgent ?? '')
   }, [formCaseAgent, resolveAgentDisplay])
+
+  const superintendentDisplay = useMemo(() => {
+    return resolveSuperintendentDisplay(formCaseSuperintendent ?? '')
+  }, [formCaseSuperintendent, resolveSuperintendentDisplay])
 
   useEffect(() => {
     const parts = [
@@ -769,6 +853,23 @@ export function CasesActionDialog({
 
   const handleClearAgent = useCallback(() => {
     form.setValue('case_agent', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleSuperintendentPicked = useCallback(
+    (r: SuperintendentPickerResult) => {
+      form.setValue('case_superintendent', r.owner_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearSuperintendent = useCallback(() => {
+    form.setValue('case_superintendent', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1749,18 +1850,90 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_superintendent'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         案件机务
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件机务'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击输入框从案件机务列表中选择...'
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={field.value || ''}
+                              onClick={() => setSuperintendentPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setSuperintendentPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                              {field.value ? (
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  type='button'
+                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearSuperintendent()
+                                  }}
+                                  aria-label='清空案件机务'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择案件机务'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Cog className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(superintendentDisplay.phone ||
+                          superintendentDisplay.email ||
+                          superintendentDisplay.team ||
+                          superintendentDisplay.department ||
+                          superintendentDisplay.rank) && (
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                            {superintendentDisplay.phone && (
+                              <div>电话：{superintendentDisplay.phone}</div>
+                            )}
+                            {superintendentDisplay.email && (
+                              <div>邮箱：{superintendentDisplay.email}</div>
+                            )}
+                            {superintendentDisplay.team && (
+                              <div>小组：{superintendentDisplay.team}</div>
+                            )}
+                            {superintendentDisplay.department && (
+                              <div>
+                                部门：{superintendentDisplay.department}
+                              </div>
+                            )}
+                            {superintendentDisplay.rank && (
+                              <div>职级：{superintendentDisplay.rank}</div>
+                            )}
+                          </div>
+                        )}
+                        {field.value && !superintendentDisplay.name && (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            案件机务：{field.value}
+                            （未找到对应案件机务详情，将直接保存）
+                          </p>
+                        )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1927,6 +2100,13 @@ export function CasesActionDialog({
         onOpenChange={setAgentPickerOpen}
         initialSelectedName={form.getValues('case_agent') || undefined}
         onSelect={handleAgentPicked}
+      />
+
+      <SuperintendentPickerDialog
+        open={superintendentPickerOpen}
+        onOpenChange={setSuperintendentPickerOpen}
+        initialSelectedName={form.getValues('case_superintendent') || undefined}
+        onSelect={handleSuperintendentPicked}
       />
     </>
   )
