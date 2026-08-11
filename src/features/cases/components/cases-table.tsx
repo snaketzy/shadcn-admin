@@ -290,6 +290,11 @@ export function CasesTable(_: DataTableProps) {
       { columnId: 'case_progress', searchKey: 'caseProgress', type: 'array' },
       { columnId: 'case_urgent', searchKey: 'caseUrgent', type: 'array' },
       {
+        columnId: 'case_should_handle_today',
+        searchKey: 'caseShouldHandleToday',
+        type: 'array',
+      },
+      {
         columnId: 'case_inquiry_type',
         searchKey: 'caseInquiryType',
         type: 'array',
@@ -430,6 +435,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const caseShouldHandleTodayFilter = useMemo(
+    () =>
+      Array.isArray((search as any).caseShouldHandleToday)
+        ? ((search as any).caseShouldHandleToday as string[])
+        : [],
+    [search]
+  )
 
   const filteredData: Case[] = useMemo(() => {
     const vesselName = editingVesselName
@@ -479,6 +491,16 @@ export function CasesTable(_: DataTableProps) {
     if (caseRankFilter.length > 0) {
       result = result.filter((r) => caseRankFilter.includes(r.case_rank ?? ''))
     }
+    if (caseUrgentFilter.length > 0) {
+      result = result.filter((r) =>
+        caseUrgentFilter.includes(r.case_urgent ?? '')
+      )
+    }
+    if (caseShouldHandleTodayFilter.length > 0) {
+      result = result.filter((r) =>
+        caseShouldHandleTodayFilter.includes(r.case_should_handle_today ?? '')
+      )
+    }
     return result
   }, [
     allRows,
@@ -488,6 +510,8 @@ export function CasesTable(_: DataTableProps) {
     caseInquiryTypeFilter,
     caseInchargeFilter,
     caseRankFilter,
+    caseUrgentFilter,
+    caseShouldHandleTodayFilter,
   ])
 
   const handleResetFilters = () => {
@@ -503,6 +527,8 @@ export function CasesTable(_: DataTableProps) {
         caseInquiryType: undefined,
         caseIncharge: undefined,
         caseRank: undefined,
+        caseUrgent: undefined,
+        caseShouldHandleToday: undefined,
       } as any,
     })
   }
@@ -610,6 +636,14 @@ export function CasesTable(_: DataTableProps) {
                 options={urgentBOptions}
               />
             )}
+            {urgentBOptions.length > 0 &&
+              table.getColumn('case_should_handle_today') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_should_handle_today')!}
+                  title='当日需处理'
+                  options={urgentBOptions}
+                />
+              )}
             {inqTypeAOptions.length > 0 &&
               table.getColumn('case_inquiry_type') && (
                 <DataTableFacetedFilter

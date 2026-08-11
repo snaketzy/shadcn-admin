@@ -404,7 +404,7 @@ export function CasesActionDialog({
         case_inquiry_date: '',
         case_follow_date: '',
         case_uptodate_date: '',
-        case_should_handle_today: '',
+        case_should_handle_today: defaultUrgentBNoKey,
         owner_following: '',
         shipyard_business: '',
         case_agent: '',
@@ -474,6 +474,18 @@ export function CasesActionDialog({
     const cur = form.getValues('case_urgent')
     if (cur && String(cur).trim() !== '') return
     form.setValue('case_urgent', defaultUrgentBNoKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultUrgentBNoKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_should_handle_today')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_should_handle_today', defaultUrgentBNoKey, {
       shouldDirty: false,
       shouldValidate: false,
     })
@@ -1020,16 +1032,42 @@ export function CasesActionDialog({
                   name='case_should_handle_today'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                      <FormLabel className='col-span-2 pt-1 text-end'>
                         当日需处理
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入当日需处理标识'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
+                          >
+                            {urgentBOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              urgentBOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`case_should_handle_today_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`case_should_handle_today_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}

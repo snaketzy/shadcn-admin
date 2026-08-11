@@ -318,14 +318,18 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('case_should_handle_today') as string | null
         if (!value) return <div>-</div>
+        const display = resolveUrgentBLabel(value)
         return (
           <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+            {display}
           </Badge>
         )
       },
       meta: {
         label: '当日需处理',
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
       },
       enableSorting: false,
     },
