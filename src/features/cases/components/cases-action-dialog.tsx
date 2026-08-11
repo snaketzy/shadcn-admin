@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { Search, X, Ship, UserRound, Factory } from 'lucide-react'
+import { Search, X, Ship, UserRound, Factory, Briefcase } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -50,6 +50,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
+import {
+  AgentPickerDialog,
+  type AgentPickerResult,
+} from '@/features/contacts/components/agent-picker-dialog'
 import {
   ShipyardPickerDialog,
   type ShipyardPickerResult,
@@ -157,9 +161,23 @@ export function CasesActionDialog({
     }, []),
   })
 
+  const { data: agentRows = [] } = useQuery({
+    queryKey: ['agent-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+    select: useCallback((rows: Contact[]) => {
+      return rows.filter((r) => {
+        const t = String(r.contact_type ?? '').trim()
+        return t.toUpperCase() === 'J1' || t === 'J1' || t.includes('J1')
+      })
+    }, []),
+  })
+
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
   const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
   const [shipyardPickerOpen, setShipyardPickerOpen] = useState(false)
+  const [agentPickerOpen, setAgentPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -184,6 +202,14 @@ export function CasesActionDialog({
     }
     return map
   }, [shipyardRows])
+
+  const agentNameMap = useMemo(() => {
+    const map = new Map<string, Contact>()
+    for (const v of agentRows as Contact[]) {
+      if (v.contact_name) map.set(String(v.contact_name), v)
+    }
+    return map
+  }, [agentRows])
 
   const { data: caseGroupsData } = useQuery({
     queryKey: ['case-list-groups'],
@@ -482,6 +508,54 @@ export function CasesActionDialog({
     [shipyardNameMap]
   )
 
+  const resolveAgentDisplay = useCallback(
+    (
+      contactName: string | null | undefined
+    ): {
+      name: string
+      mobile: string
+      email: string
+      type: string
+      rank: string
+      division: string
+      remark: string
+    } => {
+      const name = contactName ?? ''
+      if (!name)
+        return {
+          name: '',
+          mobile: '',
+          email: '',
+          type: '',
+          rank: '',
+          division: '',
+          remark: '',
+        }
+      const v = agentNameMap.get(name)
+      if (v) {
+        return {
+          name: v.contact_name ?? '',
+          mobile: v.contact_mobile ?? '',
+          email: v.contact_email ?? '',
+          type: v.contact_type ?? '',
+          rank: v.contact_rank ?? '',
+          division: v.contact_division_type ?? '',
+          remark: v.contact_remark ?? '',
+        }
+      }
+      return {
+        name,
+        mobile: '',
+        email: '',
+        type: '',
+        rank: '',
+        division: '',
+        remark: '',
+      }
+    },
+    [agentNameMap]
+  )
+
   const defaultValues = isEdit
     ? {
         vessel_name: currentRow.vessel_name ?? '',
@@ -561,6 +635,7 @@ export function CasesActionDialog({
   const formInquiryDate = form.watch('case_inquiry_date')
   const formOwnerFollowing = form.watch('owner_following')
   const formShipyardBusiness = form.watch('shipyard_business')
+  const formCaseAgent = form.watch('case_agent')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
@@ -573,6 +648,10 @@ export function CasesActionDialog({
   const shipyardDisplay = useMemo(() => {
     return resolveShipyardDisplay(formShipyardBusiness ?? '')
   }, [formShipyardBusiness, resolveShipyardDisplay])
+
+  const agentDisplay = useMemo(() => {
+    return resolveAgentDisplay(formCaseAgent ?? '')
+  }, [formCaseAgent, resolveAgentDisplay])
 
   useEffect(() => {
     const parts = [
@@ -673,6 +752,23 @@ export function CasesActionDialog({
 
   const handleClearShipyard = useCallback(() => {
     form.setValue('shipyard_business', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleAgentPicked = useCallback(
+    (r: AgentPickerResult) => {
+      form.setValue('case_agent', r.contact_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearAgent = useCallback(() => {
+    form.setValue('case_agent', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1564,18 +1660,88 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_agent'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         案件代理
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件代理'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击输入框从案件代理列表中选择...'
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={field.value || ''}
+                              onClick={() => setAgentPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setAgentPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                              {field.value ? (
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  type='button'
+                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearAgent()
+                                  }}
+                                  aria-label='清空案件代理'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择案件代理'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(agentDisplay.mobile ||
+                          agentDisplay.email ||
+                          agentDisplay.type ||
+                          agentDisplay.rank ||
+                          agentDisplay.division) && (
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                            {agentDisplay.mobile && (
+                              <div>手机：{agentDisplay.mobile}</div>
+                            )}
+                            {agentDisplay.email && (
+                              <div>邮箱：{agentDisplay.email}</div>
+                            )}
+                            {agentDisplay.type && (
+                              <div>类型：{agentDisplay.type}</div>
+                            )}
+                            {agentDisplay.division && (
+                              <div>业务归属：{agentDisplay.division}</div>
+                            )}
+                            {agentDisplay.rank && (
+                              <div>职级：{agentDisplay.rank}</div>
+                            )}
+                          </div>
+                        )}
+                        {field.value && !agentDisplay.name && (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            案件代理：{field.value}
+                            （未找到对应案件代理详情，将直接保存）
+                          </p>
+                        )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1754,6 +1920,13 @@ export function CasesActionDialog({
         onOpenChange={setShipyardPickerOpen}
         initialSelectedName={form.getValues('shipyard_business') || undefined}
         onSelect={handleShipyardPicked}
+      />
+
+      <AgentPickerDialog
+        open={agentPickerOpen}
+        onOpenChange={setAgentPickerOpen}
+        initialSelectedName={form.getValues('case_agent') || undefined}
+        onSelect={handleAgentPicked}
       />
     </>
   )
