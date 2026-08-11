@@ -69,6 +69,11 @@ export interface Case {
   case_rank: string | null
 }
 
+export interface CaseDictEntry {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
 export interface CaseGroupsResponse {
   vesselNames: string[]
   invoiceNumbers: string[]
@@ -77,6 +82,12 @@ export interface CaseGroupsResponse {
   caseInquiryTypes: string[]
   caseInCharges: string[]
   caseRanks: string[]
+  progressDict?: CaseDictEntry[]
+  rankDict?: CaseDictEntry[]
+  inqTypeADict?: CaseDictEntry[]
+  inchargeDict?: CaseDictEntry[]
+  inqTypeQDict?: CaseDictEntry[]
+  positionDict?: CaseDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -132,6 +143,12 @@ export async function fetchCaseGroups(): Promise<CaseGroupsResponse> {
     caseInquiryTypes: [],
     caseInCharges: [],
     caseRanks: [],
+    progressDict: [],
+    rankDict: [],
+    inqTypeADict: [],
+    inchargeDict: [],
+    inqTypeQDict: [],
+    positionDict: [],
   }
 }
 

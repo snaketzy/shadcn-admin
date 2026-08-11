@@ -1,10 +1,16 @@
 import { query, execute, type ExecuteValues } from './db'
+import { getCaseDictByKeyPrefix } from './case-dict-service'
 import {
   auditInsert,
   auditUpdate,
   auditDelete,
   auditBulkDelete,
 } from './log-list-service'
+
+export interface CaseDictEntry {
+  dict_key: string
+  dict_value: string
+}
 
 export interface CaseListRow {
   case_id: number
@@ -94,6 +100,12 @@ export async function getCaseListGroups(): Promise<{
   caseInquiryTypes: string[]
   caseInCharges: string[]
   caseRanks: string[]
+  progressDict: CaseDictEntry[]
+  rankDict: CaseDictEntry[]
+  inqTypeADict: CaseDictEntry[]
+  inchargeDict: CaseDictEntry[]
+  inqTypeQDict: CaseDictEntry[]
+  positionDict: CaseDictEntry[]
 }> {
   const [
     vesselNames,
@@ -103,6 +115,12 @@ export async function getCaseListGroups(): Promise<{
     caseInquiryTypes,
     caseInCharges,
     caseRanks,
+    progressRows,
+    rankRows,
+    inqTypeARows,
+    inchargeRows,
+    inqTypeQRows,
+    positionRows,
   ] = await Promise.all([
     query<{ vessel_name: string | null }[]>(
       "SELECT DISTINCT vessel_name FROM `case_list` WHERE vessel_name IS NOT NULL AND vessel_name <> '' ORDER BY vessel_name"
@@ -125,6 +143,12 @@ export async function getCaseListGroups(): Promise<{
     query<{ case_rank: string | null }[]>(
       "SELECT DISTINCT case_rank FROM `case_list` WHERE case_rank IS NOT NULL AND case_rank <> '' ORDER BY case_rank"
     ),
+    getCaseDictByKeyPrefix('R'),
+    getCaseDictByKeyPrefix('D'),
+    getCaseDictByKeyPrefix('A'),
+    getCaseDictByKeyPrefix('E'),
+    getCaseDictByKeyPrefix('Q'),
+    getCaseDictByKeyPrefix('C'),
   ])
   return {
     vesselNames: flattenUnique(vesselNames.map((r) => r.vessel_name)),
@@ -134,6 +158,30 @@ export async function getCaseListGroups(): Promise<{
     caseInquiryTypes: flattenUnique(caseInquiryTypes.map((r) => r.case_inquiry_type)),
     caseInCharges: flattenUnique(caseInCharges.map((r) => r.case_incharge)),
     caseRanks: flattenUnique(caseRanks.map((r) => r.case_rank)),
+    progressDict: progressRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    rankDict: rankRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    inqTypeADict: inqTypeARows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    inchargeDict: inchargeRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    inqTypeQDict: inqTypeQRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    positionDict: positionRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
   }
 }
 
