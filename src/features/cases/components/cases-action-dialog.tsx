@@ -1536,15 +1536,15 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
-                  name='order_number'
+                  name='case_inquiry_keyword'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
-                        订单编号
+                        需求编号/名称
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder='请输入订单编号'
+                          placeholder='请输入需求编号/名称'
                           className='col-span-4'
                           {...field}
                         />
@@ -1555,15 +1555,15 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
-                  name='case_inquiry_keyword'
+                  name='order_number'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
-                        需求编号/名称
+                        订单编号
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder='请输入需求编号/名称'
+                          placeholder='请输入订单编号'
                           className='col-span-4'
                           {...field}
                         />
