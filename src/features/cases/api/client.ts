@@ -92,6 +92,7 @@ export interface CaseGroupsResponse {
   rankDict: CaseDictEntry[]
   handleTodayDict: CaseDictEntry[]
   vesselPositionDict: CaseDictEntry[]
+  inqTypeQDict: CaseDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -161,6 +162,7 @@ export async function fetchCaseGroups(): Promise<CaseGroupsResponse> {
       rankDict: [],
       handleTodayDict: [],
       vesselPositionDict: [],
+      inqTypeQDict: [],
     }
   )
 }
@@ -256,11 +258,9 @@ export async function deleteCaseBulk(caseIds: number[]): Promise<number> {
 export interface CaseInquiry {
   inquiry_id: number
   case_id: number
-  inquiry_date: string | null
-  inquiry_channel: string | null
-  inquiry_content: string | null
-  inquiry_staff: string | null
-  inquiry_remark: string | null
+  case_inquiry_division_id: number | null
+  case_inquiry_type: string | null
+  case_inquired_date: string | null
 }
 
 export async function fetchCaseInquiryListByCaseId(

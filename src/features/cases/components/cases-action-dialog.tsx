@@ -98,6 +98,10 @@ import {
   type SuperintendentPickerResult,
 } from '@/features/owners/components/superintendent-picker-dialog'
 import {
+  fetchSupplierAll,
+  type Supplier,
+} from '@/features/suppliers/api/client'
+import {
   fetchVesselAll,
   fetchVesselGroups,
   type Vessel,
@@ -286,6 +290,13 @@ export function CasesActionDialog({
         return t.toUpperCase() === 'F1' || t === 'F1' || t.includes('F1')
       })
     }, []),
+  })
+
+  const { data: supplierRows = [] } = useQuery({
+    queryKey: ['supplier-picker-all'],
+    queryFn: fetchSupplierAll,
+    enabled: open,
+    staleTime: 60000,
   })
 
   const { data: ownerGroupsData } = useQuery({
@@ -480,6 +491,14 @@ export function CasesActionDialog({
     return map
   }, [surveyorRows])
 
+  const supplierIdMap = useMemo(() => {
+    const map = new Map<number, Supplier>()
+    for (const v of supplierRows as Supplier[]) {
+      if (v.supplier_id != null) map.set(Number(v.supplier_id), v)
+    }
+    return map
+  }, [supplierRows])
+
   const { data: caseGroupsData } = useQuery({
     queryKey: ['case-list-groups'],
     queryFn: fetchCaseGroups,
@@ -571,6 +590,46 @@ export function CasesActionDialog({
     },
     [positionOptions]
   )
+
+  const inqTypeQOptions = useMemo(() => {
+    return (caseGroupsData?.inqTypeQDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+  }, [caseGroupsData?.inqTypeQDict])
+
+  const resolveInqTypeQLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inqTypeQOptions.find(
+        (o) => o.key.toUpperCase() === p.toUpperCase()
+      )
+      if (hit) return hit.value
+      return p
+    },
+    [inqTypeQOptions]
+  )
+
+  const formatInquiredDate = useCallback((raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const s = String(raw).trim()
+    if (!s) return ''
+    const m = s.match(/^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})/)
+    if (m) {
+      const y = m[1]
+      const mo = String(m[2]).padStart(2, '0')
+      const d = String(m[3]).padStart(2, '0')
+      return `${y}-${mo}-${d}`
+    }
+    if (/^\d{8}$/.test(s)) {
+      return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+    }
+    return s
+  }, [])
 
   const inchargeOptions = useMemo(() => {
     return (caseGroupsData?.inchargeDict ?? [])
@@ -2088,37 +2147,44 @@ export function CasesActionDialog({
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className='w-[120px]'>询价日期</TableHead>
-                          <TableHead className='w-[140px]'>询价渠道</TableHead>
-                          <TableHead>询价内容</TableHead>
-                          <TableHead className='w-[140px]'>询价人员</TableHead>
-                          <TableHead className='w-[160px]'>备注</TableHead>
+                          <TableHead>单位名称</TableHead>
+                          <TableHead className='w-[180px]'>询价阶段</TableHead>
+                          <TableHead className='w-[140px]'>询价日期</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {inquiryRows.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={5}
+                              colSpan={3}
                               className='h-24 text-center text-sm text-muted-foreground'
                             >
                               暂无询价记录，点击右上角「新增询价」添加
                             </TableCell>
                           </TableRow>
                         ) : (
-                          inquiryRows.map((r) => (
-                            <TableRow key={r.inquiry_id}>
-                              <TableCell>{r.inquiry_date || '-'}</TableCell>
-                              <TableCell>{r.inquiry_channel || '-'}</TableCell>
-                              <TableCell className='max-w-md truncate'>
-                                {r.inquiry_content || '-'}
-                              </TableCell>
-                              <TableCell>{r.inquiry_staff || '-'}</TableCell>
-                              <TableCell className='max-w-xs truncate'>
-                                {r.inquiry_remark || '-'}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                          inquiryRows.map((r) => {
+                            const supplier =
+                              r.case_inquiry_division_id != null
+                                ? supplierIdMap.get(
+                                    Number(r.case_inquiry_division_id)
+                                  )
+                                : undefined
+                            const supplierName = supplier?.supplier_name ?? ''
+                            const inqType = resolveInqTypeQLabel(
+                              r.case_inquiry_type
+                            )
+                            const inqDate = formatInquiredDate(
+                              r.case_inquired_date
+                            )
+                            return (
+                              <TableRow key={r.inquiry_id}>
+                                <TableCell>{supplierName || '-'}</TableCell>
+                                <TableCell>{inqType || '-'}</TableCell>
+                                <TableCell>{inqDate || '-'}</TableCell>
+                              </TableRow>
+                            )
+                          })
                         )}
                       </TableBody>
                     </Table>
