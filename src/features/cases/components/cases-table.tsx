@@ -245,9 +245,37 @@ export function CasesTable(_: DataTableProps) {
     return m
   }, [inchargeEOptions])
 
+  const { data: rankDRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-D-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('D'),
+    staleTime: 60000,
+  })
+
+  const rankDOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (rankDRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [rankDRowsData])
+
+  const rankDMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of rankDOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [rankDOptions])
+
   const columns = useMemo(
-    () => getCasesColumns({ urgentBMap, inqTypeAMap, inchargeEMap }),
-    [urgentBMap, inqTypeAMap, inchargeEMap]
+    () =>
+      getCasesColumns({
+        urgentBMap,
+        inqTypeAMap,
+        inchargeEMap,
+        rankDMap,
+      }),
+    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap]
   )
 
   const urlState = useTableUrlState({
@@ -598,11 +626,11 @@ export function CasesTable(_: DataTableProps) {
                   options={inchargeEOptions}
                 />
               )}
-            {caseRanks.length > 0 && table.getColumn('case_rank') && (
+            {rankDOptions.length > 0 && table.getColumn('case_rank') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_rank')!}
                 title='案件评级'
-                options={caseRanks.map((s) => ({ label: s, value: s }))}
+                options={rankDOptions}
               />
             )}
           </div>

@@ -3,10 +3,19 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { Search, X, Ship } from 'lucide-react'
+import { Search, X, Ship, ChevronsUpDown, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   Dialog,
   DialogContent,
@@ -25,6 +34,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -241,6 +255,43 @@ export function CasesActionDialog({
     },
     [inchargeEKeyToLabel]
   )
+
+  const { data: rankDRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-D'],
+    queryFn: () => fetchCaseDictByKeyPrefix('D'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const rankDOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (rankDRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [rankDRows])
+
+  const rankDKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of rankDOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [rankDOptions])
+
+  const resolveRankDLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = rankDKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [rankDKeyToLabel]
+  )
+
+  const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
 
@@ -871,21 +922,98 @@ export function CasesActionDialog({
                 <FormField
                   control={form.control}
                   name='case_rank'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件评级
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件评级'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const rawVal = field.value ?? ''
+                    const displayLabel =
+                      rawVal && rawVal.trim() !== ''
+                        ? resolveRankDLabel(rawVal)
+                        : ''
+                    return (
+                      <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                        <FormLabel className='col-span-2 pt-1 text-end'>
+                          案件评级
+                        </FormLabel>
+                        <div className='col-span-4'>
+                          <Popover
+                            open={rankPopoverOpen}
+                            onOpenChange={setRankPopoverOpen}
+                          >
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant='outline'
+                                  role='combobox'
+                                  aria-expanded={rankPopoverOpen}
+                                  className='w-full justify-between'
+                                >
+                                  {displayLabel ? (
+                                    <span className='truncate'>
+                                      {displayLabel}
+                                    </span>
+                                  ) : (
+                                    <span className='text-muted-foreground'>
+                                      请选择案件评级
+                                    </span>
+                                  )}
+                                  <div className='flex items-center gap-1'>
+                                    {displayLabel ? (
+                                      <X
+                                        className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          field.onChange('')
+                                        }}
+                                      />
+                                    ) : null}
+                                    <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                                  </div>
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+                              <Command>
+                                <CommandInput placeholder='搜索案件评级...' />
+                                <CommandList>
+                                  <CommandEmpty>未找到匹配项</CommandEmpty>
+                                  <CommandGroup>
+                                    {rankDOptions.map((o) => {
+                                      const selected =
+                                        rawVal &&
+                                        rawVal.trim().toUpperCase() ===
+                                          String(o.value).toUpperCase()
+                                      return (
+                                        <CommandItem
+                                          key={o.value}
+                                          value={`${o.label} ${o.value}`}
+                                          onSelect={() => {
+                                            field.onChange(o.value)
+                                            queueMicrotask(() =>
+                                              setRankPopoverOpen(false)
+                                            )
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'mr-2 h-4 w-4',
+                                              selected
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                          <span>{o.label}</span>
+                                        </CommandItem>
+                                      )
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <FormMessage className='col-span-4 col-start-3' />
+                      </FormItem>
+                    )
+                  }}
                 />
                 <FormField
                   control={form.control}

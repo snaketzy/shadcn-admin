@@ -12,10 +12,12 @@ export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
+  rankDMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
+  const rankDMap = params?.rankDMap
   const resolveUrgentBLabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''
     const p = String(raw).trim()
@@ -37,6 +39,14 @@ export function getCasesColumns(params?: {
     const p = String(raw).trim()
     if (!p) return ''
     const hit = inchargeEMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
+  const resolveRankDLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = rankDMap?.get(p.toUpperCase())
     if (hit) return hit
     return p
   }
@@ -595,9 +605,10 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('case_rank') as string | null
         if (!value) return <div>-</div>
+        const display = resolveRankDLabel(value)
         return (
           <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+            {display}
           </Badge>
         )
       },
