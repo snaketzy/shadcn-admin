@@ -11,7 +11,6 @@ import {
   ChevronsUpDown,
   Check,
   Briefcase,
-  UserCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -56,10 +55,6 @@ import {
   type Contact,
   type ContactDictEntry,
 } from '@/features/contacts/api/client'
-import {
-  AgentContactPickerDialog,
-  type AgentContactPickerResult,
-} from '@/features/contacts/components/agent-contact-picker-dialog'
 import {
   ShipyardContactPickerDialog,
   type ShipyardContactPickerResult,
@@ -329,7 +324,6 @@ export function CasesActionDialog({
   const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
   const [shipyardContactPickerOpen, setShipyardContactPickerOpen] =
     useState(false)
-  const [agentContactPickerOpen, setAgentContactPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -588,111 +582,6 @@ export function CasesActionDialog({
     ]
   )
 
-  const { data: agentContactAll = [] } = useQuery({
-    queryKey: ['agent-contact-picker-all'],
-    queryFn: fetchContactAll,
-    enabled: open,
-    staleTime: 60000,
-  })
-
-  const { data: agentContactGroups } = useQuery({
-    queryKey: ['agent-contact-picker-groups'],
-    queryFn: fetchContactGroups,
-    enabled: open,
-    staleTime: 60000,
-  })
-
-  const agentContactRows = useMemo<Contact[]>(() => {
-    return (agentContactAll as Contact[]).filter(
-      (c) => String(c.contact_type ?? '').toUpperCase() === 'J1'
-    )
-  }, [agentContactAll])
-
-  const agentContactNameMap = useMemo(() => {
-    const m = new Map<string, Contact>()
-    for (const c of agentContactRows) {
-      if (c.contact_name) m.set(String(c.contact_name), c)
-    }
-    return m
-  }, [agentContactRows])
-
-  const agentContactRankKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    const list =
-      (agentContactGroups as { rankDict?: ContactDictEntry[] } | undefined)
-        ?.rankDict ?? []
-    for (const d of list) {
-      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
-    }
-    return m
-  }, [agentContactGroups])
-
-  const agentContactDivisionKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    const list =
-      (agentContactGroups as { divisionDict?: ContactDictEntry[] } | undefined)
-        ?.divisionDict ?? []
-    for (const d of list) {
-      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
-    }
-    return m
-  }, [agentContactGroups])
-
-  const resolveAgentContactRankLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const byKey = agentContactRankKeyMap.get(p.toUpperCase())
-      if (byKey) return byKey
-      return p
-    },
-    [agentContactRankKeyMap]
-  )
-
-  const resolveAgentContactDivisionLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const byKey = agentContactDivisionKeyMap.get(p.toUpperCase())
-      if (byKey) return byKey
-      return p
-    },
-    [agentContactDivisionKeyMap]
-  )
-
-  const resolveAgentContactDisplay = useCallback(
-    (
-      name: string | null | undefined
-    ): {
-      name: string
-      mobile: string
-      email: string
-      rank: string
-      division: string
-    } => {
-      const n = name ?? ''
-      if (!n) return { name: '', mobile: '', email: '', rank: '', division: '' }
-      const c = agentContactNameMap.get(n)
-      if (c) {
-        return {
-          name: c.contact_name ?? '',
-          mobile: c.contact_mobile ?? '',
-          email: c.contact_email ?? '',
-          rank: resolveAgentContactRankLabel(c.contact_rank),
-          division: resolveAgentContactDivisionLabel(c.contact_division_type),
-        }
-      }
-      return { name: n, mobile: '', email: '', rank: '', division: '' }
-    },
-    [
-      agentContactNameMap,
-      resolveAgentContactRankLabel,
-      resolveAgentContactDivisionLabel,
-    ]
-  )
-
   const inchargeKeyMap = useMemo(() => {
     const m = new Map<string, string>()
     const list =
@@ -825,7 +714,6 @@ export function CasesActionDialog({
   const formInquiryDate = form.watch('case_inquiry_date')
   const formOwnerFollowing = form.watch('owner_following')
   const formShipyardBusiness = form.watch('shipyard_business')
-  const formCaseAgent = form.watch('case_agent')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
@@ -838,10 +726,6 @@ export function CasesActionDialog({
   const shipyardContactDisplay = useMemo(() => {
     return resolveShipyardContactDisplay(formShipyardBusiness ?? '')
   }, [formShipyardBusiness, resolveShipyardContactDisplay])
-
-  const agentContactDisplay = useMemo(() => {
-    return resolveAgentContactDisplay(formCaseAgent ?? '')
-  }, [formCaseAgent, resolveAgentContactDisplay])
 
   useEffect(() => {
     const parts = [
@@ -942,23 +826,6 @@ export function CasesActionDialog({
 
   const handleClearShipyardContact = useCallback(() => {
     form.setValue('shipyard_business', '', {
-      shouldDirty: true,
-      shouldValidate: false,
-    })
-  }, [form])
-
-  const handleAgentContactPicked = useCallback(
-    (r: AgentContactPickerResult) => {
-      form.setValue('case_agent', r.contact_name, {
-        shouldDirty: true,
-        shouldValidate: false,
-      })
-    },
-    [form]
-  )
-
-  const handleClearAgentContact = useCallback(() => {
-    form.setValue('case_agent', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1841,92 +1708,18 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_agent'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
                         案件代理
                       </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder='点击从案件代理联系人列表中选择...'
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setAgentContactPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setAgentContactPickerOpen(true)
-                                }
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
-                              {field.value && (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearAgentContact()
-                                  }}
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  aria-label='清空案件代理'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              )}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                onClick={() => setAgentContactPickerOpen(true)}
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                aria-label='选择案件代理'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <UserCheck className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(agentContactDisplay.mobile ||
-                          agentContactDisplay.email ||
-                          agentContactDisplay.rank ||
-                          agentContactDisplay.division) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {agentContactDisplay.mobile && (
-                              <div>手机：{agentContactDisplay.mobile}</div>
-                            )}
-                            {agentContactDisplay.email && (
-                              <div>邮箱：{agentContactDisplay.email}</div>
-                            )}
-                            {agentContactDisplay.rank && (
-                              <div>职级：{agentContactDisplay.rank}</div>
-                            )}
-                            {agentContactDisplay.division && (
-                              <div>
-                                业务类型：{agentContactDisplay.division}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {field.value &&
-                          !agentContactDisplay.mobile &&
-                          !agentContactDisplay.email &&
-                          !agentContactDisplay.rank &&
-                          !agentContactDisplay.division &&
-                          agentContactDisplay.name && (
-                            <p className='mt-1 text-xs text-muted-foreground/80'>
-                              案件代理：{field.value}
-                              （未找到对应联系人，类型J1）
-                            </p>
-                          )}
-                        <FormMessage />
-                      </div>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入案件代理'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
                 />
@@ -2105,12 +1898,6 @@ export function CasesActionDialog({
         onOpenChange={setShipyardContactPickerOpen}
         initialSelectedName={form.getValues('shipyard_business') || undefined}
         onSelect={handleShipyardContactPicked}
-      />
-      <AgentContactPickerDialog
-        open={agentContactPickerOpen}
-        onOpenChange={setAgentContactPickerOpen}
-        initialSelectedName={form.getValues('case_agent') || undefined}
-        onSelect={handleAgentContactPicked}
       />
     </>
   )
