@@ -12,6 +12,7 @@ import {
   Check,
   Briefcase,
   UserCheck,
+  Wrench,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -77,6 +78,10 @@ import {
   OwnerPickerDialog,
   type OwnerPickerResult,
 } from '@/features/owners/components/owner-picker-dialog'
+import {
+  SuperintendentOwnerPickerDialog,
+  type SuperintendentOwnerPickerResult,
+} from '@/features/owners/components/superintendent-owner-picker-dialog'
 import {
   fetchVesselAll,
   fetchVesselGroups,
@@ -330,6 +335,8 @@ export function CasesActionDialog({
   const [shipyardContactPickerOpen, setShipyardContactPickerOpen] =
     useState(false)
   const [agentContactPickerOpen, setAgentContactPickerOpen] = useState(false)
+  const [superintendentPickerOpen, setSuperintendentPickerOpen] =
+    useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -693,6 +700,73 @@ export function CasesActionDialog({
     ]
   )
 
+  const superintendentOwnerRows = useMemo<Owner[]>(() => {
+    return (ownerRows as Owner[]).filter(
+      (o) => String(o.owner_department ?? '').toUpperCase() === 'F1'
+    )
+  }, [ownerRows])
+
+  const superintendentOwnerNameMap = useMemo(() => {
+    const m = new Map<string, Owner>()
+    for (const o of superintendentOwnerRows) {
+      if (o.owner_name) m.set(String(o.owner_name), o)
+    }
+    return m
+  }, [superintendentOwnerRows])
+
+  const resolveSuperintendentDisplay = useCallback(
+    (
+      name: string | null | undefined
+    ): {
+      name: string
+      email: string
+      phone: string
+      team: string
+      department: string
+      rank: string
+    } => {
+      const n = name ?? ''
+      if (!n)
+        return {
+          name: '',
+          email: '',
+          phone: '',
+          team: '',
+          department: '',
+          rank: '',
+        }
+      const o = superintendentOwnerNameMap.get(n)
+      if (o) {
+        return {
+          name: o.owner_name ?? '',
+          email: o.owner_email ?? '',
+          phone: o.owner_phone ?? '',
+          team: resolveOwnerTeamLabel(o.owner_team),
+          department: resolveOwnerDeptLabel(o.owner_department),
+          rank: resolveOwnerRankLabel(o.owner_rank),
+        }
+      }
+      return {
+        name: n,
+        email: '',
+        phone: '',
+        team: '',
+        department: '',
+        rank: '',
+      }
+    },
+    [
+      superintendentOwnerNameMap,
+      resolveOwnerTeamLabel,
+      resolveOwnerDeptLabel,
+      resolveOwnerRankLabel,
+    ]
+  )
+
+  const superintendentDepartmentLabel = useMemo(() => {
+    return resolveOwnerDeptLabel('F1') || 'F1'
+  }, [resolveOwnerDeptLabel])
+
   const inchargeKeyMap = useMemo(() => {
     const m = new Map<string, string>()
     const list =
@@ -826,6 +900,7 @@ export function CasesActionDialog({
   const formOwnerFollowing = form.watch('owner_following')
   const formShipyardBusiness = form.watch('shipyard_business')
   const formCaseAgent = form.watch('case_agent')
+  const formCaseSuperintendent = form.watch('case_superintendent')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
@@ -842,6 +917,10 @@ export function CasesActionDialog({
   const agentContactDisplay = useMemo(() => {
     return resolveAgentContactDisplay(formCaseAgent ?? '')
   }, [formCaseAgent, resolveAgentContactDisplay])
+
+  const superintendentDisplay = useMemo(() => {
+    return resolveSuperintendentDisplay(formCaseSuperintendent ?? '')
+  }, [formCaseSuperintendent, resolveSuperintendentDisplay])
 
   useEffect(() => {
     const parts = [
@@ -959,6 +1038,23 @@ export function CasesActionDialog({
 
   const handleClearAgentContact = useCallback(() => {
     form.setValue('case_agent', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleSuperintendentPicked = useCallback(
+    (r: SuperintendentOwnerPickerResult) => {
+      form.setValue('case_superintendent', r.owner_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearSuperintendent = useCallback(() => {
+    form.setValue('case_superintendent', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1934,18 +2030,100 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_superintendent'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         案件机务
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件机务'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder={`点击从案件机务（${superintendentDepartmentLabel}）列表中选择...`}
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={field.value || ''}
+                              onClick={() => setSuperintendentPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setSuperintendentPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
+                              {field.value && (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearSuperintendent()
+                                  }}
+                                  className='pointer-events-auto h-7 w-7'
+                                  tabIndex={-1}
+                                  aria-label='清空案件机务'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              )}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                onClick={() =>
+                                  setSuperintendentPickerOpen(true)
+                                }
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择案件机务'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(superintendentDisplay.email ||
+                          superintendentDisplay.phone ||
+                          superintendentDisplay.team ||
+                          superintendentDisplay.department ||
+                          superintendentDisplay.rank) && (
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                            {superintendentDisplay.email && (
+                              <div>邮箱：{superintendentDisplay.email}</div>
+                            )}
+                            {superintendentDisplay.phone && (
+                              <div>电话：{superintendentDisplay.phone}</div>
+                            )}
+                            {superintendentDisplay.team && (
+                              <div>小组：{superintendentDisplay.team}</div>
+                            )}
+                            {superintendentDisplay.department && (
+                              <div>
+                                部门：{superintendentDisplay.department}
+                              </div>
+                            )}
+                            {superintendentDisplay.rank && (
+                              <div>职级：{superintendentDisplay.rank}</div>
+                            )}
+                          </div>
+                        )}
+                        {field.value &&
+                          !superintendentDisplay.email &&
+                          !superintendentDisplay.phone &&
+                          !superintendentDisplay.team &&
+                          !superintendentDisplay.department &&
+                          !superintendentDisplay.rank &&
+                          superintendentDisplay.name && (
+                            <p className='mt-1 text-xs text-muted-foreground/80'>
+                              案件机务：{field.value}
+                              （未找到对应联系人，
+                              {superintendentDepartmentLabel}）
+                            </p>
+                          )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -2111,6 +2289,12 @@ export function CasesActionDialog({
         onOpenChange={setAgentContactPickerOpen}
         initialSelectedName={form.getValues('case_agent') || undefined}
         onSelect={handleAgentContactPicked}
+      />
+      <SuperintendentOwnerPickerDialog
+        open={superintendentPickerOpen}
+        onOpenChange={setSuperintendentPickerOpen}
+        initialSelectedName={form.getValues('case_superintendent') || undefined}
+        onSelect={handleSuperintendentPicked}
       />
     </>
   )
