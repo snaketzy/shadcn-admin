@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { Search, X, Ship, ChevronsUpDown, Check } from 'lucide-react'
+import { Search, X, Ship, User, ChevronsUpDown, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,15 @@ import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
 } from '@/features/dictionaries/api/client'
+import {
+  fetchOwnerAll,
+  fetchOwnerGroups,
+  type Owner,
+} from '@/features/owners/api/client'
+import {
+  OwnerPickerDialog,
+  type OwnerPickerResult,
+} from '@/features/owners/components/owner-picker-dialog'
 import {
   fetchVesselAll,
   fetchVesselGroups,
@@ -294,6 +303,7 @@ export function CasesActionDialog({
   const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -302,6 +312,146 @@ export function CasesActionDialog({
     }
     return map
   }, [vesselRows])
+
+  const { data: ownerRows = [] } = useQuery({
+    queryKey: ['owner-picker-all'],
+    queryFn: fetchOwnerAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const { data: ownerGroupsData } = useQuery({
+    queryKey: ['owner-picker-groups'],
+    queryFn: fetchOwnerGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const ownerNameMap = useMemo(() => {
+    const map = new Map<string, Owner>()
+    for (const o of ownerRows as Owner[]) {
+      if (o.owner_name) map.set(String(o.owner_name), o)
+    }
+    return map
+  }, [ownerRows])
+
+  const ownerTeamKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        ownerGroupsData as
+          { teamDict?: { dict_key: string; dict_value: string }[] } | undefined
+      )?.teamDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [ownerGroupsData])
+
+  const ownerDeptKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        ownerGroupsData as
+          | { departmentDict?: { dict_key: string; dict_value: string }[] }
+          | undefined
+      )?.departmentDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [ownerGroupsData])
+
+  const ownerRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        ownerGroupsData as
+          { rankDict?: { dict_key: string; dict_value: string }[] } | undefined
+      )?.rankDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [ownerGroupsData])
+
+  const resolveOwnerTeamLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = ownerTeamKeyMap.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [ownerTeamKeyMap]
+  )
+
+  const resolveOwnerDeptLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = ownerDeptKeyMap.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [ownerDeptKeyMap]
+  )
+
+  const resolveOwnerRankLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = ownerRankKeyMap.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [ownerRankKeyMap]
+  )
+
+  const resolveOwnerDisplay = useCallback(
+    (
+      ownerName: string | null | undefined
+    ): {
+      name: string
+      email: string
+      phone: string
+      team: string
+      department: string
+      rank: string
+    } => {
+      const name = ownerName ?? ''
+      if (!name)
+        return {
+          name: '',
+          email: '',
+          phone: '',
+          team: '',
+          department: '',
+          rank: '',
+        }
+      const o = ownerNameMap.get(name)
+      if (o) {
+        return {
+          name: o.owner_name ?? '',
+          email: o.owner_email ?? '',
+          phone: o.owner_phone ?? '',
+          team: resolveOwnerTeamLabel(o.owner_team),
+          department: resolveOwnerDeptLabel(o.owner_department),
+          rank: resolveOwnerRankLabel(o.owner_rank),
+        }
+      }
+      return { name, email: '', phone: '', team: '', department: '', rank: '' }
+    },
+    [
+      ownerNameMap,
+      resolveOwnerTeamLabel,
+      resolveOwnerDeptLabel,
+      resolveOwnerRankLabel,
+    ]
+  )
 
   const inchargeKeyMap = useMemo(() => {
     const m = new Map<string, string>()
@@ -433,10 +583,15 @@ export function CasesActionDialog({
   const formVesselName = form.watch('vessel_name')
   const formInquiryKeyword = form.watch('case_inquiry_keyword')
   const formInquiryDate = form.watch('case_inquiry_date')
+  const formOwnerFollowing = form.watch('owner_following')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
   }, [formVesselName, resolveVesselDisplay])
+
+  const ownerDisplay = useMemo(() => {
+    return resolveOwnerDisplay(formOwnerFollowing ?? '')
+  }, [formOwnerFollowing, resolveOwnerDisplay])
 
   useEffect(() => {
     const parts = [
@@ -503,6 +658,23 @@ export function CasesActionDialog({
 
   const handleClearVessel = useCallback(() => {
     form.setValue('vessel_name', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleOwnerPicked = useCallback(
+    (r: OwnerPickerResult) => {
+      form.setValue('owner_following', r.owner_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearOwner = useCallback(() => {
+    form.setValue('owner_following', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1211,18 +1383,87 @@ export function CasesActionDialog({
                   control={form.control}
                   name='owner_following'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船東联络人
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
+                        船东联络人
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入船東联络人'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击从船东列表中选择...'
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={field.value || ''}
+                              onClick={() => setOwnerPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setOwnerPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                              {field.value ? (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearOwner()
+                                  }}
+                                  aria-label='清空船东联络人'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择船东联络人'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <User className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(ownerDisplay.email ||
+                          ownerDisplay.phone ||
+                          ownerDisplay.team ||
+                          ownerDisplay.department ||
+                          ownerDisplay.rank) && (
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                            {ownerDisplay.email && (
+                              <div>邮箱：{ownerDisplay.email}</div>
+                            )}
+                            {ownerDisplay.phone && (
+                              <div>电话：{ownerDisplay.phone}</div>
+                            )}
+                            {ownerDisplay.team && (
+                              <div>小组：{ownerDisplay.team}</div>
+                            )}
+                            {ownerDisplay.department && (
+                              <div>部门：{ownerDisplay.department}</div>
+                            )}
+                            {ownerDisplay.rank && (
+                              <div>职级：{ownerDisplay.rank}</div>
+                            )}
+                          </div>
+                        )}
+                        {field.value && !ownerDisplay.name && (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            船东联络人：{field.value}（未找到对应船东）
+                          </p>
+                        )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1425,6 +1666,13 @@ export function CasesActionDialog({
         onOpenChange={setVesselPickerOpen}
         initialSelectedName={form.getValues('vessel_name') || undefined}
         onSelect={handleVesselPicked}
+      />
+
+      <OwnerPickerDialog
+        open={ownerPickerOpen}
+        onOpenChange={setOwnerPickerOpen}
+        initialSelectedName={form.getValues('owner_following') || undefined}
+        onSelect={handleOwnerPicked}
       />
     </>
   )
