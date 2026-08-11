@@ -10,13 +10,23 @@ import { DataTableRowActions } from './data-table-row-actions'
 
 export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
+  inqTypeAMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
+  const inqTypeAMap = params?.inqTypeAMap
   const resolveUrgentBLabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''
     const p = String(raw).trim()
     if (!p) return ''
     const hit = urgentBMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
+  const resolveInqTypeALabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = inqTypeAMap?.get(p.toUpperCase())
     if (hit) return hit
     return p
   }
@@ -209,19 +219,20 @@ export function getCasesColumns(params?: {
     {
       accessorKey: 'case_inquiry_type',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='需求類型' />
+        <DataTableColumnHeader column={column} title='需求类型' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_type') as string | null
         if (!value) return <div>-</div>
+        const display = resolveInqTypeALabel(value)
         return (
           <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+            {display}
           </Badge>
         )
       },
       meta: {
-        label: '需求類型',
+        label: '需求类型',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))

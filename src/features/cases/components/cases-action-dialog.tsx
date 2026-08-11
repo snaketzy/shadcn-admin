@@ -156,6 +156,41 @@ export function CasesActionDialog({
     return first ? String(first.dict_key ?? '') : ''
   }, [urgentBRows])
 
+  const { data: inqTypeARows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-A'],
+    queryFn: () => fetchCaseDictByKeyPrefix('A'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const inqTypeAOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inqTypeARows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inqTypeARows])
+
+  const inqTypeAKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of inqTypeAOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inqTypeAOptions])
+
+  const resolveInqTypeALabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inqTypeAKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [inqTypeAKeyToLabel]
+  )
+
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
@@ -678,16 +713,42 @@ export function CasesActionDialog({
                   name='case_inquiry_type'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        需求類型
+                      <FormLabel className='col-span-2 pt-1 text-end'>
+                        需求类型
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入需求類型'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
+                          >
+                            {inqTypeAOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              inqTypeAOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`case_inquiry_type_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`case_inquiry_type_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}

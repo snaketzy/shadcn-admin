@@ -201,7 +201,32 @@ export function CasesTable(_: DataTableProps) {
     return m
   }, [urgentBOptions])
 
-  const columns = useMemo(() => getCasesColumns({ urgentBMap }), [urgentBMap])
+  const { data: inqTypeARowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-A-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('A'),
+    staleTime: 60000,
+  })
+
+  const inqTypeAOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inqTypeARowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inqTypeARowsData])
+
+  const inqTypeAMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of inqTypeAOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inqTypeAOptions])
+
+  const columns = useMemo(
+    () => getCasesColumns({ urgentBMap, inqTypeAMap }),
+    [urgentBMap, inqTypeAMap]
+  )
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
@@ -525,15 +550,12 @@ export function CasesTable(_: DataTableProps) {
                 options={urgentBOptions}
               />
             )}
-            {caseInquiryTypes.length > 0 &&
+            {inqTypeAOptions.length > 0 &&
               table.getColumn('case_inquiry_type') && (
                 <DataTableFacetedFilter
                   column={table.getColumn('case_inquiry_type')!}
-                  title='需求類型'
-                  options={caseInquiryTypes.map((s) => ({
-                    label: s,
-                    value: s,
-                  }))}
+                  title='需求类型'
+                  options={inqTypeAOptions}
                 />
               )}
             {caseInCharges.length > 0 && table.getColumn('case_incharge') && (
