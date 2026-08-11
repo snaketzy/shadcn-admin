@@ -2206,16 +2206,12 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_settlement_done'
                   render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
-                        案件结算完成
+                        案件结算完成日期
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder='请输入案件结算完成标识'
-                          className='col-span-4'
-                          {...field}
-                        />
+                        <Input type='date' className='col-span-4' {...field} />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
