@@ -46,6 +46,29 @@ function splitCsv(raw: unknown): string[] {
     .filter(Boolean)
 }
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`
+}
+
+function formatDate(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const s = String(raw).trim()
+  if (!s) return ''
+  const d0 = new Date(s)
+  if (!isNaN(d0.getTime())) {
+    return `${d0.getFullYear()}-${pad2(d0.getMonth() + 1)}-${pad2(d0.getDate())}`
+  }
+  const m1 = s.match(/^(\d{4})[-/年.](\d{1,2})[-/月.](\d{1,2})/)
+  if (m1) {
+    return `${m1[1]}-${pad2(Number(m1[2]))}-${pad2(Number(m1[3]))}`
+  }
+  const m2 = s.match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (m2) {
+    return `${m2[1]}-${m2[2]}-${m2[3]}`
+  }
+  return s
+}
+
 function makeProgressMap(dict: ProgressDict[] | undefined) {
   const keyMap = new Map<string, string>()
   for (const d of dict ?? []) {
@@ -408,7 +431,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '询价日期',
@@ -422,7 +446,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_follow_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '开始日期',
@@ -436,7 +461,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_uptodate_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '跟进日期',
@@ -559,7 +585,8 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('case_delivery_or_service_deadline') as
           string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '运输｜服务截止日',
@@ -573,7 +600,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_eta_cargo_ready_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '船舶到港 | 备货完成',
@@ -588,7 +616,8 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('case_etb_cargo_departure_date') as
           string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '船舶靠港 ｜ 货物发出',
@@ -603,7 +632,8 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('case_etd_cargo_delivery_date') as
           string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '船舶开航 ｜ 货物签收',
@@ -627,19 +657,15 @@ export function getCasesColumns(
     {
       accessorKey: 'case_settlement_done',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='案件结算完成' />
+        <DataTableColumnHeader column={column} title='案件结算完成日期' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_settlement_done') as string | null
-        if (!value) return <div>-</div>
-        return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
-        )
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
-        label: '案件结算完成',
+        label: '案件结算完成日期',
       },
       enableSorting: false,
     },
@@ -650,7 +676,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_epd') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '船东结账日期',
@@ -664,7 +691,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_spd') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDate(value)
+        return <div>{formatted ? formatted : '-'}</div>
       },
       meta: {
         label: '供应商结账日期',
