@@ -66,6 +66,10 @@ import {
   ShipyardPickerDialog,
   type ShipyardPickerResult,
 } from '@/features/contacts/components/shipyard-picker-dialog'
+import {
+  SurveyorPickerDialog,
+  type SurveyorPickerResult,
+} from '@/features/contacts/components/surveyor-picker-dialog'
 import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import {
   OwnerPickerDialog,
@@ -186,6 +190,19 @@ export function CasesActionDialog({
     }, []),
   })
 
+  const { data: surveyorRows = [] } = useQuery({
+    queryKey: ['surveyor-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+    select: useCallback((rows: Contact[]) => {
+      return rows.filter((r) => {
+        const t = String(r.contact_type ?? '').trim()
+        return t.toUpperCase() === 'J2' || t === 'J2' || t.includes('J2')
+      })
+    }, []),
+  })
+
   const { data: superintendentRows = [] } = useQuery({
     queryKey: ['superintendent-picker-all'],
     queryFn: fetchOwnerAll,
@@ -205,6 +222,7 @@ export function CasesActionDialog({
   const [agentPickerOpen, setAgentPickerOpen] = useState(false)
   const [superintendentPickerOpen, setSuperintendentPickerOpen] =
     useState(false)
+  const [surveyorPickerOpen, setSurveyorPickerOpen] = useState(false)
 
   const vesselNameMap = useMemo(() => {
     const map = new Map<string, Vessel>()
@@ -245,6 +263,14 @@ export function CasesActionDialog({
     }
     return map
   }, [superintendentRows])
+
+  const surveyorNameMap = useMemo(() => {
+    const map = new Map<string, Contact>()
+    for (const v of surveyorRows as Contact[]) {
+      if (v.contact_name) map.set(String(v.contact_name), v)
+    }
+    return map
+  }, [surveyorRows])
 
   const { data: caseGroupsData } = useQuery({
     queryKey: ['case-list-groups'],
@@ -635,6 +661,54 @@ export function CasesActionDialog({
     [superintendentNameMap]
   )
 
+  const resolveSurveyorDisplay = useCallback(
+    (
+      contactName: string | null | undefined
+    ): {
+      name: string
+      mobile: string
+      email: string
+      type: string
+      rank: string
+      division: string
+      remark: string
+    } => {
+      const name = contactName ?? ''
+      if (!name)
+        return {
+          name: '',
+          mobile: '',
+          email: '',
+          type: '',
+          rank: '',
+          division: '',
+          remark: '',
+        }
+      const v = surveyorNameMap.get(name)
+      if (v) {
+        return {
+          name: v.contact_name ?? '',
+          mobile: v.contact_mobile ?? '',
+          email: v.contact_email ?? '',
+          type: v.contact_type ?? '',
+          rank: v.contact_rank ?? '',
+          division: v.contact_division_type ?? '',
+          remark: v.contact_remark ?? '',
+        }
+      }
+      return {
+        name,
+        mobile: '',
+        email: '',
+        type: '',
+        rank: '',
+        division: '',
+        remark: '',
+      }
+    },
+    [surveyorNameMap]
+  )
+
   const defaultValues = isEdit
     ? {
         vessel_name: currentRow.vessel_name ?? '',
@@ -716,6 +790,7 @@ export function CasesActionDialog({
   const formShipyardBusiness = form.watch('shipyard_business')
   const formCaseAgent = form.watch('case_agent')
   const formCaseSuperintendent = form.watch('case_superintendent')
+  const formCaseSurveyor = form.watch('case_surveyor')
 
   const vesselDisplay = useMemo(() => {
     return resolveVesselDisplay(formVesselName ?? '')
@@ -736,6 +811,10 @@ export function CasesActionDialog({
   const superintendentDisplay = useMemo(() => {
     return resolveSuperintendentDisplay(formCaseSuperintendent ?? '')
   }, [formCaseSuperintendent, resolveSuperintendentDisplay])
+
+  const surveyorDisplay = useMemo(() => {
+    return resolveSurveyorDisplay(formCaseSurveyor ?? '')
+  }, [formCaseSurveyor, resolveSurveyorDisplay])
 
   useEffect(() => {
     const parts = [
@@ -870,6 +949,23 @@ export function CasesActionDialog({
 
   const handleClearSuperintendent = useCallback(() => {
     form.setValue('case_superintendent', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleSurveyorPicked = useCallback(
+    (r: SurveyorPickerResult) => {
+      form.setValue('case_surveyor', r.contact_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearSurveyor = useCallback(() => {
+    form.setValue('case_surveyor', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1941,18 +2037,88 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_surveyor'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         案件船检
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件船检'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击输入框从案件船检列表中选择...'
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={field.value || ''}
+                              onClick={() => setSurveyorPickerOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setSurveyorPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                              {field.value ? (
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  type='button'
+                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearSurveyor()
+                                  }}
+                                  aria-label='清空案件船检'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              ) : null}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择案件船检'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Ship className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {(surveyorDisplay.mobile ||
+                          surveyorDisplay.email ||
+                          surveyorDisplay.type ||
+                          surveyorDisplay.rank ||
+                          surveyorDisplay.division) && (
+                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                            {surveyorDisplay.mobile && (
+                              <div>手机：{surveyorDisplay.mobile}</div>
+                            )}
+                            {surveyorDisplay.email && (
+                              <div>邮箱：{surveyorDisplay.email}</div>
+                            )}
+                            {surveyorDisplay.type && (
+                              <div>类型：{surveyorDisplay.type}</div>
+                            )}
+                            {surveyorDisplay.division && (
+                              <div>业务归属：{surveyorDisplay.division}</div>
+                            )}
+                            {surveyorDisplay.rank && (
+                              <div>职级：{surveyorDisplay.rank}</div>
+                            )}
+                          </div>
+                        )}
+                        {field.value && !surveyorDisplay.name && (
+                          <p className='mt-1 text-xs text-muted-foreground/80'>
+                            案件船检：{field.value}
+                            （未找到对应案件船检详情，将直接保存）
+                          </p>
+                        )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -2107,6 +2273,13 @@ export function CasesActionDialog({
         onOpenChange={setSuperintendentPickerOpen}
         initialSelectedName={form.getValues('case_superintendent') || undefined}
         onSelect={handleSuperintendentPicked}
+      />
+
+      <SurveyorPickerDialog
+        open={surveyorPickerOpen}
+        onOpenChange={setSurveyorPickerOpen}
+        initialSelectedName={form.getValues('case_surveyor') || undefined}
+        onSelect={handleSurveyorPicked}
       />
     </>
   )
