@@ -6,6 +6,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { Search, X, Ship } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,21 @@ type CaseForm = z.infer<typeof formSchema>
 function toOptStr(s: string | null | undefined): string | null {
   if (s == null || !s || s.trim() === '') return null
   return s
+}
+
+function splitCsvKeys(raw: unknown): string[] {
+  if (raw === null || raw === undefined) return []
+  const s = String(raw)
+  if (!s || s.trim() === '') return []
+  return s
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+}
+
+function joinCsvKeys(arr: string[]): string {
+  if (!Array.isArray(arr)) return ''
+  return arr.filter((s) => s && String(s).trim() !== '').join(',')
 }
 
 type CasesActionDialogProps = {
@@ -189,6 +205,41 @@ export function CasesActionDialog({
       return p
     },
     [inqTypeAKeyToLabel]
+  )
+
+  const { data: inchargeERows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-E'],
+    queryFn: () => fetchCaseDictByKeyPrefix('E'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const inchargeEOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inchargeERows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inchargeERows])
+
+  const inchargeEKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of inchargeEOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inchargeEOptions])
+
+  const resolveInchargeELabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inchargeEKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [inchargeEKeyToLabel]
   )
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
@@ -756,21 +807,66 @@ export function CasesActionDialog({
                 <FormField
                   control={form.control}
                   name='case_incharge'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件负责人
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件负责人'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const checkedArr: string[] = splitCsvKeys(field.value)
+                    return (
+                      <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                        <FormLabel className='col-span-2 pt-1 text-end'>
+                          案件负责人
+                        </FormLabel>
+                        <div className='col-span-4'>
+                          <FormControl>
+                            <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
+                              {inchargeEOptions.length === 0 ? (
+                                <div className='text-sm text-muted-foreground'>
+                                  -
+                                </div>
+                              ) : (
+                                inchargeEOptions.map((o) => (
+                                  <div
+                                    key={o.value}
+                                    className='flex items-center gap-2'
+                                  >
+                                    <Checkbox
+                                      id={`case_incharge_${o.value}`}
+                                      checked={checkedArr.some(
+                                        (k) =>
+                                          k.toUpperCase() ===
+                                          String(o.value).toUpperCase()
+                                      )}
+                                      onCheckedChange={(v) => {
+                                        const next = new Set(
+                                          checkedArr.map((s) =>
+                                            String(s).toUpperCase()
+                                          )
+                                        )
+                                        const keyU = String(
+                                          o.value
+                                        ).toUpperCase()
+                                        if (v) next.add(keyU)
+                                        else next.delete(keyU)
+                                        const nextStr = joinCsvKeys(
+                                          Array.from(next)
+                                        )
+                                        field.onChange(nextStr)
+                                      }}
+                                    />
+                                    <Label
+                                      htmlFor={`case_incharge_${o.value}`}
+                                      className='cursor-pointer font-normal select-none'
+                                    >
+                                      {o.label}
+                                    </Label>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </FormControl>
+                        </div>
+                        <FormMessage className='col-span-4 col-start-3' />
+                      </FormItem>
+                    )
+                  }}
                 />
                 <FormField
                   control={form.control}

@@ -11,9 +11,11 @@ import { DataTableRowActions } from './data-table-row-actions'
 export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
   inqTypeAMap?: Map<string, string>
+  inchargeEMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
   const inqTypeAMap = params?.inqTypeAMap
+  const inchargeEMap = params?.inchargeEMap
   const resolveUrgentBLabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''
     const p = String(raw).trim()
@@ -29,6 +31,23 @@ export function getCasesColumns(params?: {
     const hit = inqTypeAMap?.get(p.toUpperCase())
     if (hit) return hit
     return p
+  }
+  const resolveInchargeELabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = inchargeEMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
+  const splitCsvKeys = (raw: unknown): string[] => {
+    if (raw === null || raw === undefined) return []
+    const s = String(raw)
+    if (!s || s.trim() === '') return []
+    return s
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
   }
   return [
     {
@@ -508,18 +527,35 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_incharge') as string | null
-        if (!value) return <div>-</div>
+        const keys = splitCsvKeys(value)
+        if (keys.length === 0) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
+          <div className='flex flex-wrap gap-1.5'>
+            {keys.map((k) => (
+              <Badge
+                key={k}
+                variant='outline'
+                className={cn(getBadgeColor(k))}
+              >
+                {resolveInchargeELabel(k)}
+              </Badge>
+            ))}
+          </div>
         )
       },
       meta: {
         label: '案件负责人',
       },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
+      filterFn: (row, id, filterValues: unknown) => {
+        const rowRaw = row.getValue(id)
+        const rowKeys = splitCsvKeys(rowRaw).map((s) => s.toUpperCase())
+        const filterArr = Array.isArray(filterValues)
+          ? (filterValues as string[]).map((s) =>
+              String(s ?? '').trim().toUpperCase()
+            )
+          : []
+        if (filterArr.length === 0) return true
+        return filterArr.some((f) => rowKeys.includes(f))
       },
       enableSorting: false,
     },

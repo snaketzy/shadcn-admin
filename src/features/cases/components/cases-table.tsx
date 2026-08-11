@@ -223,9 +223,31 @@ export function CasesTable(_: DataTableProps) {
     return m
   }, [inqTypeAOptions])
 
+  const { data: inchargeERowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-E-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('E'),
+    staleTime: 60000,
+  })
+
+  const inchargeEOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inchargeERowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inchargeERowsData])
+
+  const inchargeEMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of inchargeEOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inchargeEOptions])
+
   const columns = useMemo(
-    () => getCasesColumns({ urgentBMap, inqTypeAMap }),
-    [urgentBMap, inqTypeAMap]
+    () => getCasesColumns({ urgentBMap, inqTypeAMap, inchargeEMap }),
+    [urgentBMap, inqTypeAMap, inchargeEMap]
   )
 
   const urlState = useTableUrlState({
@@ -412,9 +434,19 @@ export function CasesTable(_: DataTableProps) {
       )
     }
     if (caseInchargeFilter.length > 0) {
-      result = result.filter((r) =>
-        caseInchargeFilter.includes(r.case_incharge ?? '')
+      const filterKeys = caseInchargeFilter.map((s) =>
+        String(s ?? '')
+          .trim()
+          .toUpperCase()
       )
+      result = result.filter((r) => {
+        const rowRaw = r.case_incharge ?? ''
+        const rowKeys = (rowRaw ? String(rowRaw).split(',') : [])
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean)
+        if (rowKeys.length === 0) return false
+        return filterKeys.some((f) => rowKeys.includes(f))
+      })
     }
     if (caseRankFilter.length > 0) {
       result = result.filter((r) => caseRankFilter.includes(r.case_rank ?? ''))
@@ -558,13 +590,14 @@ export function CasesTable(_: DataTableProps) {
                   options={inqTypeAOptions}
                 />
               )}
-            {caseInCharges.length > 0 && table.getColumn('case_incharge') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('case_incharge')!}
-                title='案件负责人'
-                options={caseInCharges.map((s) => ({ label: s, value: s }))}
-              />
-            )}
+            {inchargeEOptions.length > 0 &&
+              table.getColumn('case_incharge') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_incharge')!}
+                  title='案件负责人'
+                  options={inchargeEOptions}
+                />
+              )}
             {caseRanks.length > 0 && table.getColumn('case_rank') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_rank')!}
