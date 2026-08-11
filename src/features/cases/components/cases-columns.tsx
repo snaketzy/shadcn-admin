@@ -490,19 +490,14 @@ export function getCasesColumns(params?: {
     {
       accessorKey: 'case_settlement_done',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='案件结算完成' />
+        <DataTableColumnHeader column={column} title='案件结算完成日期' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_settlement_done') as string | null
-        if (!value) return <div>-</div>
-        return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
-        )
+        return <div>{value ?? '-'}</div>
       },
       meta: {
-        label: '案件结算完成',
+        label: '案件结算完成日期',
       },
       enableSorting: false,
     },
