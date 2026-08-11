@@ -177,10 +177,12 @@ export function CasesTable(_: DataTableProps) {
   const progressDict = groupsData?.progressDict ?? []
   const urgentDict = groupsData?.urgentDict ?? []
   const inquiryTypeDict = groupsData?.inquiryTypeDict ?? []
+  const inchargeDict = groupsData?.inchargeDict ?? []
 
   const columns = useMemo(
-    () => getCasesColumns(progressDict, urgentDict, inquiryTypeDict),
-    [progressDict, urgentDict, inquiryTypeDict]
+    () =>
+      getCasesColumns(progressDict, urgentDict, inquiryTypeDict, inchargeDict),
+    [progressDict, urgentDict, inquiryTypeDict, inchargeDict]
   )
 
   const urlState = useTableUrlState({
@@ -367,9 +369,14 @@ export function CasesTable(_: DataTableProps) {
       )
     }
     if (caseInchargeFilter.length > 0) {
-      result = result.filter((r) =>
-        caseInchargeFilter.includes(r.case_incharge ?? '')
-      )
+      const selected = caseInchargeFilter.map((s) => String(s).toUpperCase())
+      result = result.filter((r) => {
+        const rowKeys = String(r.case_incharge ?? '')
+          .split(/[,，]/)
+          .map((k) => k.trim().toUpperCase())
+          .filter(Boolean)
+        return selected.some((s) => rowKeys.includes(s))
+      })
     }
     if (caseRankFilter.length > 0) {
       result = result.filter((r) => caseRankFilter.includes(r.case_rank ?? ''))
@@ -523,11 +530,16 @@ export function CasesTable(_: DataTableProps) {
                     }))}
                 />
               )}
-            {caseInCharges.length > 0 && table.getColumn('case_incharge') && (
+            {inchargeDict.length > 0 && table.getColumn('case_incharge') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_incharge')!}
                 title='案件负责人'
-                options={caseInCharges.map((s) => ({ label: s, value: s }))}
+                options={inchargeDict
+                  .filter((d) => d.dict_key && d.dict_value)
+                  .map((d) => ({
+                    label: String(d.dict_value ?? ''),
+                    value: String(d.dict_key ?? ''),
+                  }))}
               />
             )}
             {urgentDict.length > 0 && table.getColumn('case_urgent') && (

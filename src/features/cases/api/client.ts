@@ -88,6 +88,7 @@ export interface CaseGroupsResponse {
   progressDict: CaseDictEntry[]
   urgentDict: CaseDictEntry[]
   inquiryTypeDict: CaseDictEntry[]
+  inchargeDict: CaseDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -153,6 +154,7 @@ export async function fetchCaseGroups(): Promise<CaseGroupsResponse> {
       progressDict: [],
       urgentDict: [],
       inquiryTypeDict: [],
+      inchargeDict: [],
     }
   )
 }

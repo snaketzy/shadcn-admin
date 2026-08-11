@@ -23,6 +23,19 @@ export type InquiryTypeDict = {
   dict_value: string | null
 }
 
+export type InchargeDict = {
+  dict_key: string | number | null
+  dict_value: string | null
+}
+
+function splitCsv(raw: unknown): string[] {
+  if (raw === null || raw === undefined || raw === '') return []
+  return String(raw)
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 function makeProgressMap(dict: ProgressDict[] | undefined) {
   const keyMap = new Map<string, string>()
   for (const d of dict ?? []) {
@@ -95,10 +108,36 @@ export function resolveInquiryTypeLabel(
   return p
 }
 
+function makeInchargeMap(dict: InchargeDict[] | undefined) {
+  const keyMap = new Map<string, string>()
+  for (const d of dict ?? []) {
+    keyMap.set(
+      String(d.dict_key ?? '').toUpperCase(),
+      String(d.dict_value ?? '')
+    )
+  }
+  return keyMap
+}
+
+export function resolveInchargeLabel(
+  raw: unknown,
+  inchargeDict: InchargeDict[] | undefined
+): string {
+  const keys = splitCsv(raw)
+  if (keys.length === 0) return ''
+  const keyMap = makeInchargeMap(inchargeDict)
+  const parts = keys.map((k) => {
+    const v = keyMap.get(k.toUpperCase())
+    return v ? v : k
+  })
+  return parts.join('，')
+}
+
 export function getCasesColumns(
   progressDict?: ProgressDict[],
   urgentDict?: UrgentDict[],
-  inquiryTypeDict?: InquiryTypeDict[]
+  inquiryTypeDict?: InquiryTypeDict[],
+  inchargeDict?: InchargeDict[]
 ): ColumnDef<Case>[] {
   return [
     {
@@ -575,18 +614,37 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_incharge') as string | null
-        if (!value) return <div>-</div>
+        const label = resolveInchargeLabel(value, inchargeDict)
+        if (!label) return <div>-</div>
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
-          </Badge>
+          <div className='flex flex-wrap gap-1'>
+            {splitCsv(value).map((rawKey, i) => {
+              const v = makeInchargeMap(inchargeDict).get(rawKey.toUpperCase())
+              const displayKey = v ?? rawKey
+              return (
+                <Badge
+                  key={`${rawKey}-${i}`}
+                  variant='outline'
+                  className={cn(getBadgeColor(rawKey ?? ''))}
+                >
+                  {displayKey}
+                </Badge>
+              )
+            })}
+          </div>
         )
       },
       meta: {
         label: '案件负责人',
       },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
+      filterFn: (row, id, filterValue) => {
+        const value = row.getValue(id) as string | null | undefined
+        const selected = Array.isArray(filterValue)
+          ? (filterValue as string[]).map((s) => String(s).toUpperCase())
+          : []
+        if (selected.length === 0) return true
+        const rowKeys = splitCsv(value).map((k) => k.toUpperCase())
+        return selected.some((s) => rowKeys.includes(s))
       },
       enableSorting: false,
     },

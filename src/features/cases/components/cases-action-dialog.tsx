@@ -8,6 +8,7 @@ import { Search, X, Ship } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
   CommandEmpty,
@@ -193,6 +194,27 @@ export function CasesActionDialog({
     },
     [inquiryTypeOptions]
   )
+
+  const inchargeOptions = useMemo(() => {
+    return (caseGroupsData?.inchargeDict ?? [])
+      .map((d) => ({
+        key: String(d.dict_key ?? ''),
+        value: String(d.dict_value ?? ''),
+      }))
+      .filter((o) => o.key && o.value)
+  }, [caseGroupsData?.inchargeDict])
+
+  const splitCsvKeys = useCallback((raw: unknown): string[] => {
+    if (raw === null || raw === undefined || raw === '') return []
+    return String(raw)
+      .split(/[,，]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }, [])
+
+  const joinCsvKeys = useCallback((keys: string[]): string => {
+    return keys.filter((k) => k && k.trim()).join(',')
+  }, [])
 
   const resolveUrgentLabel = useCallback(
     (raw: unknown): string => {
@@ -813,21 +835,69 @@ export function CasesActionDialog({
                 <FormField
                   control={form.control}
                   name='case_incharge'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件负责人
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件负责人'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedKeys = splitCsvKeys(field.value).map((k) =>
+                      k.toUpperCase()
+                    )
+                    const keySet = new Set(selectedKeys)
+                    const toggleKey = (key: string, checked: boolean) => {
+                      const current = splitCsvKeys(field.value)
+                      const curSet = new Set(
+                        current.map((k) => k.toUpperCase())
+                      )
+                      const keyUpper = key.toUpperCase()
+                      if (checked) curSet.add(keyUpper)
+                      else curSet.delete(keyUpper)
+                      const orderedKeys = inchargeOptions
+                        .map((o) => o.key)
+                        .filter((k) => curSet.has(k.toUpperCase()))
+                      const merged = Array.from(
+                        new Set([
+                          ...orderedKeys,
+                          ...current.filter((k) => curSet.has(k.toUpperCase())),
+                        ])
+                      )
+                      form.setValue('case_incharge', joinCsvKeys(merged), {
+                        shouldDirty: true,
+                        shouldValidate: false,
+                      })
+                    }
+                    return (
+                      <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                        <FormLabel className='col-span-2 pt-1.5 text-end'>
+                          案件负责人
+                        </FormLabel>
+                        <div className='col-span-4 flex flex-wrap items-start gap-x-5 gap-y-2.5'>
+                          {inchargeOptions.map((o) => {
+                            const checked = keySet.has(o.key.toUpperCase())
+                            return (
+                              <FormItem
+                                key={o.key}
+                                className='flex items-center space-y-0'
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    id={`case-incharge-${o.key}`}
+                                    checked={checked}
+                                    onCheckedChange={(c) =>
+                                      toggleKey(o.key, !!c)
+                                    }
+                                  />
+                                </FormControl>
+                                <Label
+                                  htmlFor={`case-incharge-${o.key}`}
+                                  className='ms-2 cursor-pointer font-normal select-none'
+                                >
+                                  {o.value}
+                                </Label>
+                              </FormItem>
+                            )
+                          })}
+                        </div>
+                        <FormMessage className='col-span-4 col-start-3' />
+                      </FormItem>
+                    )
+                  }}
                 />
                 <FormField
                   control={form.control}
