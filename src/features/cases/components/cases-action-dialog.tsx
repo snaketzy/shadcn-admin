@@ -12,10 +12,12 @@ import {
   Factory,
   Briefcase,
   Cog,
+  Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
@@ -56,6 +58,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
   fetchContactAll,
@@ -96,7 +106,13 @@ import {
   VesselPickerDialog,
   type VesselPickerResult,
 } from '@/features/users/components/vessel-picker-dialog'
-import { createCase, fetchCaseGroups, updateCase } from '../api/client'
+import {
+  createCase,
+  fetchCaseGroups,
+  updateCase,
+  fetchCaseInquiryListByCaseId,
+  type CaseInquiry,
+} from '../api/client'
 import type { Case } from '../data/schema'
 
 const zOptStr = z.string().optional().catch('')
@@ -469,6 +485,17 @@ export function CasesActionDialog({
     queryFn: fetchCaseGroups,
     staleTime: 60000,
     enabled: open,
+  })
+
+  const isInquiryAddMode = !currentRow?.case_id
+  const { data: inquiryRows = [] } = useQuery({
+    queryKey: ['case-inquiry-list', currentRow?.case_id ?? null],
+    queryFn: () =>
+      currentRow && currentRow.case_id
+        ? fetchCaseInquiryListByCaseId(currentRow.case_id)
+        : Promise.resolve([] as CaseInquiry[]),
+    staleTime: 60000,
+    enabled: open && !isInquiryAddMode,
   })
 
   const progressOptions = useMemo(() => {
@@ -2041,6 +2068,62 @@ export function CasesActionDialog({
                     </FormItem>
                   )}
                 />
+                <Card className='col-span-full'>
+                  <CardHeader className='flex flex-row items-center justify-between space-y-0 pt-0 pb-2'>
+                    <CardTitle className='text-base'>询价记录</CardTitle>
+                    <Button
+                      type='button'
+                      size='sm'
+                      variant='default'
+                      className='h-8 gap-1'
+                      onClick={() => {
+                        toast.info('新增询价功能待接入')
+                      }}
+                    >
+                      <Plus className='h-4 w-4' />
+                      新增询价
+                    </Button>
+                  </CardHeader>
+                  <CardContent className='pb-4'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className='w-[120px]'>询价日期</TableHead>
+                          <TableHead className='w-[140px]'>询价渠道</TableHead>
+                          <TableHead>询价内容</TableHead>
+                          <TableHead className='w-[140px]'>询价人员</TableHead>
+                          <TableHead className='w-[160px]'>备注</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inquiryRows.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={5}
+                              className='h-24 text-center text-sm text-muted-foreground'
+                            >
+                              暂无询价记录，点击右上角「新增询价」添加
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          inquiryRows.map((r) => (
+                            <TableRow key={r.inquiry_id}>
+                              <TableCell>{r.inquiry_date || '-'}</TableCell>
+                              <TableCell>{r.inquiry_channel || '-'}</TableCell>
+                              <TableCell className='max-w-md truncate'>
+                                {r.inquiry_content || '-'}
+                              </TableCell>
+                              <TableCell>{r.inquiry_staff || '-'}</TableCell>
+                              <TableCell className='max-w-xs truncate'>
+                                {r.inquiry_remark || '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
                 <FormField
                   control={form.control}
                   name='shipyard_business'

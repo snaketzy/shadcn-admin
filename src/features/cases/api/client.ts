@@ -252,3 +252,27 @@ export async function deleteCaseBulk(caseIds: number[]): Promise<number> {
   )
   return res.data.data.deleted
 }
+
+export interface CaseInquiry {
+  inquiry_id: number
+  case_id: number
+  inquiry_date: string | null
+  inquiry_channel: string | null
+  inquiry_content: string | null
+  inquiry_staff: string | null
+  inquiry_remark: string | null
+}
+
+export async function fetchCaseInquiryListByCaseId(
+  caseId: number
+): Promise<CaseInquiry[]> {
+  try {
+    const res = await api.get<ApiEnvelope<CaseInquiry[]>>(
+      `/case-inquiry-list/by-case/${caseId}`
+    )
+    return res.data.data ?? []
+  } catch (e: any) {
+    if (e?.response?.status === 404) return []
+    return []
+  }
+}

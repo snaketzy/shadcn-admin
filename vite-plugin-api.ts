@@ -1120,6 +1120,41 @@ async function handleCaseListApi(
   }
 }
 
+async function handleCaseInquiryListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/case-inquiry-list')) {
+    return false
+  }
+
+  const subPath =
+    pathname.slice('/api/case-inquiry-list'.length) || '/'
+
+  try {
+    const byCaseMatch = subPath.match(/^\/by-case\/(\d+)$/)
+    if (byCaseMatch) {
+      if (method === 'GET') {
+        sendJson(res, 200, { success: true, data: [] })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[case-inquiry-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -1157,6 +1192,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/case-list')) {
             const handled = await handleCaseListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/case-inquiry-list')) {
+            const handled = await handleCaseInquiryListApi(req, res)
             if (handled) return
           }
           next()
