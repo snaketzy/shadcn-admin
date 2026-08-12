@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import {
   Popover,
@@ -835,8 +836,34 @@ export function CasesTable(_: DataTableProps) {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className='w-80' align='start'>
-          <div className='space-y-3'>
+        <PopoverContent className='w-auto p-0' align='start'>
+          <Calendar
+            initialFocus
+            mode='range'
+            defaultMonth={
+              editingInqDateFrom ? new Date(editingInqDateFrom) : undefined
+            }
+            selected={{
+              from: editingInqDateFrom
+                ? new Date(editingInqDateFrom)
+                : undefined,
+              to: editingInqDateTo ? new Date(editingInqDateTo) : undefined,
+            }}
+            onSelect={(range) => {
+              const from = range?.from ? formatInqDateISO(range.from) : ''
+              const to = range?.to ? formatInqDateISO(range.to) : ''
+              if (from) setEditingInqDateFrom(from)
+              if (to) setEditingInqDateTo(to)
+              if ((from && !to) || (!from && to)) {
+                if (inqDateCommitRef.current)
+                  clearTimeout(inqDateCommitRef.current)
+                return
+              }
+              scheduleInqDateCommit(from, to)
+            }}
+            numberOfMonths={1}
+          />
+          <div className='space-y-2 border-t p-3'>
             <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
               <Button
                 variant='secondary'
@@ -862,41 +889,36 @@ export function CasesTable(_: DataTableProps) {
                 </Button>
               )}
             </div>
-            <div className='space-y-2'>
-              <div className='grid grid-cols-8 items-center gap-2'>
-                <label className='col-span-2 text-xs text-muted-foreground'>
-                  起始日期
-                </label>
-                <Input
-                  type='date'
-                  value={editingInqDateFrom}
-                  className='col-span-6 h-8 text-xs'
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setEditingInqDateFrom(v)
-                    scheduleInqDateCommit(v, editingInqDateTo)
-                  }}
-                />
-              </div>
-              <div className='grid grid-cols-8 items-center gap-2'>
-                <label className='col-span-2 text-xs text-muted-foreground'>
-                  结束日期
-                </label>
-                <Input
-                  type='date'
-                  value={editingInqDateTo}
-                  className='col-span-6 h-8 text-xs'
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setEditingInqDateTo(v)
-                    scheduleInqDateCommit(editingInqDateFrom, v)
-                  }}
-                />
-              </div>
+            <div className='grid grid-cols-8 items-center gap-2'>
+              <label className='col-span-2 text-xs text-muted-foreground'>
+                起始日期
+              </label>
+              <Input
+                type='date'
+                value={editingInqDateFrom}
+                className='col-span-6 h-8 text-xs'
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEditingInqDateFrom(v)
+                  scheduleInqDateCommit(v, editingInqDateTo)
+                }}
+              />
             </div>
-            <p className='pt-1 text-center text-xs text-muted-foreground'>
-              支持自定义日期范围或点击上方「本周 / 本月」快速选择
-            </p>
+            <div className='grid grid-cols-8 items-center gap-2'>
+              <label className='col-span-2 text-xs text-muted-foreground'>
+                结束日期
+              </label>
+              <Input
+                type='date'
+                value={editingInqDateTo}
+                className='col-span-6 h-8 text-xs'
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEditingInqDateTo(v)
+                  scheduleInqDateCommit(editingInqDateFrom, v)
+                }}
+              />
+            </div>
           </div>
         </PopoverContent>
       </Popover>
