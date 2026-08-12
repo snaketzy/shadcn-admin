@@ -99,6 +99,10 @@ import {
   type Supplier,
 } from '@/features/suppliers/api/client'
 import {
+  SupplierPickerDialog,
+  type SupplierPickerResult,
+} from '@/features/suppliers/components/supplier-picker-dialog'
+import {
   OwnerPickerDialog,
   type OwnerPickerResult,
 } from '@/features/owners/components/owner-picker-dialog'
@@ -278,6 +282,27 @@ type CaseInquiry = {
   inquiry_status: string | null
   remark: string | null
 }
+
+const inquiryFormSchema = z.object({
+  case_inquiry_division_id: z
+    .preprocess((v) => {
+      if (v === null || v === undefined || v === '') return ''
+      const n = Number(v)
+      return Number.isFinite(n) && n > 0 ? n : ''
+    }, z.union([z.number().positive(), z.string().length(0)]))
+    .optional()
+    .catch(''),
+  case_inquiry_type: z.string().optional().catch(''),
+  case_inquired_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  remark: z.string().optional().catch(''),
+})
+type InquiryFormValues = z.infer<typeof inquiryFormSchema>
 
 type CasesActionDialogProps = {
   currentRow?: Case
@@ -611,6 +636,9 @@ export function CasesActionDialog({
   const [shipyardContactPickerOpen, setShipyardContactPickerOpen] =
     useState(false)
   const [surveyorContactPickerOpen, setSurveyorContactPickerOpen] =
+    useState(false)
+  const [inquiryDialogOpen, setInquiryDialogOpen] = useState(false)
+  const [inquirySupplierPickerOpen, setInquirySupplierPickerOpen] =
     useState(false)
 
   const vesselNameMap = useMemo(() => {
@@ -1509,6 +1537,76 @@ export function CasesActionDialog({
     })
   }, [form])
 
+  const inquiryForm = useForm<InquiryFormValues>({
+    resolver: zodResolver(inquiryFormSchema),
+    defaultValues: {
+      case_inquiry_division_id: '',
+      case_inquiry_type: '',
+      case_inquired_date: '',
+      remark: '',
+    },
+  })
+
+  const inquirySupplierId = inquiryForm.watch('case_inquiry_division_id')
+  const inquirySupplierName = useMemo(() => {
+    return resolveSupplierNameById(inquirySupplierId)
+  }, [inquirySupplierId, resolveSupplierNameById])
+
+  const handleInquirySupplierPicked = useCallback(
+    (r: SupplierPickerResult) => {
+      const idNum = Number(r.supplier_id)
+      inquiryForm.setValue(
+        'case_inquiry_division_id',
+        Number.isFinite(idNum) && idNum > 0 ? idNum : '',
+        { shouldDirty: true, shouldValidate: false }
+      )
+    },
+    [inquiryForm]
+  )
+
+  const handleClearInquirySupplier = useCallback(() => {
+    inquiryForm.setValue('case_inquiry_division_id', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [inquiryForm])
+
+  const handleAddInquirySubmit = useCallback(
+    (values: InquiryFormValues) => {
+      const divisionId =
+        values.case_inquiry_division_id === '' ||
+        values.case_inquiry_division_id == null
+          ? null
+          : Number(values.case_inquiry_division_id)
+      const nextId =
+        inquiryList.reduce(
+          (m, r) => Math.max(m, Number(r.inquiry_id) || 0),
+          0
+        ) - 1
+      const row: CaseInquiry = {
+        inquiry_id: Number.isFinite(nextId) && nextId < 0 ? nextId : Date.now(),
+        case_id: currentRow?.case_id ?? null,
+        case_inquired_date: values.case_inquired_date
+          ? String(values.case_inquired_date)
+          : null,
+        case_inquiry_division_id:
+          divisionId && Number.isFinite(divisionId) ? divisionId : null,
+        case_inquiry_type: values.case_inquiry_type
+          ? String(values.case_inquiry_type)
+          : null,
+        inquiry_amount: null,
+        currency: null,
+        inquiry_status: null,
+        remark: values.remark ? String(values.remark) : null,
+      }
+      setInquiryList((prev) => [...prev, row])
+      toast.success('询价已添加')
+      inquiryForm.reset()
+      setInquiryDialogOpen(false)
+    },
+    [inquiryList, currentRow, inquiryForm]
+  )
+
   const createMutation = useMutation({
     mutationFn: createCase,
     onSuccess: () => {
@@ -2308,7 +2406,8 @@ export function CasesActionDialog({
                           size='sm'
                           variant='outline'
                           onClick={() => {
-                            toast.info('新增询价功能待接入')
+                            inquiryForm.reset()
+                            setInquiryDialogOpen(true)
                           }}
                         >
                           <Plus className='mr-1 h-3.5 w-3.5' />
@@ -2356,7 +2455,8 @@ export function CasesActionDialog({
                                       size='sm'
                                       variant='secondary'
                                       onClick={() => {
-                                        toast.info('新增询价功能待接入')
+                                        inquiryForm.reset()
+                                        setInquiryDialogOpen(true)
                                       }}
                                     >
                                       <Plus className='mr-1 h-3.5 w-3.5' />
@@ -3097,6 +3197,225 @@ export function CasesActionDialog({
         initialSelectedName={form.getValues('case_surveyor') || undefined}
         onSelect={handleSurveyorContactPicked}
       />
+
+      <SupplierPickerDialog
+        open={inquirySupplierPickerOpen}
+        onOpenChange={setInquirySupplierPickerOpen}
+        initialSelectedId={
+          inquiryForm.getValues('case_inquiry_division_id')
+            ? String(inquiryForm.getValues('case_inquiry_division_id'))
+            : undefined
+        }
+        onSelect={handleInquirySupplierPicked}
+      />
+
+      <Dialog
+        open={inquiryDialogOpen}
+        onOpenChange={(state) => {
+          if (!state) {
+            inquiryForm.reset()
+          }
+          setInquiryDialogOpen(state)
+        }}
+      >
+        <DialogContent className='sm:max-w-3xl'>
+          <DialogHeader>
+            <DialogTitle>新增询价</DialogTitle>
+            <DialogDescription>
+              填写本次询价信息，完成后点击「添加」即可加入询价记录列表。
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...inquiryForm}>
+            <form
+              id='inquiry-add-form'
+              onSubmit={inquiryForm.handleSubmit(handleAddInquirySubmit)}
+              className='grid grid-cols-6 gap-4 py-2'
+            >
+              <FormField
+                control={inquiryForm.control}
+                name='case_inquiry_division_id'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      单位名称
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <div className='relative'>
+                          <Input
+                            placeholder='点击输入框从供应商列表中选择...'
+                            className='cursor-pointer pe-20 pr-20'
+                            readOnly
+                            value={inquirySupplierName || ''}
+                            onClick={() => setInquirySupplierPickerOpen(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setInquirySupplierPickerOpen(true)
+                              }
+                            }}
+                          />
+                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                            {inquirySupplierName ? (
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleClearInquirySupplier()
+                                }}
+                                aria-label='清空单位名称'
+                              >
+                                <X className='h-3.5 w-3.5' />
+                              </Button>
+                            ) : null}
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              aria-label='选择供应商'
+                            >
+                              <Search className='h-3.5 w-3.5' />
+                            </Button>
+                            <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inquiryForm.control}
+                name='case_inquiry_type'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 space-y-3'>
+                    <div className='grid grid-cols-6 items-start gap-x-4'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
+                        询价阶段
+                      </FormLabel>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            value={field.value ?? ''}
+                            onValueChange={(v) => {
+                              field.onChange(v)
+                            }}
+                            className='flex flex-wrap gap-x-6 gap-y-2 pt-1'
+                          >
+                            {inquiryTypeQOptions.length === 0 ? (
+                              <div className='text-xs text-muted-foreground'>
+                                暂无询价阶段字典配置（Q 前缀）
+                              </div>
+                            ) : (
+                              inquiryTypeQOptions.map((o) => {
+                                const checked =
+                                  String(field.value ?? '').toUpperCase() ===
+                                  String(o.value ?? '').toUpperCase()
+                                return (
+                                  <Label
+                                    key={o.value}
+                                    className={cn(
+                                      'flex cursor-pointer select-none items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors',
+                                      checked
+                                        ? 'border-primary bg-primary/10 text-primary'
+                                        : 'border-input hover:border-primary/50 hover:bg-accent/30'
+                                    )}
+                                  >
+                                    <RadioGroupItem
+                                      value={o.value}
+                                      id={`inq-type-q-${o.value}`}
+                                      className='sr-only'
+                                    />
+                                    <span>{o.label || o.value}</span>
+                                  </Label>
+                                )
+                              })
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
+                    </div>
+                    <FormMessage className='block pl-[calc((100%+1rem)/3)]' />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inquiryForm.control}
+                name='case_inquired_date'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      询价日期
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inquiryForm.control}
+                name='remark'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      备注
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <Textarea
+                          rows={4}
+                          placeholder='请输入备注...'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => {
+                inquiryForm.reset()
+                setInquiryDialogOpen(false)
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              type='submit'
+              form='inquiry-add-form'
+              disabled={inquiryForm.formState.isSubmitting}
+            >
+              添加
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
