@@ -370,7 +370,43 @@ export function CasesActionDialog({
     [rankDKeyToLabel]
   )
 
+  const { data: progressRRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-R'],
+    queryFn: () => fetchCaseDictByKeyPrefix('R'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const progressROptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (progressRRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [progressRRows])
+
+  const progressRKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of progressROptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [progressROptions])
+
+  const resolveProgressRLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = progressRKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [progressRKeyToLabel]
+  )
+
   const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
+  const [progressPopoverOpen, setProgressPopoverOpen] = useState(false)
 
   const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
   const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
@@ -1521,21 +1557,98 @@ export function CasesActionDialog({
                 <FormField
                   control={form.control}
                   name='case_progress'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件进度
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件进度'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const rawVal = field.value ?? ''
+                    const displayLabel =
+                      rawVal && rawVal.trim() !== ''
+                        ? resolveProgressRLabel(rawVal)
+                        : ''
+                    return (
+                      <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                        <FormLabel className='col-span-2 pt-1 text-end'>
+                          案件进度
+                        </FormLabel>
+                        <div className='col-span-4'>
+                          <Popover
+                            open={progressPopoverOpen}
+                            onOpenChange={setProgressPopoverOpen}
+                          >
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant='outline'
+                                  role='combobox'
+                                  aria-expanded={progressPopoverOpen}
+                                  className='w-full justify-between'
+                                >
+                                  {displayLabel ? (
+                                    <span className='truncate'>
+                                      {displayLabel}
+                                    </span>
+                                  ) : (
+                                    <span className='text-muted-foreground'>
+                                      请选择案件进度
+                                    </span>
+                                  )}
+                                  <div className='flex items-center gap-1'>
+                                    {displayLabel ? (
+                                      <X
+                                        className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          field.onChange('')
+                                        }}
+                                      />
+                                    ) : null}
+                                    <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                                  </div>
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+                              <Command>
+                                <CommandInput placeholder='搜索案件进度...' />
+                                <CommandList>
+                                  <CommandEmpty>未找到匹配项</CommandEmpty>
+                                  <CommandGroup>
+                                    {progressROptions.map((o) => {
+                                      const selected =
+                                        rawVal &&
+                                        rawVal.trim().toUpperCase() ===
+                                          String(o.value).toUpperCase()
+                                      return (
+                                        <CommandItem
+                                          key={o.value}
+                                          value={`${o.label} ${o.value}`}
+                                          onSelect={() => {
+                                            field.onChange(o.value)
+                                            queueMicrotask(() =>
+                                              setProgressPopoverOpen(false)
+                                            )
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'mr-2 h-4 w-4',
+                                              selected
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                          <span>{o.label}</span>
+                                        </CommandItem>
+                                      )
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <FormMessage className='col-span-4 col-start-3' />
+                      </FormItem>
+                    )
+                  }}
                 />
                 <FormField
                   control={form.control}

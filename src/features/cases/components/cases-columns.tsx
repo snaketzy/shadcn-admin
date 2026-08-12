@@ -14,12 +14,14 @@ export function getCasesColumns(params?: {
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
   vesselPositionCMap?: Map<string, string>
+  progressRMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
   const rankDMap = params?.rankDMap
   const vesselPositionCMap = params?.vesselPositionCMap
+  const progressRMap = params?.progressRMap
   const resolveUrgentBLabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''
     const p = String(raw).trim()
@@ -57,6 +59,14 @@ export function getCasesColumns(params?: {
     const p = String(raw).trim()
     if (!p) return ''
     const hit = vesselPositionCMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
+  const resolveProgressRLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = progressRMap?.get(p.toUpperCase())
     if (hit) return hit
     return p
   }
@@ -218,9 +228,10 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('case_progress') as string | null
         if (!value) return <div>-</div>
+        const display = resolveProgressRLabel(value)
         return (
           <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {value}
+            {display}
           </Badge>
         )
       },

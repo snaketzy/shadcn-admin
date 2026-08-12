@@ -289,6 +289,28 @@ export function CasesTable(_: DataTableProps) {
     return m
   }, [vesselPositionCOptions])
 
+  const { data: progressRRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-R-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('R'),
+    staleTime: 60000,
+  })
+
+  const progressROptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (progressRRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [progressRRowsData])
+
+  const progressRMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of progressROptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [progressROptions])
+
   const columns = useMemo(
     () =>
       getCasesColumns({
@@ -297,8 +319,9 @@ export function CasesTable(_: DataTableProps) {
         inchargeEMap,
         rankDMap,
         vesselPositionCMap,
+        progressRMap,
       }),
-    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap, vesselPositionCMap]
+    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap, vesselPositionCMap, progressRMap]
   )
 
   const urlState = useTableUrlState({
@@ -660,11 +683,11 @@ export function CasesTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
-            {caseProgresses.length > 0 && table.getColumn('case_progress') && (
+            {progressROptions.length > 0 && table.getColumn('case_progress') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_progress')!}
                 title='案件进度'
-                options={caseProgresses.map((s) => ({ label: s, value: s }))}
+                options={progressROptions}
               />
             )}
             {urgentBOptions.length > 0 && table.getColumn('case_urgent') && (
