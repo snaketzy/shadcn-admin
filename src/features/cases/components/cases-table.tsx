@@ -657,7 +657,7 @@ export function CasesTable(_: DataTableProps) {
     <div
       className={cn(
         'max-sm:has-[div[role="toolbar"]]:mb-16',
-        'flex flex-1 flex-col gap-4 overflow-hidden'
+        'flex w-full flex-1 flex-col gap-4 overflow-hidden'
       )}
     >
       <div className='flex items-center justify-between gap-2'>
@@ -766,9 +766,9 @@ export function CasesTable(_: DataTableProps) {
           <DataTableViewOptions table={table} />
         </div>
       </div>
-      <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
-        <div className='relative w-full flex-1 overflow-auto'>
-          <table className='w-max min-w-full table-auto caption-bottom text-sm'>
+      <div className='flex w-full min-w-0 flex-1 flex-col overflow-hidden rounded-md border'>
+        <div className='relative w-full min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]'>
+          <table className='w-full min-w-max table-auto caption-bottom text-sm whitespace-nowrap'>
             <TableHeader className='bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='group/row'>

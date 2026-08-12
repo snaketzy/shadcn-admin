@@ -30,6 +30,7 @@ export function Cases() {
 
       <Main
         fixed
+        fluid
         className='flex flex-1 flex-col gap-4 overflow-hidden sm:gap-6'
       >
         <CasesTable />

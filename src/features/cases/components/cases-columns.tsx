@@ -274,6 +274,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件进度',
+        className: 'w-[110px] min-w-[110px]',
+        thClassName: 'w-[110px] min-w-[110px]',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -320,6 +322,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '需求类型',
+        className: 'w-[110px] min-w-[110px]',
+        thClassName: 'w-[110px] min-w-[110px]',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -338,6 +342,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '询价日期',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -353,6 +359,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '开始日期',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -368,6 +376,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '跟进日期',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -388,6 +398,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '当日需处理',
+        className: 'w-[110px] min-w-[110px]',
+        thClassName: 'w-[110px] min-w-[110px]',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -419,6 +431,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '船厂经营',
+        className: 'w-[120px] min-w-[120px]',
+        thClassName: 'w-[120px] min-w-[120px]',
       },
       enableSorting: false,
     },
@@ -447,6 +461,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件机务',
+        className: 'w-[120px] min-w-[120px]',
+        thClassName: 'w-[120px] min-w-[120px]',
       },
       enableSorting: false,
     },
@@ -461,6 +477,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件船检',
+        className: 'w-[120px] min-w-[120px]',
+        thClassName: 'w-[120px] min-w-[120px]',
       },
       enableSorting: false,
     },
@@ -475,6 +493,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '承运人｜服务负责人',
+        className: 'w-[160px] min-w-[160px]',
+        thClassName: 'w-[160px] min-w-[160px]',
       },
       enableSorting: false,
     },
@@ -492,6 +512,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '运输｜服务截止日',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -507,6 +529,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '船舶到港 | 备货完成',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -561,6 +585,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '船舶位置',
+        className: 'w-[110px] min-w-[110px]',
+        thClassName: 'w-[110px] min-w-[110px]',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -579,6 +605,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件结算完成日期',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -609,6 +637,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '供应商结账日期',
+        className: 'w-[144px] min-w-[144px]',
+        thClassName: 'w-[144px] min-w-[144px]',
       },
       enableSorting: false,
     },
@@ -662,6 +692,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件备忘录名称',
+        className: 'w-[160px] min-w-[160px]',
+        thClassName: 'w-[160px] min-w-[160px]',
       },
       enableSorting: false,
     },
@@ -676,6 +708,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件备忘录地址',
+        className: 'w-[220px] min-w-[220px]',
+        thClassName: 'w-[220px] min-w-[220px]',
       },
       enableSorting: false,
     },
@@ -696,6 +730,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '案件评级',
+        className: 'w-[110px] min-w-[110px]',
+        thClassName: 'w-[110px] min-w-[110px]',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
