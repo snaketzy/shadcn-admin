@@ -267,16 +267,16 @@ export function getUsersColumns(
   {
     accessorKey: 'vessel_incharge',
     header: ({ column }) => (
-      <div className='pe-2 text-end'>
-        <DataTableColumnHeader column={column} title='负责人' />
+      <div className='flex h-full w-full items-center justify-end pe-3'>
+        <DataTableColumnHeader column={column} title='负责人' className='justify-end' />
       </div>
     ),
     cell: ({ row }) => {
       const raw = row.getValue('vessel_incharge') as string | number | null
       if (raw === null || raw === undefined || raw === '') {
         return (
-          <div className='pe-2 text-end'>
-            <LongText className='max-w-[80px]'>-</LongText>
+          <div className='flex h-full w-full items-center justify-end pe-3'>
+            <LongText className='max-w-[80px] text-right'>-</LongText>
           </div>
         )
       }
@@ -285,8 +285,8 @@ export function getUsersColumns(
       const byValue = inchargeValueToLabel.get(rawStr)
       const label = byKey ?? byValue ?? rawStr
       return (
-        <div className='pe-2 text-end'>
-          <LongText className='max-w-[80px]'>{label}</LongText>
+        <div className='flex h-full w-full items-center justify-end pe-3'>
+          <LongText className='max-w-[80px] text-right'>{label}</LongText>
         </div>
       )
     },
@@ -295,11 +295,11 @@ export function getUsersColumns(
     },
     meta: {
       className: cn(
-        'sticky right-[88px] z-20 w-[100px] min-w-[100px] bg-background pe-0',
+        'sticky right-[88px] z-20 w-[100px] min-w-[100px] bg-background pe-0 text-right',
         'shadow-[inset_1px_0_0_hsl(var(--border))]'
       ),
       thClassName: cn(
-        'sticky top-0 right-[88px] z-40 w-[100px] min-w-[100px] bg-background pe-0',
+        'sticky top-0 right-[88px] z-40 w-[100px] min-w-[100px] bg-background pe-0 text-right',
         'shadow-[inset_1px_0_0_hsl(var(--border))]'
       ),
     },
