@@ -14,6 +14,7 @@ import {
   UserCheck,
   Wrench,
   Compass,
+  Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -53,6 +54,20 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/card'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import {
   fetchContactAll,
   fetchContactGroups,
   type Contact,
@@ -79,6 +94,10 @@ import {
   fetchOwnerGroups,
   type Owner,
 } from '@/features/owners/api/client'
+import {
+  fetchSupplierAll,
+  type Supplier,
+} from '@/features/suppliers/api/client'
 import {
   OwnerPickerDialog,
   type OwnerPickerResult,
@@ -248,6 +267,18 @@ function joinCsvKeys(arr: string[]): string {
   return arr.filter((s) => s && String(s).trim() !== '').join(',')
 }
 
+type CaseInquiry = {
+  inquiry_id: number
+  case_id: number | null
+  case_inquired_date: string | null
+  case_inquiry_division_id: number | null
+  case_inquiry_type: string | null
+  inquiry_amount: string | null
+  currency: string | null
+  inquiry_status: string | null
+  remark: string | null
+}
+
 type CasesActionDialogProps = {
   currentRow?: Case
   open: boolean
@@ -261,6 +292,7 @@ export function CasesActionDialog({
 }: CasesActionDialogProps) {
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
+  const [inquiryList, setInquiryList] = useState<CaseInquiry[]>([])
 
   const { data: vesselRows = [] } = useQuery({
     queryKey: ['vessel-picker-all'],
@@ -499,6 +531,73 @@ export function CasesActionDialog({
       return p
     },
     [progressRKeyToLabel]
+  )
+
+  const { data: inquiryTypeQRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-Q'],
+    queryFn: () => fetchCaseDictByKeyPrefix('Q'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const inquiryTypeQOptions = useMemo<
+    { value: string; label: string }[]
+  >(() => {
+    const list = (inquiryTypeQRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inquiryTypeQRows])
+
+  const inquiryTypeQKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of inquiryTypeQOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inquiryTypeQOptions])
+
+  const resolveInquiryTypeQLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inquiryTypeQKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [inquiryTypeQKeyToLabel]
+  )
+
+  const { data: supplierRows = [] } = useQuery({
+    queryKey: ['supplier-picker-all'],
+    queryFn: fetchSupplierAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const supplierIdNameMap = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const s of supplierRows as Supplier[]) {
+      if (s.supplier_id != null) {
+        m.set(
+          Number(s.supplier_id),
+          s.supplier_shortname || s.supplier_name || ''
+        )
+      }
+    }
+    return m
+  }, [supplierRows])
+
+  const resolveSupplierNameById = useCallback(
+    (rawId: unknown): string => {
+      if (rawId === null || rawId === undefined || rawId === '') return ''
+      const n = Number(rawId)
+      if (!Number.isFinite(n)) return ''
+      return supplierIdNameMap.get(n) ?? ''
+    },
+    [supplierIdNameMap]
   )
 
   const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
@@ -2199,6 +2298,119 @@ export function CasesActionDialog({
                     </FormItem>
                   )}
                 />
+                <div className='col-span-2'>
+                  <Card className='py-4'>
+                    <CardHeader className='pb-3'>
+                      <div className='flex items-center justify-between gap-3'>
+                        <CardTitle className='text-base'>询价记录</CardTitle>
+                        <Button
+                          type='button'
+                          size='sm'
+                          variant='outline'
+                          onClick={() => {
+                            toast.info('新增询价功能待接入')
+                          }}
+                        >
+                          <Plus className='mr-1 h-3.5 w-3.5' />
+                          新增询价
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className='rounded-md border'>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className='w-[110px]'>
+                                询价日期
+                              </TableHead>
+                              <TableHead>单位名称</TableHead>
+                              <TableHead className='w-[100px]'>
+                                询价阶段
+                              </TableHead>
+                              <TableHead>备注</TableHead>
+                              <TableHead className='w-[80px] text-center'>
+                                操作
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {inquiryList.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={5}
+                                  className='h-24 text-center text-muted-foreground'
+                                >
+                                  <div className='flex flex-col items-center justify-center gap-2 py-2'>
+                                    <span className='text-sm'>
+                                      暂无询价记录
+                                    </span>
+                                    <Button
+                                      type='button'
+                                      size='sm'
+                                      variant='secondary'
+                                      onClick={() => {
+                                        toast.info('新增询价功能待接入')
+                                      }}
+                                    >
+                                      <Plus className='mr-1 h-3.5 w-3.5' />
+                                      新增询价
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              inquiryList.map((row) => {
+                                const supplierName = resolveSupplierNameById(
+                                  row.case_inquiry_division_id
+                                )
+                                const inqTypeLabel =
+                                  resolveInquiryTypeQLabel(
+                                    row.case_inquiry_type
+                                  )
+                                return (
+                                  <TableRow key={row.inquiry_id}>
+                                    <TableCell className='font-mono text-xs'>
+                                      {row.case_inquired_date
+                                        ? formatDateAsHyphen(
+                                            row.case_inquired_date
+                                          )
+                                        : '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {supplierName || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {inqTypeLabel || '-'}
+                                    </TableCell>
+                                    <TableCell className='max-w-[200px] truncate'>
+                                      {row.remark || '-'}
+                                    </TableCell>
+                                    <TableCell className='text-center'>
+                                      <Button
+                                        type='button'
+                                        variant='ghost'
+                                        size='icon'
+                                        className='h-7 w-7'
+                                        onClick={() => {
+                                          toast.info(
+                                            `编辑询价 #${row.inquiry_id} 功能待接入`
+                                          )
+                                        }}
+                                      >
+                                        <X className='h-3.5 w-3.5' />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
                 <FormField
                   control={form.control}
                   name='shipyard_business'
