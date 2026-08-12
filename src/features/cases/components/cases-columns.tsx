@@ -8,6 +8,43 @@ import { getBadgeColor } from '../data/data'
 import { type Case } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`
+}
+
+function formatDateAsHyphen(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const str = String(raw).trim()
+  if (!str) return ''
+  let d: Date
+  if (
+    /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str) ||
+    /^\d{4}\d{2}\d{2}$/.test(str)
+  ) {
+    const normalized = /^\d{8}$/.test(str)
+      ? `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`
+      : str.replace(/\//g, '-')
+    const [y, m, day] = normalized.split('-').map((s) => parseInt(s, 10))
+    if (
+      !Number.isNaN(y) &&
+      !Number.isNaN(m) &&
+      !Number.isNaN(day) &&
+      y >= 1000 &&
+      m >= 1 &&
+      m <= 12 &&
+      day >= 1 &&
+      day <= 31
+    ) {
+      return `${y}-${pad2(m)}-${pad2(day)}`
+    }
+  }
+  d = new Date(str)
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  }
+  return str
+}
+
 export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
   inqTypeAMap?: Map<string, string>
@@ -296,7 +333,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '询价日期',
@@ -310,7 +348,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_follow_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '开始日期',
@@ -324,7 +363,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_uptodate_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '跟进日期',
@@ -444,8 +484,11 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='运输｜服务截止日' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_deadline') as string | null
-        return <div>{value ?? '-'}</div>
+        const value = row.getValue(
+          'case_delivery_or_service_deadline'
+        ) as string | null
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '运输｜服务截止日',
@@ -459,7 +502,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_eta_cargo_ready_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船舶到港 | 备货完成',
@@ -472,8 +516,11 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='船舶靠港 ｜ 货物发出' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_etb_cargo_departure_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const value = row.getValue(
+          'case_etb_cargo_departure_date'
+        ) as string | null
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船舶靠港 ｜ 货物发出',
@@ -486,8 +533,11 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='船舶开航 ｜ 货物签收' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_etd_cargo_delivery_date') as string | null
-        return <div>{value ?? '-'}</div>
+        const value = row.getValue(
+          'case_etd_cargo_delivery_date'
+        ) as string | null
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船舶开航 ｜ 货物签收',
@@ -524,7 +574,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_settlement_done') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '案件结算完成日期',
@@ -538,7 +589,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_epd') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船东结账日期',
@@ -552,7 +604,8 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_spd') as string | null
-        return <div>{value ?? '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '供应商结账日期',
