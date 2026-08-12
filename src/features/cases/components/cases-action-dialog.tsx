@@ -2321,15 +2321,21 @@ export function CasesActionDialog({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className='w-[110px]'>
-                                询价日期
+                              <TableHead className='w-[calc(100%*8/24)]'>
+                                单位名称
                               </TableHead>
-                              <TableHead>单位名称</TableHead>
-                              <TableHead className='w-[100px]'>
+                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
                                 询价阶段
                               </TableHead>
-                              <TableHead>备注</TableHead>
-                              <TableHead className='w-[80px] text-center'>
+                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
+                                询价日期
+                              </TableHead>
+                              <TableHead className='w-[calc(100%*8/24)] text-center'>
+                                备注
+                              </TableHead>
+                              <TableHead
+                                className='w-[calc(100%*8/24/3)] text-center'
+                              >
                                 操作
                               </TableHead>
                             </TableRow>
@@ -2370,18 +2376,18 @@ export function CasesActionDialog({
                                   )
                                 return (
                                   <TableRow key={row.inquiry_id}>
+                                    <TableCell>
+                                      {supplierName || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {inqTypeLabel || '-'}
+                                    </TableCell>
                                     <TableCell className='font-mono text-xs'>
                                       {row.case_inquired_date
                                         ? formatDateAsHyphen(
                                             row.case_inquired_date
                                           )
                                         : '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                      {supplierName || '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                      {inqTypeLabel || '-'}
                                     </TableCell>
                                     <TableCell className='max-w-[200px] truncate'>
                                       {row.remark || '-'}
