@@ -2397,8 +2397,8 @@ export function CasesActionDialog({
                   )}
                 />
                 <div className='col-span-2'>
-                  <Card className='py-4'>
-                    <CardHeader className='pb-3'>
+                  <Card className='py-1.5'>
+                    <CardHeader className='pb-1 pt-0'>
                       <div className='flex items-center justify-between gap-3'>
                         <CardTitle className='text-base'>询价记录</CardTitle>
                         <Button
@@ -2415,7 +2415,7 @@ export function CasesActionDialog({
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className='pt-0 pb-0'>
                       <div className='rounded-md border'>
                         <Table>
                           <TableHeader>
@@ -2446,23 +2446,9 @@ export function CasesActionDialog({
                                   colSpan={5}
                                   className='h-24 text-center text-muted-foreground'
                                 >
-                                  <div className='flex flex-col items-center justify-center gap-2 py-2'>
-                                    <span className='text-sm'>
-                                      暂无询价记录
-                                    </span>
-                                    <Button
-                                      type='button'
-                                      size='sm'
-                                      variant='secondary'
-                                      onClick={() => {
-                                        inquiryForm.reset()
-                                        setInquiryDialogOpen(true)
-                                      }}
-                                    >
-                                      <Plus className='mr-1 h-3.5 w-3.5' />
-                                      新增询价
-                                    </Button>
-                                  </div>
+                                  <span className='text-sm'>
+                                    暂无询价记录
+                                  </span>
                                 </TableCell>
                               </TableRow>
                             ) : (
