@@ -19,7 +19,7 @@ export function Owners() {
         <ProfileDropdown />
       </Header>
 
-      <Main fixed className='flex flex-1 flex-col gap-4 sm:gap-6 overflow-hidden'>
+      <Main fixed fluid className='flex flex-1 flex-col gap-4 sm:gap-6 overflow-hidden'>
         <div className='flex flex-shrink-0 flex-wrap items-end justify-between gap-2'>
           <div>
             <h2 className='text-2xl font-bold tracking-tight'>船东列表</h2>
