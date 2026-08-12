@@ -273,7 +273,9 @@ export function CasesTable(_: DataTableProps) {
     staleTime: 60000,
   })
 
-  const vesselPositionCOptions = useMemo<{ value: string; label: string }[]>(() => {
+  const vesselPositionCOptions = useMemo<
+    { value: string; label: string }[]
+  >(() => {
     const list = (vesselPositionCRowsData as CaseDict[]) ?? []
     return list.map((d) => ({
       value: String(d.dict_key ?? ''),
@@ -321,7 +323,14 @@ export function CasesTable(_: DataTableProps) {
         vesselPositionCMap,
         progressRMap,
       }),
-    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap, vesselPositionCMap, progressRMap]
+    [
+      urgentBMap,
+      inqTypeAMap,
+      inchargeEMap,
+      rankDMap,
+      vesselPositionCMap,
+      progressRMap,
+    ]
   )
 
   const urlState = useTableUrlState({
@@ -347,7 +356,11 @@ export function CasesTable(_: DataTableProps) {
       },
       { columnId: 'case_incharge', searchKey: 'caseIncharge', type: 'array' },
       { columnId: 'case_rank', searchKey: 'caseRank', type: 'array' },
-      { columnId: 'vessel_position', searchKey: 'vesselPosition', type: 'array' },
+      {
+        columnId: 'vessel_position',
+        searchKey: 'vesselPosition',
+        type: 'array',
+      },
     ],
   })
   const {
@@ -511,10 +524,17 @@ export function CasesTable(_: DataTableProps) {
     }
     if (keyword.trim() !== '') {
       const q = keyword.trim().toLowerCase()
-      result = result.filter((r) =>
-        String(r.case_inquiry_keyword ?? '')
-          .toLowerCase()
-          .includes(q)
+      result = result.filter(
+        (r) =>
+          String(r.case_inquiry_keyword ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.invoice_number ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.order_number ?? '')
+            .toLowerCase()
+            .includes(q)
       )
     }
     if (caseProgressFilter.length > 0) {
@@ -673,23 +693,24 @@ export function CasesTable(_: DataTableProps) {
             className='h-8 w-34 lg:w-50'
           />
           <Input
-            placeholder='按需求编号/名称筛选...'
+            placeholder='按发票号 / 订单编号 / 需求编号/名称筛选...'
             value={editingKeyword}
             onChange={(e) => onKeywordChange(e.target.value)}
             onCompositionStart={onKeywordCompositionStart}
             onCompositionEnd={(e) =>
               onKeywordCompositionEnd((e.target as HTMLInputElement).value)
             }
-            className='h-8 w-37.5 lg:w-62.5'
+            className='h-8 w-45 lg:w-75'
           />
           <div className='flex gap-x-2'>
-            {progressROptions.length > 0 && table.getColumn('case_progress') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('case_progress')!}
-                title='案件进度'
-                options={progressROptions}
-              />
-            )}
+            {progressROptions.length > 0 &&
+              table.getColumn('case_progress') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_progress')!}
+                  title='案件进度'
+                  options={progressROptions}
+                />
+              )}
             {urgentBOptions.length > 0 && table.getColumn('case_urgent') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_urgent')!}
@@ -767,7 +788,7 @@ export function CasesTable(_: DataTableProps) {
         </div>
       </div>
       <div className='flex w-full min-w-0 flex-1 flex-col overflow-hidden rounded-md border'>
-        <div className='relative w-full min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]'>
+        <div className='relative w-full min-w-0 flex-1 [scrollbar-gutter:stable] overflow-auto'>
           <table className='w-full min-w-max table-auto caption-bottom text-sm whitespace-nowrap'>
             <TableHeader className='bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
