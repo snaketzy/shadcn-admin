@@ -78,7 +78,7 @@ function getColumns(
       cell: ({ row }) => (
         <Link
           to='/contact_list'
-          search={{ contactSearch: String(row.original.contact_id) }}
+          search={{ contactSearch: String(row.original.contact_name ?? '') }}
           className='inline-flex max-w-[8em] items-center gap-1.5 ps-3 font-medium hover:underline'
         >
           <span className='truncate'>{row.getValue('contact_name')}</span>
