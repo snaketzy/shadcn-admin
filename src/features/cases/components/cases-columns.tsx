@@ -8,220 +8,114 @@ import { getBadgeColor } from '../data/data'
 import { type Case } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export type ProgressDict = {
-  dict_key: string | number | null
-  dict_value: string | null
-}
-
-export type UrgentDict = {
-  dict_key: string | number | null
-  dict_value: string | null
-}
-
-export type InquiryTypeDict = {
-  dict_key: string | number | null
-  dict_value: string | null
-}
-
-export type InchargeDict = {
-  dict_key: string | number | null
-  dict_value: string | null
-}
-
-export type RankDict = {
-  dict_key: string | number | null
-  dict_value: string | null
-}
-
-export type HandleTodayDict = {
-  dict_key: string | number | null
-  dict_value: string | null
-}
-
-function splitCsv(raw: unknown): string[] {
-  if (raw === null || raw === undefined || raw === '') return []
-  return String(raw)
-    .split(/[,，]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`
 }
 
-function formatDate(raw: unknown): string {
+function formatDateAsHyphen(raw: unknown): string {
   if (raw === null || raw === undefined || raw === '') return ''
-  const s = String(raw).trim()
-  if (!s) return ''
-  const d0 = new Date(s)
-  if (!isNaN(d0.getTime())) {
-    return `${d0.getFullYear()}-${pad2(d0.getMonth() + 1)}-${pad2(d0.getDate())}`
+  const str = String(raw).trim()
+  if (!str) return ''
+  let d: Date
+  if (
+    /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str) ||
+    /^\d{4}\d{2}\d{2}$/.test(str)
+  ) {
+    const normalized = /^\d{8}$/.test(str)
+      ? `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`
+      : str.replace(/\//g, '-')
+    const [y, m, day] = normalized.split('-').map((s) => parseInt(s, 10))
+    if (
+      !Number.isNaN(y) &&
+      !Number.isNaN(m) &&
+      !Number.isNaN(day) &&
+      y >= 1000 &&
+      m >= 1 &&
+      m <= 12 &&
+      day >= 1 &&
+      day <= 31
+    ) {
+      return `${y}-${pad2(m)}-${pad2(day)}`
+    }
   }
-  const m1 = s.match(/^(\d{4})[-/年.](\d{1,2})[-/月.](\d{1,2})/)
-  if (m1) {
-    return `${m1[1]}-${pad2(Number(m1[2]))}-${pad2(Number(m1[3]))}`
+  d = new Date(str)
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
   }
-  const m2 = s.match(/^(\d{4})(\d{2})(\d{2})$/)
-  if (m2) {
-    return `${m2[1]}-${m2[2]}-${m2[3]}`
+  return str
+}
+
+export function getCasesColumns(params?: {
+  urgentBMap?: Map<string, string>
+  inqTypeAMap?: Map<string, string>
+  inchargeEMap?: Map<string, string>
+  rankDMap?: Map<string, string>
+  vesselPositionCMap?: Map<string, string>
+  progressRMap?: Map<string, string>
+}): ColumnDef<Case>[] {
+  const urgentBMap = params?.urgentBMap
+  const inqTypeAMap = params?.inqTypeAMap
+  const inchargeEMap = params?.inchargeEMap
+  const rankDMap = params?.rankDMap
+  const vesselPositionCMap = params?.vesselPositionCMap
+  const progressRMap = params?.progressRMap
+  const resolveUrgentBLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = urgentBMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
   }
-  return s
-}
-
-function makeProgressMap(dict: ProgressDict[] | undefined) {
-  const keyMap = new Map<string, string>()
-  for (const d of dict ?? []) {
-    keyMap.set(
-      String(d.dict_key ?? '').toUpperCase(),
-      String(d.dict_value ?? '')
-    )
+  const resolveInqTypeALabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = inqTypeAMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
   }
-  return keyMap
-}
-
-export function resolveProgressLabel(
-  raw: unknown,
-  progressDict: ProgressDict[] | undefined
-): string {
-  if (raw === null || raw === undefined || raw === '') return ''
-  const p = String(raw).trim()
-  if (!p) return ''
-  const keyMap = makeProgressMap(progressDict)
-  const v = keyMap.get(p.toUpperCase())
-  if (v) return v
-  return p
-}
-
-function makeUrgentMap(dict: UrgentDict[] | undefined) {
-  const keyMap = new Map<string, string>()
-  for (const d of dict ?? []) {
-    keyMap.set(
-      String(d.dict_key ?? '').toUpperCase(),
-      String(d.dict_value ?? '')
-    )
+  const resolveInchargeELabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = inchargeEMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
   }
-  return keyMap
-}
-
-export function resolveUrgentLabel(
-  raw: unknown,
-  urgentDict: UrgentDict[] | undefined
-): string {
-  if (raw === null || raw === undefined || raw === '') return ''
-  const p = String(raw).trim()
-  if (!p) return ''
-  const keyMap = makeUrgentMap(urgentDict)
-  const v = keyMap.get(p.toUpperCase())
-  if (v) return v
-  return p
-}
-
-function makeInquiryTypeMap(dict: InquiryTypeDict[] | undefined) {
-  const keyMap = new Map<string, string>()
-  for (const d of dict ?? []) {
-    keyMap.set(
-      String(d.dict_key ?? '').toUpperCase(),
-      String(d.dict_value ?? '')
-    )
+  const resolveRankDLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = rankDMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
   }
-  return keyMap
-}
-
-export function resolveInquiryTypeLabel(
-  raw: unknown,
-  inquiryTypeDict: InquiryTypeDict[] | undefined
-): string {
-  if (raw === null || raw === undefined || raw === '') return ''
-  const p = String(raw).trim()
-  if (!p) return ''
-  const keyMap = makeInquiryTypeMap(inquiryTypeDict)
-  const v = keyMap.get(p.toUpperCase())
-  if (v) return v
-  return p
-}
-
-function makeInchargeMap(dict: InchargeDict[] | undefined) {
-  const keyMap = new Map<string, string>()
-  for (const d of dict ?? []) {
-    keyMap.set(
-      String(d.dict_key ?? '').toUpperCase(),
-      String(d.dict_value ?? '')
-    )
+  const resolveVesselPositionCLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = vesselPositionCMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
   }
-  return keyMap
-}
-
-export function resolveInchargeLabel(
-  raw: unknown,
-  inchargeDict: InchargeDict[] | undefined
-): string {
-  const keys = splitCsv(raw)
-  if (keys.length === 0) return ''
-  const keyMap = makeInchargeMap(inchargeDict)
-  const parts = keys.map((k) => {
-    const v = keyMap.get(k.toUpperCase())
-    return v ? v : k
-  })
-  return parts.join('，')
-}
-
-function makeRankMap(dict: RankDict[] | undefined) {
-  const keyMap = new Map<string, string>()
-  for (const d of dict ?? []) {
-    keyMap.set(
-      String(d.dict_key ?? '').toUpperCase(),
-      String(d.dict_value ?? '')
-    )
+  const resolveProgressRLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = progressRMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
   }
-  return keyMap
-}
-
-export function resolveRankLabel(
-  raw: unknown,
-  rankDict: RankDict[] | undefined
-): string {
-  if (raw === null || raw === undefined || raw === '') return ''
-  const p = String(raw).trim()
-  if (!p) return ''
-  const keyMap = makeRankMap(rankDict)
-  const v = keyMap.get(p.toUpperCase())
-  if (v) return v
-  return p
-}
-
-function makeHandleTodayMap(dict: HandleTodayDict[] | undefined) {
-  const keyMap = new Map<string, string>()
-  for (const d of dict ?? []) {
-    keyMap.set(
-      String(d.dict_key ?? '').toUpperCase(),
-      String(d.dict_value ?? '')
-    )
+  const splitCsvKeys = (raw: unknown): string[] => {
+    if (raw === null || raw === undefined) return []
+    const s = String(raw)
+    if (!s || s.trim() === '') return []
+    return s
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
   }
-  return keyMap
-}
-
-export function resolveHandleTodayLabel(
-  raw: unknown,
-  handleTodayDict: HandleTodayDict[] | undefined
-): string {
-  if (raw === null || raw === undefined || raw === '') return ''
-  const p = String(raw).trim()
-  if (!p) return ''
-  const keyMap = makeHandleTodayMap(handleTodayDict)
-  const v = keyMap.get(p.toUpperCase())
-  if (v) return v
-  return p
-}
-
-export function getCasesColumns(
-  progressDict?: ProgressDict[],
-  urgentDict?: UrgentDict[],
-  inquiryTypeDict?: InquiryTypeDict[],
-  inchargeDict?: InchargeDict[],
-  rankDict?: RankDict[],
-  handleTodayDict?: HandleTodayDict[]
-): ColumnDef<Case>[] {
   return [
     {
       id: 'select',
@@ -266,7 +160,9 @@ export function getCasesColumns(
             className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium'
             title={String(value ?? '')}
           >
-            <LongText className='max-w-50 truncate'>{value ?? '-'}</LongText>
+            <LongText className='max-w-50 truncate'>
+              {value ?? '-'}
+            </LongText>
           </span>
         )
       },
@@ -291,7 +187,9 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('invoice_number') as string | null
         if (!value) return <div>-</div>
-        return <LongText className='max-w-40'>{value}</LongText>
+        return (
+          <LongText className='max-w-40'>{value}</LongText>
+        )
       },
       meta: {
         label: '发票号',
@@ -315,7 +213,9 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('order_number') as string | null
         if (!value) return <div>-</div>
-        return <LongText className='max-w-45'>{value}</LongText>
+        return (
+          <LongText className='max-w-45'>{value}</LongText>
+        )
       },
       meta: {
         label: '订单编号',
@@ -339,7 +239,9 @@ export function getCasesColumns(
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_keyword') as string | null
         if (!value) return <div>-</div>
-        return <LongText className='max-w-55'>{value}</LongText>
+        return (
+          <LongText className='max-w-55'>{value}</LongText>
+        )
       },
       meta: {
         label: '需求编号/名称',
@@ -362,11 +264,11 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_progress') as string | null
-        const label = resolveProgressLabel(value, progressDict)
-        if (!label) return <div>-</div>
+        if (!value) return <div>-</div>
+        const display = resolveProgressRLabel(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
-            {label}
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {display}
           </Badge>
         )
       },
@@ -385,11 +287,11 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_urgent') as string | null
-        const label = resolveUrgentLabel(value, urgentDict)
-        if (!label) return <div>-</div>
+        if (!value) return <div>-</div>
+        const display = resolveUrgentBLabel(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
-            {label}
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {display}
           </Badge>
         )
       },
@@ -404,20 +306,20 @@ export function getCasesColumns(
     {
       accessorKey: 'case_inquiry_type',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='需求類型' />
+        <DataTableColumnHeader column={column} title='需求类型' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_type') as string | null
-        const label = resolveInquiryTypeLabel(value, inquiryTypeDict)
-        if (!label) return <div>-</div>
+        if (!value) return <div>-</div>
+        const display = resolveInqTypeALabel(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
-            {label}
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {display}
           </Badge>
         )
       },
       meta: {
-        label: '需求類型',
+        label: '需求类型',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -431,8 +333,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_date') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '询价日期',
@@ -446,8 +348,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_follow_date') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '开始日期',
@@ -461,8 +363,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_uptodate_date') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '跟进日期',
@@ -476,11 +378,11 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_should_handle_today') as string | null
-        const label = resolveHandleTodayLabel(value, handleTodayDict)
-        if (!label) return <div>-</div>
+        if (!value) return <div>-</div>
+        const display = resolveUrgentBLabel(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
-            {label}
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {display}
           </Badge>
         )
       },
@@ -568,8 +470,7 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='承运人｜服务负责人' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_incharge') as
-          string | null
+        const value = row.getValue('case_delivery_or_service_incharge') as string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
       },
       meta: {
@@ -583,10 +484,11 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='运输｜服务截止日' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_deadline') as
-          string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const value = row.getValue(
+          'case_delivery_or_service_deadline'
+        ) as string | null
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '运输｜服务截止日',
@@ -600,8 +502,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_eta_cargo_ready_date') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船舶到港 | 备货完成',
@@ -614,10 +516,11 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='船舶靠港 ｜ 货物发出' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_etb_cargo_departure_date') as
-          string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const value = row.getValue(
+          'case_etb_cargo_departure_date'
+        ) as string | null
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船舶靠港 ｜ 货物发出',
@@ -630,10 +533,11 @@ export function getCasesColumns(
         <DataTableColumnHeader column={column} title='船舶开航 ｜ 货物签收' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_etd_cargo_delivery_date') as
-          string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const value = row.getValue(
+          'case_etd_cargo_delivery_date'
+        ) as string | null
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船舶开航 ｜ 货物签收',
@@ -647,10 +551,19 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('vessel_position') as string | null
-        return <LongText className='max-w-50'>{value ?? '-'}</LongText>
+        if (!value) return <div>-</div>
+        const display = resolveVesselPositionCLabel(value)
+        return (
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {display}
+          </Badge>
+        )
       },
       meta: {
         label: '船舶位置',
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id))
       },
       enableSorting: false,
     },
@@ -661,8 +574,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_settlement_done') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '案件结算完成日期',
@@ -676,8 +589,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_epd') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '船东结账日期',
@@ -691,8 +604,8 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_spd') as string | null
-        const formatted = formatDate(value)
-        return <div>{formatted ? formatted : '-'}</div>
+        const formatted = formatDateAsHyphen(value)
+        return <div>{formatted || '-'}</div>
       },
       meta: {
         label: '供应商结账日期',
@@ -706,37 +619,35 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_incharge') as string | null
-        const label = resolveInchargeLabel(value, inchargeDict)
-        if (!label) return <div>-</div>
+        const keys = splitCsvKeys(value)
+        if (keys.length === 0) return <div>-</div>
         return (
-          <div className='flex flex-wrap gap-1'>
-            {splitCsv(value).map((rawKey, i) => {
-              const v = makeInchargeMap(inchargeDict).get(rawKey.toUpperCase())
-              const displayKey = v ?? rawKey
-              return (
-                <Badge
-                  key={`${rawKey}-${i}`}
-                  variant='outline'
-                  className={cn(getBadgeColor(rawKey ?? ''))}
-                >
-                  {displayKey}
-                </Badge>
-              )
-            })}
+          <div className='flex flex-wrap gap-1.5'>
+            {keys.map((k) => (
+              <Badge
+                key={k}
+                variant='outline'
+                className={cn(getBadgeColor(k))}
+              >
+                {resolveInchargeELabel(k)}
+              </Badge>
+            ))}
           </div>
         )
       },
       meta: {
         label: '案件负责人',
       },
-      filterFn: (row, id, filterValue) => {
-        const value = row.getValue(id) as string | null | undefined
-        const selected = Array.isArray(filterValue)
-          ? (filterValue as string[]).map((s) => String(s).toUpperCase())
+      filterFn: (row, id, filterValues: unknown) => {
+        const rowRaw = row.getValue(id)
+        const rowKeys = splitCsvKeys(rowRaw).map((s) => s.toUpperCase())
+        const filterArr = Array.isArray(filterValues)
+          ? (filterValues as string[]).map((s) =>
+              String(s ?? '').trim().toUpperCase()
+            )
           : []
-        if (selected.length === 0) return true
-        const rowKeys = splitCsv(value).map((k) => k.toUpperCase())
-        return selected.some((s) => rowKeys.includes(s))
+        if (filterArr.length === 0) return true
+        return filterArr.some((f) => rowKeys.includes(f))
       },
       enableSorting: false,
     },
@@ -775,11 +686,11 @@ export function getCasesColumns(
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_rank') as string | null
-        const label = resolveRankLabel(value, rankDict)
-        if (!label) return <div>-</div>
+        if (!value) return <div>-</div>
+        const display = resolveRankDLabel(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value ?? ''))}>
-            {label}
+          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+            {display}
           </Badge>
         )
       },

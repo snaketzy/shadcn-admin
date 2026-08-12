@@ -30,6 +30,10 @@ import {
 import { DataTablePagination } from '@/components/data-table'
 import { DataTableFacetedFilter } from '@/components/data-table/faceted-filter'
 import { DataTableViewOptions } from '@/components/data-table/view-options'
+import {
+  fetchCaseDictByKeyPrefix,
+  type CaseDict,
+} from '@/features/dictionaries/api/client'
 import { fetchCaseAll, fetchCaseGroups } from '../api/client'
 import { type Case } from '../data/schema'
 import { getCasesColumns } from './cases-columns'
@@ -171,38 +175,153 @@ export function CasesTable(_: DataTableProps) {
     queryFn: fetchCaseGroups,
   })
   const caseProgresses = groupsData?.caseProgresses ?? []
-  void caseProgresses
   const caseInquiryTypes = groupsData?.caseInquiryTypes ?? []
-  void caseInquiryTypes
   const caseInCharges = groupsData?.caseInCharges ?? []
-  void caseInCharges
   const caseRanks = groupsData?.caseRanks ?? []
-  void caseRanks
-  const progressDict = groupsData?.progressDict ?? []
-  const urgentDict = groupsData?.urgentDict ?? []
-  const inquiryTypeDict = groupsData?.inquiryTypeDict ?? []
-  const inchargeDict = groupsData?.inchargeDict ?? []
-  const rankDict = groupsData?.rankDict ?? []
-  const handleTodayDict = groupsData?.handleTodayDict ?? []
+
+  const { data: urgentBRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-B-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('B'),
+    staleTime: 60000,
+  })
+
+  const urgentBOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (urgentBRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [urgentBRowsData])
+
+  const urgentBMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of urgentBOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [urgentBOptions])
+
+  const { data: inqTypeARowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-A-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('A'),
+    staleTime: 60000,
+  })
+
+  const inqTypeAOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inqTypeARowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inqTypeARowsData])
+
+  const inqTypeAMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of inqTypeAOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inqTypeAOptions])
+
+  const { data: inchargeERowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-E-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('E'),
+    staleTime: 60000,
+  })
+
+  const inchargeEOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inchargeERowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inchargeERowsData])
+
+  const inchargeEMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of inchargeEOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inchargeEOptions])
+
+  const { data: rankDRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-D-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('D'),
+    staleTime: 60000,
+  })
+
+  const rankDOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (rankDRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [rankDRowsData])
+
+  const rankDMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of rankDOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [rankDOptions])
+
+  const { data: vesselPositionCRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-C-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('C'),
+    staleTime: 60000,
+  })
+
+  const vesselPositionCOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (vesselPositionCRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [vesselPositionCRowsData])
+
+  const vesselPositionCMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of vesselPositionCOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [vesselPositionCOptions])
+
+  const { data: progressRRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-R-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('R'),
+    staleTime: 60000,
+  })
+
+  const progressROptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (progressRRowsData as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [progressRRowsData])
+
+  const progressRMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of progressROptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [progressROptions])
 
   const columns = useMemo(
     () =>
-      getCasesColumns(
-        progressDict,
-        urgentDict,
-        inquiryTypeDict,
-        inchargeDict,
-        rankDict,
-        handleTodayDict
-      ),
-    [
-      progressDict,
-      urgentDict,
-      inquiryTypeDict,
-      inchargeDict,
-      rankDict,
-      handleTodayDict,
-    ]
+      getCasesColumns({
+        urgentBMap,
+        inqTypeAMap,
+        inchargeEMap,
+        rankDMap,
+        vesselPositionCMap,
+        progressRMap,
+      }),
+    [urgentBMap, inqTypeAMap, inchargeEMap, rankDMap, vesselPositionCMap, progressRMap]
   )
 
   const urlState = useTableUrlState({
@@ -228,6 +347,7 @@ export function CasesTable(_: DataTableProps) {
       },
       { columnId: 'case_incharge', searchKey: 'caseIncharge', type: 'array' },
       { columnId: 'case_rank', searchKey: 'caseRank', type: 'array' },
+      { columnId: 'vessel_position', searchKey: 'vesselPosition', type: 'array' },
     ],
   })
   const {
@@ -362,10 +482,17 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
-  const caseHandleTodayFilter = useMemo(
+  const caseShouldHandleTodayFilter = useMemo(
     () =>
       Array.isArray((search as any).caseShouldHandleToday)
         ? ((search as any).caseShouldHandleToday as string[])
+        : [],
+    [search]
+  )
+  const vesselPositionFilter = useMemo(
+    () =>
+      Array.isArray((search as any).vesselPosition)
+        ? ((search as any).vesselPosition as string[])
         : [],
     [search]
   )
@@ -401,13 +528,18 @@ export function CasesTable(_: DataTableProps) {
       )
     }
     if (caseInchargeFilter.length > 0) {
-      const selected = caseInchargeFilter.map((s) => String(s).toUpperCase())
+      const filterKeys = caseInchargeFilter.map((s) =>
+        String(s ?? '')
+          .trim()
+          .toUpperCase()
+      )
       result = result.filter((r) => {
-        const rowKeys = String(r.case_incharge ?? '')
-          .split(/[,，]/)
-          .map((k) => k.trim().toUpperCase())
+        const rowRaw = r.case_incharge ?? ''
+        const rowKeys = (rowRaw ? String(rowRaw).split(',') : [])
+          .map((s) => s.trim().toUpperCase())
           .filter(Boolean)
-        return selected.some((s) => rowKeys.includes(s))
+        if (rowKeys.length === 0) return false
+        return filterKeys.some((f) => rowKeys.includes(f))
       })
     }
     if (caseRankFilter.length > 0) {
@@ -418,9 +550,14 @@ export function CasesTable(_: DataTableProps) {
         caseUrgentFilter.includes(r.case_urgent ?? '')
       )
     }
-    if (caseHandleTodayFilter.length > 0) {
+    if (caseShouldHandleTodayFilter.length > 0) {
       result = result.filter((r) =>
-        caseHandleTodayFilter.includes(r.case_should_handle_today ?? '')
+        caseShouldHandleTodayFilter.includes(r.case_should_handle_today ?? '')
+      )
+    }
+    if (vesselPositionFilter.length > 0) {
+      result = result.filter((r) =>
+        vesselPositionFilter.includes(r.vessel_position ?? '')
       )
     }
     return result
@@ -433,7 +570,8 @@ export function CasesTable(_: DataTableProps) {
     caseInchargeFilter,
     caseRankFilter,
     caseUrgentFilter,
-    caseHandleTodayFilter,
+    caseShouldHandleTodayFilter,
+    vesselPositionFilter,
   ])
 
   const handleResetFilters = () => {
@@ -446,11 +584,12 @@ export function CasesTable(_: DataTableProps) {
         invoiceNumber: undefined,
         orderNumber: undefined,
         caseProgress: undefined,
-        caseUrgent: undefined,
-        caseShouldHandleToday: undefined,
         caseInquiryType: undefined,
         caseIncharge: undefined,
         caseRank: undefined,
+        caseUrgent: undefined,
+        caseShouldHandleToday: undefined,
+        vesselPosition: undefined,
       } as any,
     })
   }
@@ -482,23 +621,9 @@ export function CasesTable(_: DataTableProps) {
   })
 
   const pageCount = table.getPageCount()
-  const ensurePageInRangeRef = useRef(ensurePageInRange)
-  ensurePageInRangeRef.current = ensurePageInRange
   useEffect(() => {
-    if (pageCount <= 0) return
-    const currentPage = (search as unknown as { page?: number }).page
-    const pageNum = typeof currentPage === 'number' ? currentPage : 1
-    if (pageCount > 0 && pageNum > pageCount) {
-      navigate({
-        replace: true,
-        search: (prev: any) => ({
-          ...(prev ?? {}),
-          page: undefined,
-        }),
-      })
-    }
-  }, [pageCount])
-  void ensurePageInRangeRef
+    ensurePageInRange(pageCount)
+  }, [pageCount, ensurePageInRange])
 
   const isFiltered =
     columnFilters.length > 0 ||
@@ -558,80 +683,59 @@ export function CasesTable(_: DataTableProps) {
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
-            {progressDict.length > 0 && table.getColumn('case_progress') && (
+            {progressROptions.length > 0 && table.getColumn('case_progress') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_progress')!}
                 title='案件进度'
-                options={progressDict
-                  .filter((d) => d.dict_key && d.dict_value)
-                  .map((d) => ({
-                    label: String(d.dict_value ?? ''),
-                    value: String(d.dict_key ?? ''),
-                  }))}
+                options={progressROptions}
               />
             )}
-            {inquiryTypeDict.length > 0 &&
-              table.getColumn('case_inquiry_type') && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('case_inquiry_type')!}
-                  title='需求類型'
-                  options={inquiryTypeDict
-                    .filter((d) => d.dict_key && d.dict_value)
-                    .map((d) => ({
-                      label: String(d.dict_value ?? ''),
-                      value: String(d.dict_key ?? ''),
-                    }))}
-                />
-              )}
-            {inchargeDict.length > 0 && table.getColumn('case_incharge') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('case_incharge')!}
-                title='案件负责人'
-                options={inchargeDict
-                  .filter((d) => d.dict_key && d.dict_value)
-                  .map((d) => ({
-                    label: String(d.dict_value ?? ''),
-                    value: String(d.dict_key ?? ''),
-                  }))}
-              />
-            )}
-            {urgentDict.length > 0 && table.getColumn('case_urgent') && (
+            {urgentBOptions.length > 0 && table.getColumn('case_urgent') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_urgent')!}
                 title='紧急案件'
-                options={urgentDict
-                  .filter((d) => d.dict_key && d.dict_value)
-                  .map((d) => ({
-                    label: String(d.dict_value ?? ''),
-                    value: String(d.dict_key ?? ''),
-                  }))}
+                options={urgentBOptions}
               />
             )}
-            {handleTodayDict.length > 0 &&
+            {urgentBOptions.length > 0 &&
               table.getColumn('case_should_handle_today') && (
                 <DataTableFacetedFilter
                   column={table.getColumn('case_should_handle_today')!}
                   title='当日需处理'
-                  options={handleTodayDict
-                    .filter((d) => d.dict_key && d.dict_value)
-                    .map((d) => ({
-                      label: String(d.dict_value ?? ''),
-                      value: String(d.dict_key ?? ''),
-                    }))}
+                  options={urgentBOptions}
                 />
               )}
-            {rankDict.length > 0 && table.getColumn('case_rank') && (
+            {inqTypeAOptions.length > 0 &&
+              table.getColumn('case_inquiry_type') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_inquiry_type')!}
+                  title='需求类型'
+                  options={inqTypeAOptions}
+                />
+              )}
+            {inchargeEOptions.length > 0 &&
+              table.getColumn('case_incharge') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('case_incharge')!}
+                  title='案件负责人'
+                  options={inchargeEOptions}
+                />
+              )}
+            {rankDOptions.length > 0 && table.getColumn('case_rank') && (
               <DataTableFacetedFilter
                 column={table.getColumn('case_rank')!}
                 title='案件评级'
-                options={rankDict
-                  .filter((d) => d.dict_key && d.dict_value)
-                  .map((d) => ({
-                    label: String(d.dict_value ?? ''),
-                    value: String(d.dict_key ?? ''),
-                  }))}
+                options={rankDOptions}
               />
             )}
+            {vesselPositionCOptions.length > 0 &&
+              table.getColumn('vessel_position') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('vessel_position')!}
+                  title='船舶位置'
+                  options={vesselPositionCOptions}
+                />
+              )}
           </div>
           {isFiltered && (
             <Button

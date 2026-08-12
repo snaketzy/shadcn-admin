@@ -48,6 +48,7 @@ export function usePageTitle() {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    throwOnError: false,
   })
 
   useEffect(() => {

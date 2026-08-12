@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   type ColumnDef,
@@ -10,7 +10,7 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { Search, User } from 'lucide-react'
+import { Search, Compass } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,10 +32,10 @@ import {
 } from '@/components/ui/table'
 import { LongText } from '@/components/long-text'
 import {
-  fetchOwnerAll,
-  fetchOwnerGroups,
-  type Owner,
-  type OwnerDictEntry,
+  fetchContactAll,
+  fetchContactGroups,
+  type Contact,
+  type ContactDictEntry,
 } from '../api/client'
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
@@ -44,7 +44,7 @@ const FIXED_COL_STYLES: Record<
   string,
   { th: React.CSSProperties; td: React.CSSProperties }
 > = {
-  owner_name: {
+  contact_name: {
     th: {
       position: 'sticky',
       top: 0,
@@ -80,7 +80,7 @@ const FIXED_COL_STYLES: Record<
   },
 }
 
-function makeDictMap(dict: OwnerDictEntry[]): DictMap {
+function makeDictMap(dict: ContactDictEntry[]): DictMap {
   const keyMap = new Map<string, string>()
   const valueMap = new Map<string, string>()
   for (const d of dict) {
@@ -91,22 +91,23 @@ function makeDictMap(dict: OwnerDictEntry[]): DictMap {
   return { keyMap, valueMap }
 }
 
-export type OwnerPickerResult = {
-  owner_id: string
-  owner_name: string
-  owner_email?: string
-  owner_phone?: string
-  owner_team?: string
-  owner_department?: string
-  owner_rank?: string
+export type SurveyorContactPickerResult = {
+  contact_id: string
+  contact_name: string
+  contact_mobile?: string
+  contact_email?: string
+  contact_rank?: string
+  contact_division_label?: string
 }
 
-export type OwnerPickerDialogProps = {
+export type SurveyorContactPickerDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelect: (result: OwnerPickerResult) => void
+  onSelect: (result: SurveyorContactPickerResult) => void
   initialSelectedName?: string
 }
+
+const SURVEYOR_CONTACT_TYPE = 'J2'
 
 function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
   if (raw === null || raw === undefined || raw === '') return ''
@@ -119,17 +120,26 @@ function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
   return p
 }
 
-export function OwnerPickerDialog({
+export function SurveyorContactPickerDialog({
   open,
   onOpenChange,
   onSelect,
   initialSelectedName,
-}: OwnerPickerDialogProps) {
+}: SurveyorContactPickerDialogProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
   const [selectedName, setSelectedName] = useState<string | null>(
     initialSelectedName ?? null
   )
+
+  const onSelectRef = useRef(onSelect)
+  const onOpenChangeRef = useRef(onOpenChange)
+  useEffect(() => {
+    onSelectRef.current = onSelect
+  }, [onSelect])
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange
+  }, [onOpenChange])
 
   useEffect(() => {
     if (!open) return
@@ -138,72 +148,75 @@ export function OwnerPickerDialog({
     setSelectedName((prev) => (prev === next ? prev : next))
   }, [open, initialSelectedName])
 
-  const { data: owners = [], isLoading: ownersLoading } = useQuery({
-    queryKey: ['owner-picker-all'],
-    queryFn: fetchOwnerAll,
+  const { data: allContacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ['surveyor-contact-picker-all'],
+    queryFn: fetchContactAll,
     enabled: open,
     staleTime: 60000,
   })
 
   const { data: groupsData } = useQuery({
-    queryKey: ['owner-picker-groups'],
-    queryFn: fetchOwnerGroups,
+    queryKey: ['surveyor-contact-picker-groups'],
+    queryFn: fetchContactGroups,
     enabled: open,
     staleTime: 60000,
   })
 
-  const teamMap = useMemo(
-    () => makeDictMap(groupsData?.teamDict ?? []),
-    [groupsData]
-  )
-  const departmentMap = useMemo(
-    () => makeDictMap(groupsData?.departmentDict ?? []),
+  const contacts = useMemo<Contact[]>(() => {
+    return (allContacts as Contact[]).filter(
+      (c) =>
+        String(c.contact_type ?? '').toUpperCase() === SURVEYOR_CONTACT_TYPE
+    )
+  }, [allContacts])
+
+  const typeMap = useMemo(
+    () => makeDictMap(groupsData?.typeDict ?? []),
     [groupsData]
   )
   const rankMap = useMemo(
     () => makeDictMap(groupsData?.rankDict ?? []),
     [groupsData]
   )
+  const divisionMap = useMemo(
+    () => makeDictMap(groupsData?.divisionDict ?? []),
+    [groupsData]
+  )
 
-  const filteredRows: Owner[] = useMemo(() => {
+  const surveyorContactTypeLabel = useMemo(() => {
+    return (
+      resolveLabel(SURVEYOR_CONTACT_TYPE, typeMap) ||
+      SURVEYOR_CONTACT_TYPE
+    )
+  }, [typeMap])
+
+  const filteredRows: Contact[] = useMemo(() => {
     const q = searchKeyword.trim().toLowerCase()
-    if (!q) return owners as Owner[]
-    return (owners as Owner[]).filter((o) => {
+    if (!q) return contacts
+    return contacts.filter((c) => {
       return (
-        String(o.owner_name ?? '')
-          .toLowerCase()
-          .includes(q) ||
-        String(o.owner_email ?? '')
-          .toLowerCase()
-          .includes(q) ||
-        String(o.owner_phone ?? '')
-          .toLowerCase()
-          .includes(q) ||
-        resolveLabel(o.owner_team, teamMap)
-          .toLowerCase()
-          .includes(q) ||
-        resolveLabel(o.owner_department, departmentMap)
-          .toLowerCase()
-          .includes(q) ||
-        resolveLabel(o.owner_rank, rankMap)
+        String(c.contact_name ?? '').toLowerCase().includes(q) ||
+        String(c.contact_mobile ?? '').toLowerCase().includes(q) ||
+        String(c.contact_email ?? '').toLowerCase().includes(q) ||
+        String(c.contact_remark ?? '').toLowerCase().includes(q) ||
+        resolveLabel(c.contact_rank, rankMap).toLowerCase().includes(q) ||
+        resolveLabel(c.contact_division_type, divisionMap)
           .toLowerCase()
           .includes(q)
       )
     })
-  }, [owners, searchKeyword, teamMap, departmentMap, rankMap])
+  }, [contacts, searchKeyword, rankMap, divisionMap])
 
-  const columns = useMemo<ColumnDef<Owner, unknown>[]>(() => {
+  const columns = useMemo<ColumnDef<Contact, unknown>[]>(() => {
     return [
       {
-        accessorKey: 'owner_name',
-        header: '船东名称',
+        accessorKey: 'contact_name',
+        header: '案件船检联系人',
         size: 200,
         cell: ({ row }) => {
-          const v = row.original.owner_name
+          const v = row.original.contact_name
           return <LongText className='max-w-[200px]'>{v ?? '-'}</LongText>
         },
         meta: {
-          label: '船东名称',
           className: cn(
             'sticky left-0 z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
             'shadow-[inset_-1px_0_0_hsl(var(--border))]'
@@ -216,65 +229,11 @@ export function OwnerPickerDialog({
         enableHiding: false,
       },
       {
-        accessorKey: 'owner_email',
-        header: '邮箱',
-        size: 220,
-        cell: ({ row }) => {
-          const raw = row.original.owner_email
-          if (!raw) return <div>-</div>
-          return <LongText className='max-w-[220px]'>{raw}</LongText>
-        },
-        meta: { label: '邮箱' },
-      },
-      {
-        accessorKey: 'owner_phone',
-        header: '电话',
-        size: 160,
-        cell: ({ row }) => {
-          const raw = row.original.owner_phone
-          if (!raw) return <div>-</div>
-          return <span>{raw}</span>
-        },
-        meta: { label: '电话' },
-      },
-      {
-        accessorKey: 'owner_team',
-        header: '小组',
-        size: 120,
-        cell: ({ row }) => {
-          const raw = row.original.owner_team
-          const label = resolveLabel(raw, teamMap)
-          if (!label) return <div>-</div>
-          return (
-            <Badge variant='outline' className={cn('bg-secondary/30')}>
-              {label}
-            </Badge>
-          )
-        },
-        meta: { label: '小组' },
-      },
-      {
-        accessorKey: 'owner_department',
-        header: '部门',
-        size: 120,
-        cell: ({ row }) => {
-          const raw = row.original.owner_department
-          const label = resolveLabel(raw, departmentMap)
-          if (!label) return <div>-</div>
-          return (
-            <Badge variant='outline' className={cn('bg-secondary/30')}>
-              {label}
-            </Badge>
-          )
-        },
-        meta: { label: '部门' },
-      },
-      {
-        accessorKey: 'owner_rank',
+        accessorKey: 'contact_rank',
         header: '职级',
         size: 120,
         cell: ({ row }) => {
-          const raw = row.original.owner_rank
+          const raw = row.original.contact_rank
           const label = resolveLabel(raw, rankMap)
           if (!label) return <div>-</div>
           return (
@@ -283,7 +242,48 @@ export function OwnerPickerDialog({
             </Badge>
           )
         },
-        meta: { label: '职级' },
+      },
+      {
+        accessorKey: 'contact_division_type',
+        header: '业务类型',
+        size: 120,
+        cell: ({ row }) => {
+          const raw = row.original.contact_division_type
+          const label = resolveLabel(raw, divisionMap)
+          if (!label) return <div>-</div>
+          return (
+            <Badge variant='outline' className={cn('bg-secondary/30')}>
+              {label}
+            </Badge>
+          )
+        },
+      },
+      {
+        accessorKey: 'contact_mobile',
+        header: '手机号',
+        size: 140,
+        cell: ({ row }) => {
+          const v = row.original.contact_mobile
+          return <span>{v ?? '-'}</span>
+        },
+      },
+      {
+        accessorKey: 'contact_email',
+        header: '邮箱',
+        size: 200,
+        cell: ({ row }) => {
+          const v = row.original.contact_email
+          return <LongText className='max-w-[200px]'>{v ?? '-'}</LongText>
+        },
+      },
+      {
+        accessorKey: 'contact_remark',
+        header: '备注',
+        size: 180,
+        cell: ({ row }) => {
+          const v = row.original.contact_remark
+          return <LongText className='max-w-[180px]'>{v ?? '-'}</LongText>
+        },
       },
       {
         id: '_action',
@@ -292,7 +292,6 @@ export function OwnerPickerDialog({
         enableSorting: false,
         enableHiding: false,
         meta: {
-          label: '',
           className: cn(
             'sticky right-0 z-30 w-[100px] min-w-[100px] rounded-tr-[inherit] bg-background pe-0'
           ),
@@ -301,7 +300,7 @@ export function OwnerPickerDialog({
           ),
         },
         cell: ({ row }) => {
-          const name = row.original.owner_name
+          const name = row.original.contact_name ?? ''
           const isSelected = selectedName === name
           return (
             <div className='flex justify-end'>
@@ -311,23 +310,22 @@ export function OwnerPickerDialog({
                 variant={isSelected ? 'default' : 'secondary'}
                 onClick={(e) => {
                   e.stopPropagation()
-                  const v = row.original
-                  setSelectedName(v.owner_name)
-                  const result: OwnerPickerResult = {
-                    owner_id: String(v.owner_id),
-                    owner_name: v.owner_name ?? '',
-                    owner_email: v.owner_email ?? undefined,
-                    owner_phone: v.owner_phone ?? undefined,
-                    owner_team:
-                      resolveLabel(v.owner_team, teamMap) || undefined,
-                    owner_department:
-                      resolveLabel(v.owner_department, departmentMap) ||
-                      undefined,
-                    owner_rank:
-                      resolveLabel(v.owner_rank, rankMap) || undefined,
-                  }
-                  onSelect(result)
-                  queueMicrotask(() => onOpenChange(false))
+                  const c = row.original
+                  setSelectedName(name)
+                  queueMicrotask(() => {
+                    onSelectRef.current({
+                      contact_id: String(c.contact_id),
+                      contact_name: c.contact_name ?? '',
+                      contact_mobile: c.contact_mobile ?? undefined,
+                      contact_email: c.contact_email ?? undefined,
+                      contact_rank: resolveLabel(c.contact_rank, rankMap),
+                      contact_division_label: resolveLabel(
+                        c.contact_division_type,
+                        divisionMap
+                      ),
+                    })
+                    onOpenChangeRef.current(false)
+                  })
                 }}
               >
                 {isSelected ? '已选择' : '选择'}
@@ -337,7 +335,7 @@ export function OwnerPickerDialog({
         },
       },
     ]
-  }, [selectedName, teamMap, departmentMap, rankMap, onSelect, onOpenChange])
+  }, [selectedName, rankMap, divisionMap])
 
   const table = useReactTable({
     data: filteredRows,
@@ -349,32 +347,35 @@ export function OwnerPickerDialog({
   })
 
   const handleRowClick = useCallback(
-    (row: { original: Owner }) => {
-      const v = row.original
-      setSelectedName(v.owner_name)
-      const result: OwnerPickerResult = {
-        owner_id: String(v.owner_id),
-        owner_name: v.owner_name ?? '',
-        owner_email: v.owner_email ?? undefined,
-        owner_phone: v.owner_phone ?? undefined,
-        owner_team: resolveLabel(v.owner_team, teamMap) || undefined,
-        owner_department:
-          resolveLabel(v.owner_department, departmentMap) || undefined,
-        owner_rank: resolveLabel(v.owner_rank, rankMap) || undefined,
-      }
-      onSelect(result)
-      queueMicrotask(() => onOpenChange(false))
+    (row: { original: Contact }) => {
+      const c = row.original
+      const name = c.contact_name ?? ''
+      setSelectedName(name)
+      queueMicrotask(() => {
+        onSelectRef.current({
+          contact_id: String(c.contact_id),
+          contact_name: name,
+          contact_mobile: c.contact_mobile ?? undefined,
+          contact_email: c.contact_email ?? undefined,
+          contact_rank: resolveLabel(c.contact_rank, rankMap),
+          contact_division_label: resolveLabel(
+            c.contact_division_type,
+            divisionMap
+          ),
+        })
+        onOpenChangeRef.current(false)
+      })
     },
-    [teamMap, departmentMap, rankMap, onSelect, onOpenChange]
+    [rankMap, divisionMap]
   )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[1100px]'>
+      <DialogContent className='sm:max-w-[1200px]'>
         <DialogHeader>
-          <DialogTitle>选择船东联络人</DialogTitle>
+          <DialogTitle>选择案件船检</DialogTitle>
           <DialogDescription>
-            从船东列表中选择作为船东联络人，支持关键词搜索、列排序、行点击快速选择。
+            从 {surveyorContactTypeLabel}（{SURVEYOR_CONTACT_TYPE}）类型联系人列表中选择作为案件船检，支持关键词搜索、列排序、行点击快速选择。
           </DialogDescription>
         </DialogHeader>
         <div className='flex flex-col gap-3'>
@@ -382,16 +383,18 @@ export function OwnerPickerDialog({
             <div className='relative w-[420px] min-w-[360px]'>
               <Search className='pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
-                placeholder='按船东名称 / 邮箱 / 电话 / 小组 / 部门 / 职级搜索...'
+                placeholder='按案件船检姓名 / 职级 / 业务类型 / 手机 / 邮箱 / 备注搜索...'
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 className='ps-9 pl-9'
               />
             </div>
             <div className='flex items-center gap-1 text-xs text-muted-foreground'>
-              <User className='size-3.5' />
+              <Compass className='size-3.5' />
               <span>
-                共 {filteredRows.length} 条 / 总 {owners.length} 条
+                共 {filteredRows.length} 条 / 总 {contacts.length} 条（
+                {surveyorContactTypeLabel}
+                ）
               </span>
             </div>
           </div>
@@ -431,7 +434,7 @@ export function OwnerPickerDialog({
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {ownersLoading ? (
+                  {contactsLoading ? (
                     <TableRow>
                       <TableCell
                         colSpan={columns.length || 1}
@@ -447,23 +450,23 @@ export function OwnerPickerDialog({
                         className='h-24 text-center text-muted-foreground'
                       >
                         {searchKeyword.trim() !== ''
-                          ? '未找到匹配的船东，请更换搜索关键词。'
-                          : '暂无船东数据。'}
+                          ? '未找到匹配的案件船检，请更换搜索关键词。'
+                          : `暂无${surveyorContactTypeLabel}（${SURVEYOR_CONTACT_TYPE}）的数据。`}
                       </TableCell>
                     </TableRow>
                   ) : (
                     table.getRowModel().rows.map((row) => {
-                      const rowName = row.original.owner_name
-                      const isSelectedRow = selectedName === rowName
+                      const name = row.original.contact_name ?? ''
+                      const isSelectedRow = selectedName === name
                       return (
                         <TableRow
                           key={row.id}
                           data-state={isSelectedRow && 'selected'}
-                          className={cn(
+                          className={
                             isSelectedRow
                               ? 'cursor-pointer bg-muted/70 hover:bg-muted/80'
                               : 'cursor-pointer hover:bg-muted/40'
-                          )}
+                          }
                           onClick={() => handleRowClick(row)}
                           onDoubleClick={() => handleRowClick(row)}
                         >
@@ -477,6 +480,7 @@ export function OwnerPickerDialog({
                                   ?.td ?? {}),
                               }}
                               className={cn(
+                                'bg-background',
                                 cell.column.columnDef.meta?.className as
                                   | string
                                   | undefined,

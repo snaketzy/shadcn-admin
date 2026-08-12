@@ -16,6 +16,7 @@ const casesSearchSchema = z
     caseRank: z.array(z.string()).optional().catch([]),
     caseUrgent: z.array(z.string()).optional().catch([]),
     caseShouldHandleToday: z.array(z.string()).optional().catch([]),
+    vesselPosition: z.array(z.string()).optional().catch([]),
   })
   .passthrough()
 

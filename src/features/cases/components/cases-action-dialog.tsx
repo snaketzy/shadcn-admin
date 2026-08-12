@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import {
   Search,
   X,
   Ship,
-  UserRound,
-  Factory,
+  User,
+  ChevronsUpDown,
+  Check,
   Briefcase,
-  Cog,
+  UserCheck,
+  Wrench,
+  Compass,
   Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
@@ -51,44 +52,56 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Textarea } from '@/components/ui/textarea'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/card'
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableBody,
+  TableHead,
   TableRow,
+  TableCell,
 } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import {
   fetchContactAll,
   fetchContactGroups,
   type Contact,
+  type ContactDictEntry,
 } from '@/features/contacts/api/client'
 import {
-  AgentPickerDialog,
-  type AgentPickerResult,
-} from '@/features/contacts/components/agent-picker-dialog'
+  AgentContactPickerDialog,
+  type AgentContactPickerResult,
+} from '@/features/contacts/components/agent-contact-picker-dialog'
 import {
-  ShipyardPickerDialog,
-  type ShipyardPickerResult,
-} from '@/features/contacts/components/shipyard-picker-dialog'
+  ShipyardContactPickerDialog,
+  type ShipyardContactPickerResult,
+} from '@/features/contacts/components/shipyard-contact-picker-dialog'
 import {
-  SurveyorPickerDialog,
-  type SurveyorPickerResult,
-} from '@/features/contacts/components/surveyor-picker-dialog'
+  SurveyorContactPickerDialog,
+  type SurveyorContactPickerResult,
+} from '@/features/contacts/components/surveyor-contact-picker-dialog'
+import {
+  fetchCaseDictByKeyPrefix,
+  type CaseDict,
+} from '@/features/dictionaries/api/client'
 import {
   fetchOwnerAll,
   fetchOwnerGroups,
   type Owner,
 } from '@/features/owners/api/client'
+import {
+  fetchSupplierAll,
+  type Supplier,
+} from '@/features/suppliers/api/client'
+import {
+  SupplierPickerDialog,
+  type SupplierPickerResult,
+} from '@/features/suppliers/components/supplier-picker-dialog'
 import {
   OwnerPickerDialog,
   type OwnerPickerResult,
@@ -98,10 +111,6 @@ import {
   type SuperintendentPickerResult,
 } from '@/features/owners/components/superintendent-picker-dialog'
 import {
-  fetchSupplierAll,
-  type Supplier,
-} from '@/features/suppliers/api/client'
-import {
   fetchVesselAll,
   fetchVesselGroups,
   type Vessel,
@@ -110,56 +119,135 @@ import {
   VesselPickerDialog,
   type VesselPickerResult,
 } from '@/features/users/components/vessel-picker-dialog'
-import {
-  createCase,
-  fetchCaseGroups,
-  updateCase,
-  fetchCaseInquiryListByCaseId,
-  type CaseInquiry,
-} from '../api/client'
+import { createCase, updateCase } from '../api/client'
 import type { Case } from '../data/schema'
 
-const zOptStr = z.string().optional().catch('')
-const zOptDateStr = z.preprocess(
-  (v) =>
-    v instanceof Date
-      ? v.toISOString().slice(0, 10)
-      : v == null
-        ? ''
-        : String(v),
-  z.string().optional().catch('')
-)
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`
+}
+
+function formatDateAsHyphen(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const str = String(raw).trim()
+  if (!str) return ''
+  if (
+    /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str) ||
+    /^\d{4}\d{2}\d{2}$/.test(str)
+  ) {
+    const normalized = /^\d{8}$/.test(str)
+      ? `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`
+      : str.replace(/\//g, '-')
+    const [y, m, day] = normalized.split('-').map((s) => parseInt(s, 10))
+    if (
+      !Number.isNaN(y) &&
+      !Number.isNaN(m) &&
+      !Number.isNaN(day) &&
+      y >= 1000 &&
+      m >= 1 &&
+      m <= 12 &&
+      day >= 1 &&
+      day <= 31
+    ) {
+      return `${y}-${pad2(m)}-${pad2(day)}`
+    }
+  }
+  const d = new Date(str)
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  }
+  return str
+}
 
 const formSchema = z.object({
-  vessel_name: zOptStr,
-  invoice_number: zOptStr,
-  order_number: zOptStr,
-  case_inquiry_keyword: zOptStr,
-  case_progress: zOptStr,
-  case_urgent: zOptStr,
-  case_inquiry_type: zOptStr,
-  case_inquiry_date: zOptDateStr,
-  case_follow_date: zOptDateStr,
-  case_uptodate_date: zOptDateStr,
-  case_should_handle_today: zOptStr,
-  owner_following: zOptStr,
-  shipyard_business: zOptStr,
-  case_agent: zOptStr,
-  case_superintendent: zOptStr,
-  case_surveyor: zOptStr,
-  case_delivery_or_service_incharge: zOptStr,
-  case_delivery_or_service_deadline: zOptDateStr,
-  case_eta_cargo_ready_date: zOptDateStr,
-  case_etb_cargo_departure_date: zOptDateStr,
-  case_etd_cargo_delivery_date: zOptDateStr,
-  vessel_position: zOptStr,
-  case_settlement_done: zOptDateStr,
-  case_epd: zOptDateStr,
-  case_spd: zOptDateStr,
-  case_incharge: zOptStr,
-  case_memo_name: zOptStr,
-  case_memo_address: zOptStr,
-  case_rank: zOptStr,
+  vessel_name: z.string().optional().catch(''),
+  invoice_number: z.string().optional().catch(''),
+  order_number: z.string().optional().catch(''),
+  case_inquiry_keyword: z.string().optional().catch(''),
+  case_progress: z.string().optional().catch(''),
+  case_urgent: z.string().optional().catch(''),
+  case_inquiry_type: z.string().optional().catch(''),
+  case_inquiry_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_follow_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_uptodate_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_should_handle_today: z.string().optional().catch(''),
+  owner_following: z.string().optional().catch(''),
+  shipyard_business: z.string().optional().catch(''),
+  case_agent: z.string().optional().catch(''),
+  case_superintendent: z.string().optional().catch(''),
+  case_surveyor: z.string().optional().catch(''),
+  case_delivery_or_service_incharge: z.string().optional().catch(''),
+  case_delivery_or_service_deadline: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_eta_cargo_ready_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_etb_cargo_departure_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_etd_cargo_delivery_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  vessel_position: z.string().optional().catch(''),
+  case_settlement_done: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_epd: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_spd: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_incharge: z.string().optional().catch(''),
+  case_memo_name: z.string().optional().catch(''),
+  case_memo_address: z.string().optional().catch(''),
+  case_rank: z.string().optional().catch(''),
 })
 type CaseForm = z.infer<typeof formSchema>
 
@@ -167,6 +255,54 @@ function toOptStr(s: string | null | undefined): string | null {
   if (s == null || !s || s.trim() === '') return null
   return s
 }
+
+function splitCsvKeys(raw: unknown): string[] {
+  if (raw === null || raw === undefined) return []
+  const s = String(raw)
+  if (!s || s.trim() === '') return []
+  return s
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+}
+
+function joinCsvKeys(arr: string[]): string {
+  if (!Array.isArray(arr)) return ''
+  return arr.filter((s) => s && String(s).trim() !== '').join(',')
+}
+
+type CaseInquiry = {
+  inquiry_id: number
+  case_id: number | null
+  case_inquired_date: string | null
+  case_inquiry_division_id: number | null
+  case_inquiry_type: string | null
+  inquiry_amount: string | null
+  currency: string | null
+  inquiry_status: string | null
+  remark: string | null
+}
+
+const inquiryFormSchema = z.object({
+  case_inquiry_division_id: z
+    .preprocess((v) => {
+      if (v === null || v === undefined || v === '') return ''
+      const n = Number(v)
+      return Number.isFinite(n) && n > 0 ? n : ''
+    }, z.union([z.number().positive(), z.string().length(0)]))
+    .optional()
+    .catch(''),
+  case_inquiry_type: z.string().optional().catch(''),
+  case_inquired_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  remark: z.string().optional().catch(''),
+})
+type InquiryFormValues = z.infer<typeof inquiryFormSchema>
 
 type CasesActionDialogProps = {
   currentRow?: Case
@@ -181,6 +317,7 @@ export function CasesActionDialog({
 }: CasesActionDialogProps) {
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
+  const [inquiryList, setInquiryList] = useState<CaseInquiry[]>([])
 
   const { data: vesselRows = [] } = useQuery({
     queryKey: ['vessel-picker-all'],
@@ -196,68 +333,325 @@ export function CasesActionDialog({
     staleTime: 60000,
   })
 
-  const { data: ownerRows = [] } = useQuery({
-    queryKey: ['owner-picker-all'],
-    queryFn: fetchOwnerAll,
+  const { data: urgentBRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-B'],
+    queryFn: () => fetchCaseDictByKeyPrefix('B'),
     enabled: open,
     staleTime: 60000,
   })
 
-  const { data: shipyardRows = [] } = useQuery({
-    queryKey: ['shipyard-picker-all'],
-    queryFn: fetchContactAll,
+  const urgentBOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (urgentBRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [urgentBRows])
+
+  const urgentBKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of urgentBOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [urgentBOptions])
+
+  const resolveUrgentBLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = urgentBKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [urgentBKeyToLabel]
+  )
+
+  const defaultUrgentBNoKey = useMemo<string>(() => {
+    const list = (urgentBRows as CaseDict[]) ?? []
+    const noHit = list.find((d) => {
+      const v = String(d.dict_value ?? '')
+        .trim()
+        .toUpperCase()
+      return v === 'NO' || v === '否' || v === '普通' || v === '非紧急'
+    })
+    if (noHit) return String(noHit.dict_key ?? '')
+    const first = list[0]
+    return first ? String(first.dict_key ?? '') : ''
+  }, [urgentBRows])
+
+  const { data: vesselPositionCRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-C'],
+    queryFn: () => fetchCaseDictByKeyPrefix('C'),
     enabled: open,
     staleTime: 60000,
-    select: useCallback((rows: Contact[]) => {
-      return rows.filter((r) => {
-        const t = String(r.contact_type ?? '').trim()
-        return t.toUpperCase() === 'J4' || t === 'J4' || t.includes('J4')
-      })
-    }, []),
   })
 
-  const { data: agentRows = [] } = useQuery({
-    queryKey: ['agent-picker-all'],
-    queryFn: fetchContactAll,
+  const vesselPositionCOptions = useMemo<
+    { value: string; label: string }[]
+  >(() => {
+    const list = (vesselPositionCRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [vesselPositionCRows])
+
+  const vesselPositionCKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of vesselPositionCOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [vesselPositionCOptions])
+
+  const resolveVesselPositionCLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = vesselPositionCKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [vesselPositionCKeyToLabel]
+  )
+
+  const { data: inqTypeARows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-A'],
+    queryFn: () => fetchCaseDictByKeyPrefix('A'),
     enabled: open,
     staleTime: 60000,
-    select: useCallback((rows: Contact[]) => {
-      return rows.filter((r) => {
-        const t = String(r.contact_type ?? '').trim()
-        return t.toUpperCase() === 'J1' || t === 'J1' || t.includes('J1')
-      })
-    }, []),
   })
 
-  const { data: surveyorRows = [] } = useQuery({
-    queryKey: ['surveyor-picker-all'],
-    queryFn: fetchContactAll,
+  const inqTypeAOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inqTypeARows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inqTypeARows])
+
+  const inqTypeAKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of inqTypeAOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inqTypeAOptions])
+
+  const resolveInqTypeALabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inqTypeAKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [inqTypeAKeyToLabel]
+  )
+
+  const { data: inchargeERows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-E'],
+    queryFn: () => fetchCaseDictByKeyPrefix('E'),
     enabled: open,
     staleTime: 60000,
-    select: useCallback((rows: Contact[]) => {
-      return rows.filter((r) => {
-        const t = String(r.contact_type ?? '').trim()
-        return t.toUpperCase() === 'J2' || t === 'J2' || t.includes('J2')
-      })
-    }, []),
   })
 
-  const { data: superintendentRows = [] } = useQuery({
-    queryKey: ['superintendent-picker-all'],
-    queryFn: fetchOwnerAll,
+  const inchargeEOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (inchargeERows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inchargeERows])
+
+  const inchargeEKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of inchargeEOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inchargeEOptions])
+
+  const resolveInchargeELabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inchargeEKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [inchargeEKeyToLabel]
+  )
+
+  const { data: rankDRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-D'],
+    queryFn: () => fetchCaseDictByKeyPrefix('D'),
     enabled: open,
     staleTime: 60000,
-    select: useCallback((rows: Owner[]) => {
-      return rows.filter((r) => {
-        const t = String(r.owner_department ?? '').trim()
-        return t.toUpperCase() === 'F1' || t === 'F1' || t.includes('F1')
-      })
-    }, []),
   })
+
+  const rankDOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (rankDRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [rankDRows])
+
+  const rankDKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of rankDOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [rankDOptions])
+
+  const resolveRankDLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = rankDKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [rankDKeyToLabel]
+  )
+
+  const { data: progressRRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-R'],
+    queryFn: () => fetchCaseDictByKeyPrefix('R'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const progressROptions = useMemo<{ value: string; label: string }[]>(() => {
+    const list = (progressRRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [progressRRows])
+
+  const progressRKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of progressROptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [progressROptions])
+
+  const resolveProgressRLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = progressRKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [progressRKeyToLabel]
+  )
+
+  const { data: inquiryTypeQRows = [] } = useQuery({
+    queryKey: ['case-dict-prefix-Q'],
+    queryFn: () => fetchCaseDictByKeyPrefix('Q'),
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const inquiryTypeQOptions = useMemo<
+    { value: string; label: string }[]
+  >(() => {
+    const list = (inquiryTypeQRows as CaseDict[]) ?? []
+    return list.map((d) => ({
+      value: String(d.dict_key ?? ''),
+      label: String(d.dict_value ?? d.dict_key ?? ''),
+    }))
+  }, [inquiryTypeQRows])
+
+  const inquiryTypeQKeyToLabel = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of inquiryTypeQOptions) {
+      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
+    }
+    return m
+  }, [inquiryTypeQOptions])
+
+  const resolveInquiryTypeQLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = inquiryTypeQKeyToLabel.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [inquiryTypeQKeyToLabel]
+  )
 
   const { data: supplierRows = [] } = useQuery({
     queryKey: ['supplier-picker-all'],
     queryFn: fetchSupplierAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const supplierIdNameMap = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const s of supplierRows as Supplier[]) {
+      if (s.supplier_id != null) {
+        m.set(
+          Number(s.supplier_id),
+          s.supplier_shortname || s.supplier_name || ''
+        )
+      }
+    }
+    return m
+  }, [supplierRows])
+
+  const resolveSupplierNameById = useCallback(
+    (rawId: unknown): string => {
+      if (rawId === null || rawId === undefined || rawId === '') return ''
+      const n = Number(rawId)
+      if (!Number.isFinite(n)) return ''
+      return supplierIdNameMap.get(n) ?? ''
+    },
+    [supplierIdNameMap]
+  )
+
+  const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
+  const [progressPopoverOpen, setProgressPopoverOpen] = useState(false)
+
+  const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
+  const [superintendentPickerOpen, setSuperintendentPickerOpen] =
+    useState(false)
+  const [agentContactPickerOpen, setAgentContactPickerOpen] = useState(false)
+  const [shipyardContactPickerOpen, setShipyardContactPickerOpen] =
+    useState(false)
+  const [surveyorContactPickerOpen, setSurveyorContactPickerOpen] =
+    useState(false)
+  const [inquiryDialogOpen, setInquiryDialogOpen] = useState(false)
+  const [inquirySupplierPickerOpen, setInquirySupplierPickerOpen] =
+    useState(false)
+
+  const vesselNameMap = useMemo(() => {
+    const map = new Map<string, Vessel>()
+    for (const v of vesselRows as Vessel[]) {
+      if (v.vessel_name) map.set(String(v.vessel_name), v)
+    }
+    return map
+  }, [vesselRows])
+
+  const { data: ownerRows = [] } = useQuery({
+    queryKey: ['owner-picker-all'],
+    queryFn: fetchOwnerAll,
     enabled: open,
     staleTime: 60000,
   })
@@ -269,302 +663,550 @@ export function CasesActionDialog({
     staleTime: 60000,
   })
 
-  const { data: contactGroupsData } = useQuery({
-    queryKey: ['contact-picker-groups'],
+  const ownerNameMap = useMemo(() => {
+    const map = new Map<string, Owner>()
+    for (const o of ownerRows as Owner[]) {
+      if (o.owner_name) map.set(String(o.owner_name), o)
+    }
+    return map
+  }, [ownerRows])
+
+  const ownerTeamKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        ownerGroupsData as
+          { teamDict?: { dict_key: string; dict_value: string }[] } | undefined
+      )?.teamDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [ownerGroupsData])
+
+  const ownerDeptKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        ownerGroupsData as
+          | { departmentDict?: { dict_key: string; dict_value: string }[] }
+          | undefined
+      )?.departmentDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [ownerGroupsData])
+
+  const ownerRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        ownerGroupsData as
+          { rankDict?: { dict_key: string; dict_value: string }[] } | undefined
+      )?.rankDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [ownerGroupsData])
+
+  const resolveOwnerTeamLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = ownerTeamKeyMap.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [ownerTeamKeyMap]
+  )
+
+  const resolveOwnerDeptLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = ownerDeptKeyMap.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [ownerDeptKeyMap]
+  )
+
+  const resolveOwnerRankLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const hit = ownerRankKeyMap.get(p.toUpperCase())
+      if (hit) return hit
+      return p
+    },
+    [ownerRankKeyMap]
+  )
+
+  const resolveOwnerDisplay = useCallback(
+    (
+      ownerName: string | null | undefined
+    ): {
+      name: string
+      email: string
+      phone: string
+      team: string
+      department: string
+      rank: string
+    } => {
+      const name = ownerName ?? ''
+      if (!name)
+        return {
+          name: '',
+          email: '',
+          phone: '',
+          team: '',
+          department: '',
+          rank: '',
+        }
+      const o = ownerNameMap.get(name)
+      if (o) {
+        return {
+          name: o.owner_name ?? '',
+          email: o.owner_email ?? '',
+          phone: o.owner_phone ?? '',
+          team: resolveOwnerTeamLabel(o.owner_team),
+          department: resolveOwnerDeptLabel(o.owner_department),
+          rank: resolveOwnerRankLabel(o.owner_rank),
+        }
+      }
+      return { name, email: '', phone: '', team: '', department: '', rank: '' }
+    },
+    [
+      ownerNameMap,
+      resolveOwnerTeamLabel,
+      resolveOwnerDeptLabel,
+      resolveOwnerRankLabel,
+    ]
+  )
+
+  const superintendentRows = useMemo<Owner[]>(() => {
+    return (ownerRows as Owner[]).filter(
+      (o) => String(o.owner_department ?? '').toUpperCase() === 'F1'
+    )
+  }, [ownerRows])
+
+  const superintendentNameMap = useMemo(() => {
+    const m = new Map<string, Owner>()
+    for (const o of superintendentRows) {
+      if (o.owner_name) m.set(String(o.owner_name), o)
+    }
+    return m
+  }, [superintendentRows])
+
+  const resolveSuperintendentDisplay = useCallback(
+    (
+      name: string | null | undefined
+    ): {
+      name: string
+      email: string
+      phone: string
+      team: string
+      department: string
+      rank: string
+    } => {
+      const n = name ?? ''
+      if (!n)
+        return {
+          name: '',
+          email: '',
+          phone: '',
+          team: '',
+          department: '',
+          rank: '',
+        }
+      const o = superintendentNameMap.get(n)
+      if (o) {
+        return {
+          name: o.owner_name ?? '',
+          email: o.owner_email ?? '',
+          phone: o.owner_phone ?? '',
+          team: resolveOwnerTeamLabel(o.owner_team),
+          department: resolveOwnerDeptLabel(o.owner_department),
+          rank: resolveOwnerRankLabel(o.owner_rank),
+        }
+      }
+      return {
+        name: n,
+        email: '',
+        phone: '',
+        team: '',
+        department: '',
+        rank: '',
+      }
+    },
+    [
+      superintendentNameMap,
+      resolveOwnerTeamLabel,
+      resolveOwnerDeptLabel,
+      resolveOwnerRankLabel,
+    ]
+  )
+
+  const superintendentDeptLabel = useMemo(() => {
+    return ownerDeptKeyMap.get('F1') || 'F1'
+  }, [ownerDeptKeyMap])
+
+  const { data: agentContactAll = [] } = useQuery({
+    queryKey: ['agent-contact-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const { data: agentContactGroups } = useQuery({
+    queryKey: ['agent-contact-picker-groups'],
     queryFn: fetchContactGroups,
     enabled: open,
     staleTime: 60000,
   })
 
-  const [vesselPickerOpen, setVesselPickerOpen] = useState(false)
-  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false)
-  const [shipyardPickerOpen, setShipyardPickerOpen] = useState(false)
-  const [agentPickerOpen, setAgentPickerOpen] = useState(false)
-  const [superintendentPickerOpen, setSuperintendentPickerOpen] =
-    useState(false)
-  const [surveyorPickerOpen, setSurveyorPickerOpen] = useState(false)
-  const [progressPopoverOpen, setProgressPopoverOpen] = useState(false)
-  const [rankPopoverOpen, setRankPopoverOpen] = useState(false)
+  const agentContactRows = useMemo<Contact[]>(() => {
+    return (agentContactAll as Contact[]).filter(
+      (c) => String(c.contact_type ?? '').toUpperCase() === 'J1'
+    )
+  }, [agentContactAll])
 
-  const vesselNameMap = useMemo(() => {
-    const map = new Map<string, Vessel>()
-    for (const v of vesselRows as Vessel[]) {
-      if (v.vessel_name) map.set(String(v.vessel_name), v)
+  const agentContactNameMap = useMemo(() => {
+    const m = new Map<string, Contact>()
+    for (const c of agentContactRows) {
+      if (c.contact_name) m.set(String(c.contact_name), c)
     }
-    return map
-  }, [vesselRows])
+    return m
+  }, [agentContactRows])
 
-  const ownerNameMap = useMemo(() => {
-    const map = new Map<string, Owner>()
-    for (const v of ownerRows as Owner[]) {
-      if (v.owner_name) map.set(String(v.owner_name), v)
+  const agentContactRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (agentContactGroups as { rankDict?: ContactDictEntry[] } | undefined)
+        ?.rankDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
-    return map
-  }, [ownerRows])
+    return m
+  }, [agentContactGroups])
 
-  const shipyardNameMap = useMemo(() => {
-    const map = new Map<string, Contact>()
-    for (const v of shipyardRows as Contact[]) {
-      if (v.contact_name) map.set(String(v.contact_name), v)
+  const agentContactDivisionKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (agentContactGroups as { divisionDict?: ContactDictEntry[] } | undefined)
+        ?.divisionDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
-    return map
-  }, [shipyardRows])
+    return m
+  }, [agentContactGroups])
 
-  const agentNameMap = useMemo(() => {
-    const map = new Map<string, Contact>()
-    for (const v of agentRows as Contact[]) {
-      if (v.contact_name) map.set(String(v.contact_name), v)
+  const agentContactTypeKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (agentContactGroups as { typeDict?: ContactDictEntry[] } | undefined)
+        ?.typeDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
-    return map
-  }, [agentRows])
+    return m
+  }, [agentContactGroups])
 
-  const superintendentNameMap = useMemo(() => {
-    const map = new Map<string, Owner>()
-    for (const v of superintendentRows as Owner[]) {
-      if (v.owner_name) map.set(String(v.owner_name), v)
-    }
-    return map
-  }, [superintendentRows])
+  const resolveAgentContactRankLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const byKey = agentContactRankKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
+      return p
+    },
+    [agentContactRankKeyMap]
+  )
 
-  const surveyorNameMap = useMemo(() => {
-    const map = new Map<string, Contact>()
-    for (const v of surveyorRows as Contact[]) {
-      if (v.contact_name) map.set(String(v.contact_name), v)
-    }
-    return map
-  }, [surveyorRows])
+  const resolveAgentContactDivisionLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const byKey = agentContactDivisionKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
+      return p
+    },
+    [agentContactDivisionKeyMap]
+  )
 
-  const supplierIdMap = useMemo(() => {
-    const map = new Map<number, Supplier>()
-    for (const v of supplierRows as Supplier[]) {
-      if (v.supplier_id != null) map.set(Number(v.supplier_id), v)
-    }
-    return map
-  }, [supplierRows])
+  const agentContactTypeLabel = useMemo(() => {
+    return agentContactTypeKeyMap.get('J1') || 'J1'
+  }, [agentContactTypeKeyMap])
 
-  const { data: caseGroupsData } = useQuery({
-    queryKey: ['case-list-groups'],
-    queryFn: fetchCaseGroups,
-    staleTime: 60000,
+  const resolveAgentContactDisplay = useCallback(
+    (
+      name: string | null | undefined
+    ): {
+      name: string
+      mobile: string
+      email: string
+      rank: string
+      division: string
+    } => {
+      const n = name ?? ''
+      if (!n) return { name: '', mobile: '', email: '', rank: '', division: '' }
+      const c = agentContactNameMap.get(n)
+      if (c) {
+        return {
+          name: c.contact_name ?? '',
+          mobile: c.contact_mobile ?? '',
+          email: c.contact_email ?? '',
+          rank: resolveAgentContactRankLabel(c.contact_rank),
+          division: resolveAgentContactDivisionLabel(c.contact_division_type),
+        }
+      }
+      return { name: n, mobile: '', email: '', rank: '', division: '' }
+    },
+    [
+      agentContactNameMap,
+      resolveAgentContactRankLabel,
+      resolveAgentContactDivisionLabel,
+    ]
+  )
+
+  const { data: shipyardContactAll = [] } = useQuery({
+    queryKey: ['shipyard-contact-picker-all'],
+    queryFn: fetchContactAll,
     enabled: open,
-  })
-
-  const isInquiryAddMode = !currentRow?.case_id
-  const { data: inquiryRows = [] } = useQuery({
-    queryKey: ['case-inquiry-list', currentRow?.case_id ?? null],
-    queryFn: () =>
-      currentRow && currentRow.case_id
-        ? fetchCaseInquiryListByCaseId(currentRow.case_id)
-        : Promise.resolve([] as CaseInquiry[]),
     staleTime: 60000,
-    enabled: open && !isInquiryAddMode,
   })
 
-  const progressOptions = useMemo(() => {
-    return (caseGroupsData?.progressDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-  }, [caseGroupsData?.progressDict])
+  const { data: shipyardContactGroups } = useQuery({
+    queryKey: ['shipyard-contact-picker-groups'],
+    queryFn: fetchContactGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
 
-  const urgentOptions = useMemo(() => {
-    const opts = (caseGroupsData?.urgentDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-    const hasNo = opts.some((o) => o.value.toUpperCase() === 'NO')
-    if (!hasNo && opts.length === 0) {
-      opts.unshift({ key: 'NO', value: 'NO' })
+  const shipyardContactRows = useMemo<Contact[]>(() => {
+    return (shipyardContactAll as Contact[]).filter(
+      (c) => String(c.contact_type ?? '').toUpperCase() === 'J4'
+    )
+  }, [shipyardContactAll])
+
+  const shipyardContactNameMap = useMemo(() => {
+    const m = new Map<string, Contact>()
+    for (const c of shipyardContactRows) {
+      if (c.contact_name) m.set(String(c.contact_name), c)
     }
-    return opts
-  }, [caseGroupsData?.urgentDict])
+    return m
+  }, [shipyardContactRows])
 
-  const defaultUrgentKey = useMemo(() => {
-    const noOpt = urgentOptions.find((o) => o.value.toUpperCase() === 'NO')
-    return noOpt?.key ?? urgentOptions[0]?.key ?? ''
-  }, [urgentOptions])
-
-  const inquiryTypeOptions = useMemo(() => {
-    return (caseGroupsData?.inquiryTypeDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-  }, [caseGroupsData?.inquiryTypeDict])
-
-  const resolveInquiryTypeLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = inquiryTypeOptions.find(
-        (o) => o.key.toUpperCase() === p.toUpperCase()
-      )
-      if (hit) return hit.value
-      return p
-    },
-    [inquiryTypeOptions]
-  )
-
-  const positionOptions = useMemo(() => {
-    return (caseGroupsData?.vesselPositionDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-  }, [caseGroupsData?.vesselPositionDict])
-
-  const resolvePositionLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = positionOptions.find(
-        (o) => o.key.toUpperCase() === p.toUpperCase()
-      )
-      if (hit) return hit.value
-      return p
-    },
-    [positionOptions]
-  )
-
-  const inqTypeQOptions = useMemo(() => {
-    return (caseGroupsData?.inqTypeQDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-  }, [caseGroupsData?.inqTypeQDict])
-
-  const resolveInqTypeQLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = inqTypeQOptions.find(
-        (o) => o.key.toUpperCase() === p.toUpperCase()
-      )
-      if (hit) return hit.value
-      return p
-    },
-    [inqTypeQOptions]
-  )
-
-  const formatInquiredDate = useCallback((raw: unknown): string => {
-    if (raw === null || raw === undefined || raw === '') return ''
-    const s = String(raw).trim()
-    if (!s) return ''
-    const m = s.match(/^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})/)
-    if (m) {
-      const y = m[1]
-      const mo = String(m[2]).padStart(2, '0')
-      const d = String(m[3]).padStart(2, '0')
-      return `${y}-${mo}-${d}`
+  const shipyardContactRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (shipyardContactGroups as { rankDict?: ContactDictEntry[] } | undefined)
+        ?.rankDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
-    if (/^\d{8}$/.test(s)) {
-      return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+    return m
+  }, [shipyardContactGroups])
+
+  const shipyardContactDivisionKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        shipyardContactGroups as
+          { divisionDict?: ContactDictEntry[] } | undefined
+      )?.divisionDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
-    return s
-  }, [])
+    return m
+  }, [shipyardContactGroups])
 
-  const inchargeOptions = useMemo(() => {
-    return (caseGroupsData?.inchargeDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-  }, [caseGroupsData?.inchargeDict])
-
-  const splitCsvKeys = useCallback((raw: unknown): string[] => {
-    if (raw === null || raw === undefined || raw === '') return []
-    return String(raw)
-      .split(/[,，]/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-  }, [])
-
-  const joinCsvKeys = useCallback((keys: string[]): string => {
-    return keys.filter((k) => k && k.trim()).join(',')
-  }, [])
-
-  const rankOptions = useMemo(() => {
-    return (caseGroupsData?.rankDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-  }, [caseGroupsData?.rankDict])
-
-  const resolveRankLabel = useCallback(
+  const resolveShipyardContactRankLabel = useCallback(
     (raw: unknown): string => {
       if (raw === null || raw === undefined || raw === '') return ''
       const p = String(raw).trim()
       if (!p) return ''
-      const hit = rankOptions.find(
-        (o) => o.key.toUpperCase() === p.toUpperCase()
-      )
-      if (hit) return hit.value
+      const byKey = shipyardContactRankKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
       return p
     },
-    [rankOptions]
+    [shipyardContactRankKeyMap]
   )
 
-  const handleTodayOptions = useMemo(() => {
-    const opts = (caseGroupsData?.handleTodayDict ?? [])
-      .map((d) => ({
-        key: String(d.dict_key ?? ''),
-        value: String(d.dict_value ?? ''),
-      }))
-      .filter((o) => o.key && o.value)
-    if (
-      !opts.some((o) => o.value.toUpperCase() === 'NO') &&
-      opts.length === 0
-    ) {
-      opts.unshift({ key: 'NO', value: 'NO' })
-    }
-    return opts
-  }, [caseGroupsData?.handleTodayDict])
-
-  const defaultHandleTodayKey = useMemo(() => {
-    const noOpt = handleTodayOptions.find((o) => o.value.toUpperCase() === 'NO')
-    return noOpt?.key ?? handleTodayOptions[0]?.key ?? ''
-  }, [handleTodayOptions])
-
-  const resolveUrgentLabel = useCallback(
+  const resolveShipyardContactDivisionLabel = useCallback(
     (raw: unknown): string => {
       if (raw === null || raw === undefined || raw === '') return ''
       const p = String(raw).trim()
       if (!p) return ''
-      const hit = urgentOptions.find(
-        (o) => o.key.toUpperCase() === p.toUpperCase()
-      )
-      if (hit) return hit.value
+      const byKey = shipyardContactDivisionKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
       return p
     },
-    [urgentOptions]
+    [shipyardContactDivisionKeyMap]
   )
 
-  const resolveProgressLabel = useCallback(
+  const resolveShipyardContactDisplay = useCallback(
+    (
+      name: string | null | undefined
+    ): {
+      name: string
+      mobile: string
+      email: string
+      rank: string
+      division: string
+    } => {
+      const n = name ?? ''
+      if (!n) return { name: '', mobile: '', email: '', rank: '', division: '' }
+      const c = shipyardContactNameMap.get(n)
+      if (c) {
+        return {
+          name: c.contact_name ?? '',
+          mobile: c.contact_mobile ?? '',
+          email: c.contact_email ?? '',
+          rank: resolveShipyardContactRankLabel(c.contact_rank),
+          division: resolveShipyardContactDivisionLabel(
+            c.contact_division_type
+          ),
+        }
+      }
+      return { name: n, mobile: '', email: '', rank: '', division: '' }
+    },
+    [
+      shipyardContactNameMap,
+      resolveShipyardContactRankLabel,
+      resolveShipyardContactDivisionLabel,
+    ]
+  )
+
+  const { data: surveyorContactAll = [] } = useQuery({
+    queryKey: ['surveyor-contact-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const { data: surveyorContactGroups } = useQuery({
+    queryKey: ['surveyor-contact-picker-groups'],
+    queryFn: fetchContactGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const surveyorContactRows = useMemo<Contact[]>(() => {
+    return (surveyorContactAll as Contact[]).filter(
+      (c) => String(c.contact_type ?? '').toUpperCase() === 'J2'
+    )
+  }, [surveyorContactAll])
+
+  const surveyorContactNameMap = useMemo(() => {
+    const m = new Map<string, Contact>()
+    for (const c of surveyorContactRows) {
+      if (c.contact_name) m.set(String(c.contact_name), c)
+    }
+    return m
+  }, [surveyorContactRows])
+
+  const surveyorContactRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (surveyorContactGroups as { rankDict?: ContactDictEntry[] } | undefined)
+        ?.rankDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [surveyorContactGroups])
+
+  const surveyorContactDivisionKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (
+        surveyorContactGroups as
+          { divisionDict?: ContactDictEntry[] } | undefined
+      )?.divisionDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [surveyorContactGroups])
+
+  const surveyorContactTypeKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (surveyorContactGroups as { typeDict?: ContactDictEntry[] } | undefined)
+        ?.typeDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [surveyorContactGroups])
+
+  const resolveSurveyorContactRankLabel = useCallback(
     (raw: unknown): string => {
       if (raw === null || raw === undefined || raw === '') return ''
       const p = String(raw).trim()
       if (!p) return ''
-      const hit = progressOptions.find(
-        (o) => o.key.toUpperCase() === p.toUpperCase()
-      )
-      if (hit) return hit.value
+      const byKey = surveyorContactRankKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
       return p
     },
-    [progressOptions]
+    [surveyorContactRankKeyMap]
+  )
+
+  const resolveSurveyorContactDivisionLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const byKey = surveyorContactDivisionKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
+      return p
+    },
+    [surveyorContactDivisionKeyMap]
+  )
+
+  const surveyorContactTypeLabel = useMemo(() => {
+    return surveyorContactTypeKeyMap.get('J2') || 'J2'
+  }, [surveyorContactTypeKeyMap])
+
+  const resolveSurveyorContactDisplay = useCallback(
+    (
+      name: string | null | undefined
+    ): {
+      name: string
+      mobile: string
+      email: string
+      rank: string
+      division: string
+    } => {
+      const n = name ?? ''
+      if (!n) return { name: '', mobile: '', email: '', rank: '', division: '' }
+      const c = surveyorContactNameMap.get(n)
+      if (c) {
+        return {
+          name: c.contact_name ?? '',
+          mobile: c.contact_mobile ?? '',
+          email: c.contact_email ?? '',
+          rank: resolveSurveyorContactRankLabel(c.contact_rank),
+          division: resolveSurveyorContactDivisionLabel(
+            c.contact_division_type
+          ),
+        }
+      }
+      return { name: n, mobile: '', email: '', rank: '', division: '' }
+    },
+    [
+      surveyorContactNameMap,
+      resolveSurveyorContactRankLabel,
+      resolveSurveyorContactDivisionLabel,
+    ]
   )
 
   const inchargeKeyMap = useMemo(() => {
@@ -592,63 +1234,6 @@ export function CasesActionDialog({
     },
     [inchargeKeyMap]
   )
-
-  const ownerTeamKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const d of ownerGroupsData?.teamDict ?? []) {
-      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
-    }
-    return m
-  }, [ownerGroupsData?.teamDict])
-
-  const ownerDeptKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const d of ownerGroupsData?.departmentDict ?? []) {
-      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
-    }
-    return m
-  }, [ownerGroupsData?.departmentDict])
-
-  const ownerRankKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const d of ownerGroupsData?.rankDict ?? []) {
-      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
-    }
-    return m
-  }, [ownerGroupsData?.rankDict])
-
-  const contactTypeKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const d of contactGroupsData?.typeDict ?? []) {
-      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
-    }
-    return m
-  }, [contactGroupsData?.typeDict])
-
-  const contactRankKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const d of contactGroupsData?.rankDict ?? []) {
-      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
-    }
-    return m
-  }, [contactGroupsData?.rankDict])
-
-  const contactDivisionKeyMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const d of contactGroupsData?.divisionDict ?? []) {
-      m.set(String(d.dict_key).toUpperCase(), String(d.dict_value ?? ''))
-    }
-    return m
-  }, [contactGroupsData?.divisionDict])
-
-  const resolveDictLabel = (map: Map<string, string>, raw: unknown): string => {
-    if (raw === null || raw === undefined || raw === '') return ''
-    const p = String(raw).trim()
-    if (!p) return ''
-    const byKey = map.get(p.toUpperCase())
-    if (byKey) return byKey
-    return p
-  }
 
   const resolveVesselDisplay = useCallback(
     (
@@ -678,258 +1263,7 @@ export function CasesActionDialog({
     [vesselNameMap, resolveInchargeLabel]
   )
 
-  const resolveOwnerDisplay = useCallback(
-    (
-      ownerName: string | null | undefined
-    ): {
-      name: string
-      phone: string
-      email: string
-      team: string
-      department: string
-      rank: string
-    } => {
-      const name = ownerName ?? ''
-      if (!name)
-        return {
-          name: '',
-          phone: '',
-          email: '',
-          team: '',
-          department: '',
-          rank: '',
-        }
-      const v = ownerNameMap.get(name)
-      if (v) {
-        return {
-          name: v.owner_name ?? '',
-          phone: v.owner_phone ?? '',
-          email: v.owner_email ?? '',
-          team: resolveDictLabel(ownerTeamKeyMap, v.owner_team),
-          department: resolveDictLabel(ownerDeptKeyMap, v.owner_department),
-          rank: resolveDictLabel(ownerRankKeyMap, v.owner_rank),
-        }
-      }
-      return {
-        name,
-        phone: '',
-        email: '',
-        team: '',
-        department: '',
-        rank: '',
-      }
-    },
-    [ownerNameMap, ownerTeamKeyMap, ownerDeptKeyMap, ownerRankKeyMap]
-  )
-
-  const resolveShipyardDisplay = useCallback(
-    (
-      contactName: string | null | undefined
-    ): {
-      name: string
-      mobile: string
-      email: string
-      type: string
-      rank: string
-      division: string
-      remark: string
-    } => {
-      const name = contactName ?? ''
-      if (!name)
-        return {
-          name: '',
-          mobile: '',
-          email: '',
-          type: '',
-          rank: '',
-          division: '',
-          remark: '',
-        }
-      const v = shipyardNameMap.get(name)
-      if (v) {
-        return {
-          name: v.contact_name ?? '',
-          mobile: v.contact_mobile ?? '',
-          email: v.contact_email ?? '',
-          type: resolveDictLabel(contactTypeKeyMap, v.contact_type),
-          rank: resolveDictLabel(contactRankKeyMap, v.contact_rank),
-          division: resolveDictLabel(
-            contactDivisionKeyMap,
-            v.contact_division_type
-          ),
-          remark: v.contact_remark ?? '',
-        }
-      }
-      return {
-        name,
-        mobile: '',
-        email: '',
-        type: '',
-        rank: '',
-        division: '',
-        remark: '',
-      }
-    },
-    [
-      shipyardNameMap,
-      contactTypeKeyMap,
-      contactRankKeyMap,
-      contactDivisionKeyMap,
-    ]
-  )
-
-  const resolveAgentDisplay = useCallback(
-    (
-      contactName: string | null | undefined
-    ): {
-      name: string
-      mobile: string
-      email: string
-      type: string
-      rank: string
-      division: string
-      remark: string
-    } => {
-      const name = contactName ?? ''
-      if (!name)
-        return {
-          name: '',
-          mobile: '',
-          email: '',
-          type: '',
-          rank: '',
-          division: '',
-          remark: '',
-        }
-      const v = agentNameMap.get(name)
-      if (v) {
-        return {
-          name: v.contact_name ?? '',
-          mobile: v.contact_mobile ?? '',
-          email: v.contact_email ?? '',
-          type: resolveDictLabel(contactTypeKeyMap, v.contact_type),
-          rank: resolveDictLabel(contactRankKeyMap, v.contact_rank),
-          division: resolveDictLabel(
-            contactDivisionKeyMap,
-            v.contact_division_type
-          ),
-          remark: v.contact_remark ?? '',
-        }
-      }
-      return {
-        name,
-        mobile: '',
-        email: '',
-        type: '',
-        rank: '',
-        division: '',
-        remark: '',
-      }
-    },
-    [agentNameMap, contactTypeKeyMap, contactRankKeyMap, contactDivisionKeyMap]
-  )
-
-  const resolveSuperintendentDisplay = useCallback(
-    (
-      ownerName: string | null | undefined
-    ): {
-      name: string
-      phone: string
-      email: string
-      team: string
-      department: string
-      rank: string
-    } => {
-      const name = ownerName ?? ''
-      if (!name)
-        return {
-          name: '',
-          phone: '',
-          email: '',
-          team: '',
-          department: '',
-          rank: '',
-        }
-      const v = superintendentNameMap.get(name)
-      if (v) {
-        return {
-          name: v.owner_name ?? '',
-          phone: v.owner_phone ?? '',
-          email: v.owner_email ?? '',
-          team: resolveDictLabel(ownerTeamKeyMap, v.owner_team),
-          department: resolveDictLabel(ownerDeptKeyMap, v.owner_department),
-          rank: resolveDictLabel(ownerRankKeyMap, v.owner_rank),
-        }
-      }
-      return {
-        name,
-        phone: '',
-        email: '',
-        team: '',
-        department: '',
-        rank: '',
-      }
-    },
-    [superintendentNameMap, ownerTeamKeyMap, ownerDeptKeyMap, ownerRankKeyMap]
-  )
-
-  const resolveSurveyorDisplay = useCallback(
-    (
-      contactName: string | null | undefined
-    ): {
-      name: string
-      mobile: string
-      email: string
-      type: string
-      rank: string
-      division: string
-      remark: string
-    } => {
-      const name = contactName ?? ''
-      if (!name)
-        return {
-          name: '',
-          mobile: '',
-          email: '',
-          type: '',
-          rank: '',
-          division: '',
-          remark: '',
-        }
-      const v = surveyorNameMap.get(name)
-      if (v) {
-        return {
-          name: v.contact_name ?? '',
-          mobile: v.contact_mobile ?? '',
-          email: v.contact_email ?? '',
-          type: resolveDictLabel(contactTypeKeyMap, v.contact_type),
-          rank: resolveDictLabel(contactRankKeyMap, v.contact_rank),
-          division: resolveDictLabel(
-            contactDivisionKeyMap,
-            v.contact_division_type
-          ),
-          remark: v.contact_remark ?? '',
-        }
-      }
-      return {
-        name,
-        mobile: '',
-        email: '',
-        type: '',
-        rank: '',
-        division: '',
-        remark: '',
-      }
-    },
-    [
-      surveyorNameMap,
-      contactTypeKeyMap,
-      contactRankKeyMap,
-      contactDivisionKeyMap,
-    ]
-  )
-
-  const defaultValues = useMemo(
+  const defaultValues = useMemo<CaseForm>(
     () =>
       isEdit
         ? {
@@ -938,13 +1272,14 @@ export function CasesActionDialog({
             order_number: currentRow.order_number ?? '',
             case_inquiry_keyword: currentRow.case_inquiry_keyword ?? '',
             case_progress: currentRow.case_progress ?? '',
-            case_urgent: currentRow.case_urgent ?? defaultUrgentKey,
+            case_urgent: currentRow.case_urgent ?? '',
             case_inquiry_type: currentRow.case_inquiry_type ?? '',
-            case_inquiry_date: currentRow.case_inquiry_date ?? '',
-            case_follow_date: currentRow.case_follow_date ?? '',
-            case_uptodate_date: currentRow.case_uptodate_date ?? '',
-            case_should_handle_today:
-              currentRow.case_should_handle_today ?? defaultHandleTodayKey,
+            case_inquiry_date: formatDateAsHyphen(currentRow.case_inquiry_date),
+            case_follow_date: formatDateAsHyphen(currentRow.case_follow_date),
+            case_uptodate_date: formatDateAsHyphen(
+              currentRow.case_uptodate_date
+            ),
+            case_should_handle_today: currentRow.case_should_handle_today ?? '',
             owner_following: currentRow.owner_following ?? '',
             shipyard_business: currentRow.shipyard_business ?? '',
             case_agent: currentRow.case_agent ?? '',
@@ -952,18 +1287,24 @@ export function CasesActionDialog({
             case_surveyor: currentRow.case_surveyor ?? '',
             case_delivery_or_service_incharge:
               currentRow.case_delivery_or_service_incharge ?? '',
-            case_delivery_or_service_deadline:
-              currentRow.case_delivery_or_service_deadline ?? '',
-            case_eta_cargo_ready_date:
-              currentRow.case_eta_cargo_ready_date ?? '',
-            case_etb_cargo_departure_date:
-              currentRow.case_etb_cargo_departure_date ?? '',
-            case_etd_cargo_delivery_date:
-              currentRow.case_etd_cargo_delivery_date ?? '',
+            case_delivery_or_service_deadline: formatDateAsHyphen(
+              currentRow.case_delivery_or_service_deadline
+            ),
+            case_eta_cargo_ready_date: formatDateAsHyphen(
+              currentRow.case_eta_cargo_ready_date
+            ),
+            case_etb_cargo_departure_date: formatDateAsHyphen(
+              currentRow.case_etb_cargo_departure_date
+            ),
+            case_etd_cargo_delivery_date: formatDateAsHyphen(
+              currentRow.case_etd_cargo_delivery_date
+            ),
             vessel_position: currentRow.vessel_position ?? '',
-            case_settlement_done: currentRow.case_settlement_done ?? '',
-            case_epd: currentRow.case_epd ?? '',
-            case_spd: currentRow.case_spd ?? '',
+            case_settlement_done: formatDateAsHyphen(
+              currentRow.case_settlement_done
+            ),
+            case_epd: formatDateAsHyphen(currentRow.case_epd),
+            case_spd: formatDateAsHyphen(currentRow.case_spd),
             case_incharge: currentRow.case_incharge ?? '',
             case_memo_name: currentRow.case_memo_name ?? '',
             case_memo_address: currentRow.case_memo_address ?? '',
@@ -975,12 +1316,12 @@ export function CasesActionDialog({
             order_number: '',
             case_inquiry_keyword: '',
             case_progress: '',
-            case_urgent: defaultUrgentKey,
+            case_urgent: defaultUrgentBNoKey,
             case_inquiry_type: '',
             case_inquiry_date: '',
             case_follow_date: '',
             case_uptodate_date: '',
-            case_should_handle_today: defaultHandleTodayKey,
+            case_should_handle_today: defaultUrgentBNoKey,
             owner_following: '',
             shipyard_business: '',
             case_agent: '',
@@ -1000,7 +1341,7 @@ export function CasesActionDialog({
             case_memo_address: '',
             case_rank: '',
           },
-    [currentRow, isEdit, defaultUrgentKey, defaultHandleTodayKey]
+    [isEdit, currentRow, defaultUrgentBNoKey]
   )
 
   const form = useForm<CaseForm>({
@@ -1012,9 +1353,9 @@ export function CasesActionDialog({
   const formInquiryKeyword = form.watch('case_inquiry_keyword')
   const formInquiryDate = form.watch('case_inquiry_date')
   const formOwnerFollowing = form.watch('owner_following')
-  const formShipyardBusiness = form.watch('shipyard_business')
   const formCaseAgent = form.watch('case_agent')
   const formCaseSuperintendent = form.watch('case_superintendent')
+  const formShipyardBusiness = form.watch('shipyard_business')
   const formCaseSurveyor = form.watch('case_surveyor')
 
   const vesselDisplay = useMemo(() => {
@@ -1025,24 +1366,23 @@ export function CasesActionDialog({
     return resolveOwnerDisplay(formOwnerFollowing ?? '')
   }, [formOwnerFollowing, resolveOwnerDisplay])
 
-  const shipyardDisplay = useMemo(() => {
-    return resolveShipyardDisplay(formShipyardBusiness ?? '')
-  }, [formShipyardBusiness, resolveShipyardDisplay])
-
-  const agentDisplay = useMemo(() => {
-    return resolveAgentDisplay(formCaseAgent ?? '')
-  }, [formCaseAgent, resolveAgentDisplay])
+  const agentContactDisplay = useMemo(() => {
+    return resolveAgentContactDisplay(formCaseAgent ?? '')
+  }, [formCaseAgent, resolveAgentContactDisplay])
 
   const superintendentDisplay = useMemo(() => {
     return resolveSuperintendentDisplay(formCaseSuperintendent ?? '')
   }, [formCaseSuperintendent, resolveSuperintendentDisplay])
 
-  const surveyorDisplay = useMemo(() => {
-    return resolveSurveyorDisplay(formCaseSurveyor ?? '')
-  }, [formCaseSurveyor, resolveSurveyorDisplay])
+  const shipyardContactDisplay = useMemo(() => {
+    return resolveShipyardContactDisplay(formShipyardBusiness ?? '')
+  }, [formShipyardBusiness, resolveShipyardContactDisplay])
+
+  const surveyorContactDisplay = useMemo(() => {
+    return resolveSurveyorContactDisplay(formCaseSurveyor ?? '')
+  }, [formCaseSurveyor, resolveSurveyorContactDisplay])
 
   useEffect(() => {
-    if (!open) return
     const parts = [
       formVesselName ?? '',
       formInquiryKeyword ?? '',
@@ -1053,7 +1393,7 @@ export function CasesActionDialog({
       shouldDirty: true,
       shouldValidate: false,
     })
-  }, [open, formVesselName, formInquiryKeyword, formInquiryDate])
+  }, [form, formVesselName, formInquiryKeyword, formInquiryDate])
 
   const didResetRef = useRef(false)
   useEffect(() => {
@@ -1064,7 +1404,7 @@ export function CasesActionDialog({
     if (didResetRef.current) return
     didResetRef.current = true
     form.reset(defaultValues)
-  }, [open, defaultValues, currentRow?.case_id])
+  }, [open, form, defaultValues])
 
   useEffect(() => {
     if (open || didResetRef.current) return
@@ -1072,28 +1412,28 @@ export function CasesActionDialog({
   }, [open])
 
   useEffect(() => {
-    if (!open || isEdit) return
-    if (!defaultUrgentKey) return
-    const current = form.getValues('case_urgent')
-    const validKeys = new Set(urgentOptions.map((o) => o.key))
-    if (current && validKeys.has(current)) return
-    form.setValue('case_urgent', defaultUrgentKey, {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_urgent')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_urgent', defaultUrgentBNoKey, {
       shouldDirty: false,
       shouldValidate: false,
     })
-  }, [defaultUrgentKey, open, isEdit, urgentOptions])
+  }, [open, isEdit, defaultUrgentBNoKey, form])
 
   useEffect(() => {
-    if (!open || isEdit) return
-    if (!defaultHandleTodayKey) return
-    const current = form.getValues('case_should_handle_today')
-    const validKeys = new Set(handleTodayOptions.map((o) => o.key))
-    if (current && validKeys.has(current)) return
-    form.setValue('case_should_handle_today', defaultHandleTodayKey, {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_should_handle_today')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_should_handle_today', defaultUrgentBNoKey, {
       shouldDirty: false,
       shouldValidate: false,
     })
-  }, [defaultHandleTodayKey, open, isEdit, handleTodayOptions])
+  }, [open, isEdit, defaultUrgentBNoKey, form])
 
   const handleVesselPicked = useCallback(
     (r: VesselPickerResult) => {
@@ -1129,40 +1469,6 @@ export function CasesActionDialog({
     })
   }, [form])
 
-  const handleShipyardPicked = useCallback(
-    (r: ShipyardPickerResult) => {
-      form.setValue('shipyard_business', r.contact_name, {
-        shouldDirty: true,
-        shouldValidate: false,
-      })
-    },
-    [form]
-  )
-
-  const handleClearShipyard = useCallback(() => {
-    form.setValue('shipyard_business', '', {
-      shouldDirty: true,
-      shouldValidate: false,
-    })
-  }, [form])
-
-  const handleAgentPicked = useCallback(
-    (r: AgentPickerResult) => {
-      form.setValue('case_agent', r.contact_name, {
-        shouldDirty: true,
-        shouldValidate: false,
-      })
-    },
-    [form]
-  )
-
-  const handleClearAgent = useCallback(() => {
-    form.setValue('case_agent', '', {
-      shouldDirty: true,
-      shouldValidate: false,
-    })
-  }, [form])
-
   const handleSuperintendentPicked = useCallback(
     (r: SuperintendentPickerResult) => {
       form.setValue('case_superintendent', r.owner_name, {
@@ -1180,8 +1486,42 @@ export function CasesActionDialog({
     })
   }, [form])
 
-  const handleSurveyorPicked = useCallback(
-    (r: SurveyorPickerResult) => {
+  const handleAgentContactPicked = useCallback(
+    (r: AgentContactPickerResult) => {
+      form.setValue('case_agent', r.contact_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearAgentContact = useCallback(() => {
+    form.setValue('case_agent', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleShipyardContactPicked = useCallback(
+    (r: ShipyardContactPickerResult) => {
+      form.setValue('shipyard_business', r.contact_name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearShipyardContact = useCallback(() => {
+    form.setValue('shipyard_business', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
+  const handleSurveyorContactPicked = useCallback(
+    (r: SurveyorContactPickerResult) => {
       form.setValue('case_surveyor', r.contact_name, {
         shouldDirty: true,
         shouldValidate: false,
@@ -1190,12 +1530,82 @@ export function CasesActionDialog({
     [form]
   )
 
-  const handleClearSurveyor = useCallback(() => {
+  const handleClearSurveyorContact = useCallback(() => {
     form.setValue('case_surveyor', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
   }, [form])
+
+  const inquiryForm = useForm<InquiryFormValues>({
+    resolver: zodResolver(inquiryFormSchema),
+    defaultValues: {
+      case_inquiry_division_id: '',
+      case_inquiry_type: '',
+      case_inquired_date: '',
+      remark: '',
+    },
+  })
+
+  const inquirySupplierId = inquiryForm.watch('case_inquiry_division_id')
+  const inquirySupplierName = useMemo(() => {
+    return resolveSupplierNameById(inquirySupplierId)
+  }, [inquirySupplierId, resolveSupplierNameById])
+
+  const handleInquirySupplierPicked = useCallback(
+    (r: SupplierPickerResult) => {
+      const idNum = Number(r.supplier_id)
+      inquiryForm.setValue(
+        'case_inquiry_division_id',
+        Number.isFinite(idNum) && idNum > 0 ? idNum : '',
+        { shouldDirty: true, shouldValidate: false }
+      )
+    },
+    [inquiryForm]
+  )
+
+  const handleClearInquirySupplier = useCallback(() => {
+    inquiryForm.setValue('case_inquiry_division_id', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [inquiryForm])
+
+  const handleAddInquirySubmit = useCallback(
+    (values: InquiryFormValues) => {
+      const divisionId =
+        values.case_inquiry_division_id === '' ||
+        values.case_inquiry_division_id == null
+          ? null
+          : Number(values.case_inquiry_division_id)
+      const nextId =
+        inquiryList.reduce(
+          (m, r) => Math.max(m, Number(r.inquiry_id) || 0),
+          0
+        ) - 1
+      const row: CaseInquiry = {
+        inquiry_id: Number.isFinite(nextId) && nextId < 0 ? nextId : Date.now(),
+        case_id: currentRow?.case_id ?? null,
+        case_inquired_date: values.case_inquired_date
+          ? String(values.case_inquired_date)
+          : null,
+        case_inquiry_division_id:
+          divisionId && Number.isFinite(divisionId) ? divisionId : null,
+        case_inquiry_type: values.case_inquiry_type
+          ? String(values.case_inquiry_type)
+          : null,
+        inquiry_amount: null,
+        currency: null,
+        inquiry_status: null,
+        remark: values.remark ? String(values.remark) : null,
+      }
+      setInquiryList((prev) => [...prev, row])
+      toast.success('询价已添加')
+      inquiryForm.reset()
+      setInquiryDialogOpen(false)
+    },
+    [inquiryList, currentRow, inquiryForm]
+  )
 
   const createMutation = useMutation({
     mutationFn: createCase,
@@ -1411,25 +1821,6 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
-                  name='case_inquiry_keyword'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        需求编号/名称
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入需求编号/名称'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
                   name='order_number'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
@@ -1449,76 +1840,114 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
+                  name='case_inquiry_keyword'
+                  render={({ field }) => (
+                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        需求编号/名称
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入需求编号/名称'
+                          className='col-span-4'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name='case_progress'
                   render={({ field }) => {
-                    const selectedLabel =
-                      progressOptions.find((o) => o.key === field.value)
-                        ?.value ?? ''
+                    const rawVal = field.value ?? ''
+                    const displayLabel =
+                      rawVal && rawVal.trim() !== ''
+                        ? resolveProgressRLabel(rawVal)
+                        : ''
                     return (
                       <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                        <FormLabel className='col-span-2 text-end'>
+                        <FormLabel className='col-span-2 pt-1 text-end'>
                           案件进度
                         </FormLabel>
-                        <Popover
-                          open={progressPopoverOpen}
-                          onOpenChange={(nextOpen) =>
-                            setProgressPopoverOpen(nextOpen)
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <FormControl className='col-span-4'>
-                              <Button
-                                variant='outline'
-                                role='combobox'
-                                className={cn(
-                                  'col-span-4 w-full justify-between',
-                                  !field.value && 'text-muted-foreground'
-                                )}
-                              >
-                                {selectedLabel || '请选择案件进度'}
-                                <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className='w-[480px] p-0'
-                            align='start'
+                        <div className='col-span-4'>
+                          <Popover
+                            open={progressPopoverOpen}
+                            onOpenChange={setProgressPopoverOpen}
                           >
-                            <Command>
-                              <CommandInput placeholder='搜索案件进度...' />
-                              <CommandList>
-                                <CommandEmpty>暂无结果</CommandEmpty>
-                                <CommandGroup>
-                                  {progressOptions.map((o) => (
-                                    <CommandItem
-                                      value={o.value}
-                                      key={o.key}
-                                      onSelect={() => {
-                                        form.setValue('case_progress', o.key, {
-                                          shouldDirty: true,
-                                          shouldValidate: false,
-                                        })
-                                        queueMicrotask(() =>
-                                          setProgressPopoverOpen(false)
-                                        )
-                                      }}
-                                    >
-                                      <CheckIcon
-                                        className={cn(
-                                          'size-4',
-                                          o.key === field.value
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
-                                        )}
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant='outline'
+                                  role='combobox'
+                                  aria-expanded={progressPopoverOpen}
+                                  className='w-full justify-between'
+                                >
+                                  {displayLabel ? (
+                                    <span className='truncate'>
+                                      {displayLabel}
+                                    </span>
+                                  ) : (
+                                    <span className='text-muted-foreground'>
+                                      请选择案件进度
+                                    </span>
+                                  )}
+                                  <div className='flex items-center gap-1'>
+                                    {displayLabel ? (
+                                      <X
+                                        className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          field.onChange('')
+                                        }}
                                       />
-                                      {o.value}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                                    ) : null}
+                                    <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                                  </div>
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+                              <Command>
+                                <CommandInput placeholder='搜索案件进度...' />
+                                <CommandList>
+                                  <CommandEmpty>未找到匹配项</CommandEmpty>
+                                  <CommandGroup>
+                                    {progressROptions.map((o) => {
+                                      const selected =
+                                        rawVal &&
+                                        rawVal.trim().toUpperCase() ===
+                                          String(o.value).toUpperCase()
+                                      return (
+                                        <CommandItem
+                                          key={o.value}
+                                          value={`${o.label} ${o.value}`}
+                                          onSelect={() => {
+                                            field.onChange(o.value)
+                                            queueMicrotask(() =>
+                                              setProgressPopoverOpen(false)
+                                            )
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'mr-2 h-4 w-4',
+                                              selected
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                          <span>{o.label}</span>
+                                        </CommandItem>
+                                      )
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <FormMessage className='col-span-4 col-start-3' />
                       </FormItem>
                     )
@@ -1529,35 +1958,42 @@ export function CasesActionDialog({
                   name='case_urgent'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                      <FormLabel className='col-span-2 pt-1 text-end'>
                         紧急案件
                       </FormLabel>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
-                      >
-                        {urgentOptions.map((o) => (
-                          <FormItem
-                            key={o.key}
-                            className='flex items-center space-y-0'
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
                           >
-                            <FormControl>
-                              <RadioGroupItem
-                                value={o.key}
-                                id={`case-urgent-${o.key}`}
-                              />
-                            </FormControl>
-                            <Label
-                              htmlFor={`case-urgent-${o.key}`}
-                              className='ms-2 cursor-pointer font-normal select-none'
-                            >
-                              {o.value}
-                            </Label>
-                          </FormItem>
-                        ))}
-                      </RadioGroup>
+                            {urgentBOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              urgentBOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`case_urgent_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`case_urgent_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
@@ -1567,35 +2003,42 @@ export function CasesActionDialog({
                   name='case_inquiry_type'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        需求類型
+                      <FormLabel className='col-span-2 pt-1 text-end'>
+                        需求类型
                       </FormLabel>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
-                      >
-                        {inquiryTypeOptions.map((o) => (
-                          <FormItem
-                            key={o.key}
-                            className='flex items-center space-y-0'
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
                           >
-                            <FormControl>
-                              <RadioGroupItem
-                                value={o.key}
-                                id={`case-inquiry-type-${o.key}`}
-                              />
-                            </FormControl>
-                            <Label
-                              htmlFor={`case-inquiry-type-${o.key}`}
-                              className='ms-2 cursor-pointer font-normal select-none'
-                            >
-                              {o.value}
-                            </Label>
-                          </FormItem>
-                        ))}
-                      </RadioGroup>
+                            {inqTypeAOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              inqTypeAOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`case_inquiry_type_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`case_inquiry_type_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
@@ -1604,63 +2047,60 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_incharge'
                   render={({ field }) => {
-                    const selectedKeys = splitCsvKeys(field.value).map((k) =>
-                      k.toUpperCase()
-                    )
-                    const keySet = new Set(selectedKeys)
-                    const toggleKey = (key: string, checked: boolean) => {
-                      const current = splitCsvKeys(field.value)
-                      const curSet = new Set(
-                        current.map((k) => k.toUpperCase())
-                      )
-                      const keyUpper = key.toUpperCase()
-                      if (checked) curSet.add(keyUpper)
-                      else curSet.delete(keyUpper)
-                      const orderedKeys = inchargeOptions
-                        .map((o) => o.key)
-                        .filter((k) => curSet.has(k.toUpperCase()))
-                      const merged = Array.from(
-                        new Set([
-                          ...orderedKeys,
-                          ...current.filter((k) => curSet.has(k.toUpperCase())),
-                        ])
-                      )
-                      form.setValue('case_incharge', joinCsvKeys(merged), {
-                        shouldDirty: true,
-                        shouldValidate: false,
-                      })
-                    }
+                    const checkedArr: string[] = splitCsvKeys(field.value)
                     return (
                       <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                        <FormLabel className='col-span-2 pt-1.5 text-end'>
+                        <FormLabel className='col-span-2 pt-1 text-end'>
                           案件负责人
                         </FormLabel>
-                        <div className='col-span-4 flex flex-wrap items-start gap-x-5 gap-y-2.5'>
-                          {inchargeOptions.map((o) => {
-                            const checked = keySet.has(o.key.toUpperCase())
-                            return (
-                              <FormItem
-                                key={o.key}
-                                className='flex items-center space-y-0'
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    id={`case-incharge-${o.key}`}
-                                    checked={checked}
-                                    onCheckedChange={(c) =>
-                                      toggleKey(o.key, !!c)
-                                    }
-                                  />
-                                </FormControl>
-                                <Label
-                                  htmlFor={`case-incharge-${o.key}`}
-                                  className='ms-2 cursor-pointer font-normal select-none'
-                                >
-                                  {o.value}
-                                </Label>
-                              </FormItem>
-                            )
-                          })}
+                        <div className='col-span-4'>
+                          <FormControl>
+                            <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
+                              {inchargeEOptions.length === 0 ? (
+                                <div className='text-sm text-muted-foreground'>
+                                  -
+                                </div>
+                              ) : (
+                                inchargeEOptions.map((o) => (
+                                  <div
+                                    key={o.value}
+                                    className='flex items-center gap-2'
+                                  >
+                                    <Checkbox
+                                      id={`case_incharge_${o.value}`}
+                                      checked={checkedArr.some(
+                                        (k) =>
+                                          k.toUpperCase() ===
+                                          String(o.value).toUpperCase()
+                                      )}
+                                      onCheckedChange={(v) => {
+                                        const next = new Set(
+                                          checkedArr.map((s) =>
+                                            String(s).toUpperCase()
+                                          )
+                                        )
+                                        const keyU = String(
+                                          o.value
+                                        ).toUpperCase()
+                                        if (v) next.add(keyU)
+                                        else next.delete(keyU)
+                                        const nextStr = joinCsvKeys(
+                                          Array.from(next)
+                                        )
+                                        field.onChange(nextStr)
+                                      }}
+                                    />
+                                    <Label
+                                      htmlFor={`case_incharge_${o.value}`}
+                                      className='cursor-pointer font-normal select-none'
+                                    >
+                                      {o.label}
+                                    </Label>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </FormControl>
                         </div>
                         <FormMessage className='col-span-4 col-start-3' />
                       </FormItem>
@@ -1671,74 +2111,93 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_rank'
                   render={({ field }) => {
-                    const selectedLabel = resolveRankLabel(field.value)
+                    const rawVal = field.value ?? ''
+                    const displayLabel =
+                      rawVal && rawVal.trim() !== ''
+                        ? resolveRankDLabel(rawVal)
+                        : ''
                     return (
                       <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                        <FormLabel className='col-span-2 text-end'>
+                        <FormLabel className='col-span-2 pt-1 text-end'>
                           案件评级
                         </FormLabel>
-                        <Popover
-                          open={rankPopoverOpen}
-                          onOpenChange={(nextOpen) =>
-                            setRankPopoverOpen(nextOpen)
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant='outline'
-                                role='combobox'
-                                className={cn(
-                                  'col-span-4 w-full justify-between',
-                                  !field.value && 'text-muted-foreground'
-                                )}
-                              >
-                                {field.value ? selectedLabel : '请选择案件评级'}
-                                <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className='w-[480px] p-0'
-                            align='start'
+                        <div className='col-span-4'>
+                          <Popover
+                            open={rankPopoverOpen}
+                            onOpenChange={setRankPopoverOpen}
                           >
-                            <Command>
-                              <CommandInput
-                                placeholder='搜索案件评级...'
-                                className='h-9'
-                              />
-                              <CommandEmpty>暂无结果</CommandEmpty>
-                              <CommandGroup>
-                                {rankOptions.map((o) => (
-                                  <CommandItem
-                                    value={o.value}
-                                    key={o.key}
-                                    onSelect={() => {
-                                      form.setValue('case_rank', o.key, {
-                                        shouldDirty: true,
-                                        shouldValidate: false,
-                                      })
-                                      queueMicrotask(() =>
-                                        setRankPopoverOpen(false)
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant='outline'
+                                  role='combobox'
+                                  aria-expanded={rankPopoverOpen}
+                                  className='w-full justify-between'
+                                >
+                                  {displayLabel ? (
+                                    <span className='truncate'>
+                                      {displayLabel}
+                                    </span>
+                                  ) : (
+                                    <span className='text-muted-foreground'>
+                                      请选择案件评级
+                                    </span>
+                                  )}
+                                  <div className='flex items-center gap-1'>
+                                    {displayLabel ? (
+                                      <X
+                                        className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          field.onChange('')
+                                        }}
+                                      />
+                                    ) : null}
+                                    <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                                  </div>
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+                              <Command>
+                                <CommandInput placeholder='搜索案件评级...' />
+                                <CommandList>
+                                  <CommandEmpty>未找到匹配项</CommandEmpty>
+                                  <CommandGroup>
+                                    {rankDOptions.map((o) => {
+                                      const selected =
+                                        rawVal &&
+                                        rawVal.trim().toUpperCase() ===
+                                          String(o.value).toUpperCase()
+                                      return (
+                                        <CommandItem
+                                          key={o.value}
+                                          value={`${o.label} ${o.value}`}
+                                          onSelect={() => {
+                                            field.onChange(o.value)
+                                            queueMicrotask(() =>
+                                              setRankPopoverOpen(false)
+                                            )
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'mr-2 h-4 w-4',
+                                              selected
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                          <span>{o.label}</span>
+                                        </CommandItem>
                                       )
-                                    }}
-                                  >
-                                    <CheckIcon
-                                      className={cn(
-                                        'mr-2 h-4 w-4',
-                                        o.key.toUpperCase() ===
-                                          (field.value ?? '').toUpperCase()
-                                          ? 'opacity-100'
-                                          : 'opacity-0'
-                                      )}
-                                    />
-                                    {o.value}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <FormMessage className='col-span-4 col-start-3' />
                       </FormItem>
                     )
@@ -1749,35 +2208,42 @@ export function CasesActionDialog({
                   name='case_should_handle_today'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                      <FormLabel className='col-span-2 pt-1 text-end'>
                         当日需处理
                       </FormLabel>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
-                      >
-                        {handleTodayOptions.map((o) => (
-                          <FormItem
-                            key={o.key}
-                            className='flex items-center space-y-0'
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
                           >
-                            <FormControl>
-                              <RadioGroupItem
-                                value={o.key}
-                                id={`case-handle-today-${o.key}`}
-                              />
-                            </FormControl>
-                            <Label
-                              htmlFor={`case-handle-today-${o.key}`}
-                              className='ms-2 cursor-pointer font-normal select-none'
-                            >
-                              {o.value}
-                            </Label>
-                          </FormItem>
-                        ))}
-                      </RadioGroup>
+                            {urgentBOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              urgentBOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`case_should_handle_today_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`case_should_handle_today_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
@@ -1788,13 +2254,13 @@ export function CasesActionDialog({
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 pt-2 text-end'>
-                        船東联络人
+                        船东联络人
                       </FormLabel>
                       <div className='col-span-4'>
                         <FormControl>
                           <div className='relative'>
                             <Input
-                              placeholder='点击输入框从联络人列表中选择...'
+                              placeholder='点击从船东列表中选择...'
                               className='cursor-pointer pe-20 pr-20'
                               readOnly
                               value={field.value || ''}
@@ -1809,16 +2275,16 @@ export function CasesActionDialog({
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
                               {field.value ? (
                                 <Button
-                                  variant='ghost'
-                                  size='sm'
                                   type='button'
-                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
                                   tabIndex={-1}
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     handleClearOwner()
                                   }}
-                                  aria-label='清空联络人'
+                                  aria-label='清空船东联络人'
                                 >
                                   <X className='h-3.5 w-3.5' />
                                 </Button>
@@ -1829,25 +2295,25 @@ export function CasesActionDialog({
                                 size='icon'
                                 className='pointer-events-auto h-7 w-7'
                                 tabIndex={-1}
-                                aria-label='选择联络人'
+                                aria-label='选择船东联络人'
                               >
                                 <Search className='h-3.5 w-3.5' />
                               </Button>
-                              <UserRound className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                              <User className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                             </div>
                           </div>
                         </FormControl>
-                        {(ownerDisplay.phone ||
-                          ownerDisplay.email ||
+                        {(ownerDisplay.email ||
+                          ownerDisplay.phone ||
                           ownerDisplay.team ||
                           ownerDisplay.department ||
                           ownerDisplay.rank) && (
                           <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {ownerDisplay.phone && (
-                              <div>电话：{ownerDisplay.phone}</div>
-                            )}
                             {ownerDisplay.email && (
                               <div>邮箱：{ownerDisplay.email}</div>
+                            )}
+                            {ownerDisplay.phone && (
+                              <div>电话：{ownerDisplay.phone}</div>
                             )}
                             {ownerDisplay.team && (
                               <div>小组：{ownerDisplay.team}</div>
@@ -1862,8 +2328,7 @@ export function CasesActionDialog({
                         )}
                         {field.value && !ownerDisplay.name && (
                           <p className='mt-1 text-xs text-muted-foreground/80'>
-                            联络人：{field.value}
-                            （未找到对应联络人详情，将直接保存）
+                            船东联络人：{field.value}（未找到对应船东）
                           </p>
                         )}
                         <FormMessage />
@@ -1880,7 +2345,12 @@ export function CasesActionDialog({
                         询价日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -1895,7 +2365,12 @@ export function CasesActionDialog({
                         开始日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -1910,75 +2385,138 @@ export function CasesActionDialog({
                         跟进日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
                 />
-                <Card className='col-span-full'>
-                  <CardHeader className='flex flex-row items-center justify-between space-y-0 pt-0 pb-2'>
-                    <CardTitle className='text-base'>询价记录</CardTitle>
-                    <Button
-                      type='button'
-                      size='sm'
-                      variant='default'
-                      className='h-8 gap-1'
-                      onClick={() => {
-                        toast.info('新增询价功能待接入')
-                      }}
-                    >
-                      <Plus className='h-4 w-4' />
-                      新增询价
-                    </Button>
-                  </CardHeader>
-                  <CardContent className='pb-4'>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>单位名称</TableHead>
-                          <TableHead className='w-[180px]'>询价阶段</TableHead>
-                          <TableHead className='w-[140px]'>询价日期</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {inquiryRows.length === 0 ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={3}
-                              className='h-24 text-center text-sm text-muted-foreground'
-                            >
-                              暂无询价记录，点击右上角「新增询价」添加
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          inquiryRows.map((r) => {
-                            const supplier =
-                              r.case_inquiry_division_id != null
-                                ? supplierIdMap.get(
-                                    Number(r.case_inquiry_division_id)
-                                  )
-                                : undefined
-                            const supplierName = supplier?.supplier_name ?? ''
-                            const inqType = resolveInqTypeQLabel(
-                              r.case_inquiry_type
-                            )
-                            const inqDate = formatInquiredDate(
-                              r.case_inquired_date
-                            )
-                            return (
-                              <TableRow key={r.inquiry_id}>
-                                <TableCell>{supplierName || '-'}</TableCell>
-                                <TableCell>{inqType || '-'}</TableCell>
-                                <TableCell>{inqDate || '-'}</TableCell>
+                <div className='col-span-2'>
+                  <Card className='py-4'>
+                    <CardHeader className='pb-3'>
+                      <div className='flex items-center justify-between gap-3'>
+                        <CardTitle className='text-base'>询价记录</CardTitle>
+                        <Button
+                          type='button'
+                          size='sm'
+                          variant='outline'
+                          onClick={() => {
+                            inquiryForm.reset()
+                            setInquiryDialogOpen(true)
+                          }}
+                        >
+                          <Plus className='mr-1 h-3.5 w-3.5' />
+                          新增询价
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className='rounded-md border'>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className='w-[calc(100%*8/24)]'>
+                                单位名称
+                              </TableHead>
+                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
+                                询价阶段
+                              </TableHead>
+                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
+                                询价日期
+                              </TableHead>
+                              <TableHead className='w-[calc(100%*8/24)] text-center'>
+                                备注
+                              </TableHead>
+                              <TableHead
+                                className='w-[calc(100%*8/24/3)] text-center'
+                              >
+                                操作
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {inquiryList.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={5}
+                                  className='h-24 text-center text-muted-foreground'
+                                >
+                                  <div className='flex flex-col items-center justify-center gap-2 py-2'>
+                                    <span className='text-sm'>
+                                      暂无询价记录
+                                    </span>
+                                    <Button
+                                      type='button'
+                                      size='sm'
+                                      variant='secondary'
+                                      onClick={() => {
+                                        inquiryForm.reset()
+                                        setInquiryDialogOpen(true)
+                                      }}
+                                    >
+                                      <Plus className='mr-1 h-3.5 w-3.5' />
+                                      新增询价
+                                    </Button>
+                                  </div>
+                                </TableCell>
                               </TableRow>
-                            )
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                            ) : (
+                              inquiryList.map((row) => {
+                                const supplierName = resolveSupplierNameById(
+                                  row.case_inquiry_division_id
+                                )
+                                const inqTypeLabel =
+                                  resolveInquiryTypeQLabel(
+                                    row.case_inquiry_type
+                                  )
+                                return (
+                                  <TableRow key={row.inquiry_id}>
+                                    <TableCell>
+                                      {supplierName || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {inqTypeLabel || '-'}
+                                    </TableCell>
+                                    <TableCell className='font-mono text-xs'>
+                                      {row.case_inquired_date
+                                        ? formatDateAsHyphen(
+                                            row.case_inquired_date
+                                          )
+                                        : '-'}
+                                    </TableCell>
+                                    <TableCell className='max-w-[200px] truncate'>
+                                      {row.remark || '-'}
+                                    </TableCell>
+                                    <TableCell className='text-center'>
+                                      <Button
+                                        type='button'
+                                        variant='ghost'
+                                        size='icon'
+                                        className='h-7 w-7'
+                                        onClick={() => {
+                                          toast.info(
+                                            `编辑询价 #${row.inquiry_id} 功能待接入`
+                                          )
+                                        }}
+                                      >
+                                        <X className='h-3.5 w-3.5' />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
                 <FormField
                   control={form.control}
                   name='shipyard_business'
@@ -1991,29 +2529,29 @@ export function CasesActionDialog({
                         <FormControl>
                           <div className='relative'>
                             <Input
-                              placeholder='点击输入框从船厂经营列表中选择...'
+                              placeholder='点击从船厂经营联系人列表中选择...'
                               className='cursor-pointer pe-20 pr-20'
                               readOnly
                               value={field.value || ''}
-                              onClick={() => setShipyardPickerOpen(true)}
+                              onClick={() => setShipyardContactPickerOpen(true)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault()
-                                  setShipyardPickerOpen(true)
+                                  setShipyardContactPickerOpen(true)
                                 }
                               }}
                             />
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
                               {field.value ? (
                                 <Button
-                                  variant='ghost'
-                                  size='sm'
                                   type='button'
-                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
                                   tabIndex={-1}
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    handleClearShipyard()
+                                    handleClearShipyardContact()
                                   }}
                                   aria-label='清空船厂经营'
                                 >
@@ -2026,41 +2564,38 @@ export function CasesActionDialog({
                                 size='icon'
                                 className='pointer-events-auto h-7 w-7'
                                 tabIndex={-1}
-                                aria-label='选择船厂经营'
+                                aria-label='选择船厂经营联系人'
                               >
                                 <Search className='h-3.5 w-3.5' />
                               </Button>
-                              <Factory className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                              <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                             </div>
                           </div>
                         </FormControl>
-                        {(shipyardDisplay.mobile ||
-                          shipyardDisplay.email ||
-                          shipyardDisplay.type ||
-                          shipyardDisplay.rank ||
-                          shipyardDisplay.division) && (
+                        {(shipyardContactDisplay.mobile ||
+                          shipyardContactDisplay.email ||
+                          shipyardContactDisplay.rank ||
+                          shipyardContactDisplay.division) && (
                           <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {shipyardDisplay.mobile && (
-                              <div>手机：{shipyardDisplay.mobile}</div>
+                            {shipyardContactDisplay.mobile && (
+                              <div>手机：{shipyardContactDisplay.mobile}</div>
                             )}
-                            {shipyardDisplay.email && (
-                              <div>邮箱：{shipyardDisplay.email}</div>
+                            {shipyardContactDisplay.email && (
+                              <div>邮箱：{shipyardContactDisplay.email}</div>
                             )}
-                            {shipyardDisplay.type && (
-                              <div>类型：{shipyardDisplay.type}</div>
+                            {shipyardContactDisplay.rank && (
+                              <div>职级：{shipyardContactDisplay.rank}</div>
                             )}
-                            {shipyardDisplay.division && (
-                              <div>业务归属：{shipyardDisplay.division}</div>
-                            )}
-                            {shipyardDisplay.rank && (
-                              <div>职级：{shipyardDisplay.rank}</div>
+                            {shipyardContactDisplay.division && (
+                              <div>
+                                业务类型：{shipyardContactDisplay.division}
+                              </div>
                             )}
                           </div>
                         )}
-                        {field.value && !shipyardDisplay.name && (
+                        {field.value && !shipyardContactDisplay.name && (
                           <p className='mt-1 text-xs text-muted-foreground/80'>
-                            船厂经营：{field.value}
-                            （未找到对应船厂经营详情，将直接保存）
+                            船厂经营：{field.value}（未找到对应联系人，类型J4）
                           </p>
                         )}
                         <FormMessage />
@@ -2080,29 +2615,29 @@ export function CasesActionDialog({
                         <FormControl>
                           <div className='relative'>
                             <Input
-                              placeholder='点击输入框从案件代理列表中选择...'
+                              placeholder={`点击从案件代理（${agentContactTypeLabel}）列表中选择...`}
                               className='cursor-pointer pe-20 pr-20'
                               readOnly
                               value={field.value || ''}
-                              onClick={() => setAgentPickerOpen(true)}
+                              onClick={() => setAgentContactPickerOpen(true)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault()
-                                  setAgentPickerOpen(true)
+                                  setAgentContactPickerOpen(true)
                                 }
                               }}
                             />
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
                               {field.value ? (
                                 <Button
-                                  variant='ghost'
-                                  size='sm'
                                   type='button'
-                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
                                   tabIndex={-1}
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    handleClearAgent()
+                                    handleClearAgentContact()
                                   }}
                                   aria-label='清空案件代理'
                                 >
@@ -2115,43 +2650,47 @@ export function CasesActionDialog({
                                 size='icon'
                                 className='pointer-events-auto h-7 w-7'
                                 tabIndex={-1}
+                                onClick={() => setAgentContactPickerOpen(true)}
                                 aria-label='选择案件代理'
                               >
                                 <Search className='h-3.5 w-3.5' />
                               </Button>
-                              <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                              <UserCheck className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                             </div>
                           </div>
                         </FormControl>
-                        {(agentDisplay.mobile ||
-                          agentDisplay.email ||
-                          agentDisplay.type ||
-                          agentDisplay.rank ||
-                          agentDisplay.division) && (
+                        {(agentContactDisplay.mobile ||
+                          agentContactDisplay.email ||
+                          agentContactDisplay.rank ||
+                          agentContactDisplay.division) && (
                           <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {agentDisplay.mobile && (
-                              <div>手机：{agentDisplay.mobile}</div>
+                            {agentContactDisplay.mobile && (
+                              <div>手机：{agentContactDisplay.mobile}</div>
                             )}
-                            {agentDisplay.email && (
-                              <div>邮箱：{agentDisplay.email}</div>
+                            {agentContactDisplay.email && (
+                              <div>邮箱：{agentContactDisplay.email}</div>
                             )}
-                            {agentDisplay.type && (
-                              <div>类型：{agentDisplay.type}</div>
+                            {agentContactDisplay.rank && (
+                              <div>职级：{agentContactDisplay.rank}</div>
                             )}
-                            {agentDisplay.division && (
-                              <div>业务归属：{agentDisplay.division}</div>
-                            )}
-                            {agentDisplay.rank && (
-                              <div>职级：{agentDisplay.rank}</div>
+                            {agentContactDisplay.division && (
+                              <div>
+                                业务类型：{agentContactDisplay.division}
+                              </div>
                             )}
                           </div>
                         )}
-                        {field.value && !agentDisplay.name && (
-                          <p className='mt-1 text-xs text-muted-foreground/80'>
-                            案件代理：{field.value}
-                            （未找到对应案件代理详情，将直接保存）
-                          </p>
-                        )}
+                        {field.value &&
+                          !agentContactDisplay.mobile &&
+                          !agentContactDisplay.email &&
+                          !agentContactDisplay.rank &&
+                          !agentContactDisplay.division &&
+                          agentContactDisplay.name && (
+                            <p className='mt-1 text-xs text-muted-foreground/80'>
+                              案件代理：{field.value}（未找到对应联系人，
+                              {agentContactTypeLabel}）
+                            </p>
+                          )}
                         <FormMessage />
                       </div>
                     </FormItem>
@@ -2169,7 +2708,7 @@ export function CasesActionDialog({
                         <FormControl>
                           <div className='relative'>
                             <Input
-                              placeholder='点击输入框从案件机务列表中选择...'
+                              placeholder={`点击从案件机务（${superintendentDeptLabel}）列表中选择...`}
                               className='cursor-pointer pe-20 pr-20'
                               readOnly
                               value={field.value || ''}
@@ -2184,10 +2723,10 @@ export function CasesActionDialog({
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
                               {field.value ? (
                                 <Button
-                                  variant='ghost'
-                                  size='sm'
                                   type='button'
-                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='pointer-events-auto h-7 w-7'
                                   tabIndex={-1}
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -2204,25 +2743,28 @@ export function CasesActionDialog({
                                 size='icon'
                                 className='pointer-events-auto h-7 w-7'
                                 tabIndex={-1}
+                                onClick={() =>
+                                  setSuperintendentPickerOpen(true)
+                                }
                                 aria-label='选择案件机务'
                               >
                                 <Search className='h-3.5 w-3.5' />
                               </Button>
-                              <Cog className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                              <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                             </div>
                           </div>
                         </FormControl>
-                        {(superintendentDisplay.phone ||
-                          superintendentDisplay.email ||
+                        {(superintendentDisplay.email ||
+                          superintendentDisplay.phone ||
                           superintendentDisplay.team ||
                           superintendentDisplay.department ||
                           superintendentDisplay.rank) && (
                           <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {superintendentDisplay.phone && (
-                              <div>电话：{superintendentDisplay.phone}</div>
-                            )}
                             {superintendentDisplay.email && (
                               <div>邮箱：{superintendentDisplay.email}</div>
+                            )}
+                            {superintendentDisplay.phone && (
+                              <div>电话：{superintendentDisplay.phone}</div>
                             )}
                             {superintendentDisplay.team && (
                               <div>小组：{superintendentDisplay.team}</div>
@@ -2237,12 +2779,18 @@ export function CasesActionDialog({
                             )}
                           </div>
                         )}
-                        {field.value && !superintendentDisplay.name && (
-                          <p className='mt-1 text-xs text-muted-foreground/80'>
-                            案件机务：{field.value}
-                            （未找到对应案件机务详情，将直接保存）
-                          </p>
-                        )}
+                        {field.value &&
+                          !superintendentDisplay.email &&
+                          !superintendentDisplay.phone &&
+                          !superintendentDisplay.team &&
+                          !superintendentDisplay.department &&
+                          !superintendentDisplay.rank &&
+                          superintendentDisplay.name && (
+                            <p className='mt-1 text-xs text-muted-foreground/80'>
+                              案件机务：{field.value}（未找到对应机务人员，
+                              {superintendentDeptLabel}）
+                            </p>
+                          )}
                         <FormMessage />
                       </div>
                     </FormItem>
@@ -2260,78 +2808,84 @@ export function CasesActionDialog({
                         <FormControl>
                           <div className='relative'>
                             <Input
-                              placeholder='点击输入框从案件船检列表中选择...'
+                              placeholder={`点击从案件船检（${surveyorContactTypeLabel}）列表中选择...`}
                               className='cursor-pointer pe-20 pr-20'
                               readOnly
                               value={field.value || ''}
-                              onClick={() => setSurveyorPickerOpen(true)}
+                              onClick={() => setSurveyorContactPickerOpen(true)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault()
-                                  setSurveyorPickerOpen(true)
+                                  setSurveyorContactPickerOpen(true)
                                 }
                               }}
                             />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
-                              {field.value ? (
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
+                              {field.value && (
                                 <Button
-                                  variant='ghost'
-                                  size='sm'
                                   type='button'
-                                  className='pointer-events-auto h-7 w-7 p-0 hover:bg-muted'
-                                  tabIndex={-1}
+                                  variant='ghost'
+                                  size='icon'
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    handleClearSurveyor()
+                                    handleClearSurveyorContact()
                                   }}
+                                  className='pointer-events-auto h-7 w-7'
+                                  tabIndex={-1}
                                   aria-label='清空案件船检'
                                 >
                                   <X className='h-3.5 w-3.5' />
                                 </Button>
-                              ) : null}
+                              )}
                               <Button
                                 type='button'
                                 variant='ghost'
                                 size='icon'
+                                onClick={() =>
+                                  setSurveyorContactPickerOpen(true)
+                                }
                                 className='pointer-events-auto h-7 w-7'
                                 tabIndex={-1}
                                 aria-label='选择案件船检'
                               >
                                 <Search className='h-3.5 w-3.5' />
                               </Button>
-                              <Ship className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                              <Compass className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                             </div>
                           </div>
                         </FormControl>
-                        {(surveyorDisplay.mobile ||
-                          surveyorDisplay.email ||
-                          surveyorDisplay.type ||
-                          surveyorDisplay.rank ||
-                          surveyorDisplay.division) && (
+                        {(surveyorContactDisplay.mobile ||
+                          surveyorContactDisplay.email ||
+                          surveyorContactDisplay.rank ||
+                          surveyorContactDisplay.division) && (
                           <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {surveyorDisplay.mobile && (
-                              <div>手机：{surveyorDisplay.mobile}</div>
+                            {surveyorContactDisplay.mobile && (
+                              <div>手机：{surveyorContactDisplay.mobile}</div>
                             )}
-                            {surveyorDisplay.email && (
-                              <div>邮箱：{surveyorDisplay.email}</div>
+                            {surveyorContactDisplay.email && (
+                              <div>邮箱：{surveyorContactDisplay.email}</div>
                             )}
-                            {surveyorDisplay.type && (
-                              <div>类型：{surveyorDisplay.type}</div>
+                            {surveyorContactDisplay.rank && (
+                              <div>职级：{surveyorContactDisplay.rank}</div>
                             )}
-                            {surveyorDisplay.division && (
-                              <div>业务归属：{surveyorDisplay.division}</div>
-                            )}
-                            {surveyorDisplay.rank && (
-                              <div>职级：{surveyorDisplay.rank}</div>
+                            {surveyorContactDisplay.division && (
+                              <div>
+                                业务类型：{surveyorContactDisplay.division}
+                              </div>
                             )}
                           </div>
                         )}
-                        {field.value && !surveyorDisplay.name && (
-                          <p className='mt-1 text-xs text-muted-foreground/80'>
-                            案件船检：{field.value}
-                            （未找到对应案件船检详情，将直接保存）
-                          </p>
-                        )}
+                        {field.value &&
+                          !surveyorContactDisplay.mobile &&
+                          !surveyorContactDisplay.email &&
+                          !surveyorContactDisplay.rank &&
+                          !surveyorContactDisplay.division &&
+                          surveyorContactDisplay.name && (
+                            <p className='mt-1 text-xs text-muted-foreground/80'>
+                              案件船检：{field.value}
+                              （未找到对应联系人，{surveyorContactTypeLabel}）
+                            </p>
+                          )}
                         <FormMessage />
                       </div>
                     </FormItem>
@@ -2346,7 +2900,12 @@ export function CasesActionDialog({
                         运输｜服务截止日
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2361,7 +2920,12 @@ export function CasesActionDialog({
                         船舶到港 | 备货完成
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2376,7 +2940,12 @@ export function CasesActionDialog({
                         船舶靠港 ｜ 货物发出
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2391,7 +2960,12 @@ export function CasesActionDialog({
                         船舶开航 ｜ 货物签收
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2406,7 +2980,12 @@ export function CasesActionDialog({
                         船东结账日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2421,7 +3000,12 @@ export function CasesActionDialog({
                         供应商结账日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2450,36 +3034,43 @@ export function CasesActionDialog({
                   control={form.control}
                   name='vessel_position'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-1 text-end'>
                         船舶位置
                       </FormLabel>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value || ''}
-                        className='col-span-4 flex flex-wrap items-center gap-x-5 gap-y-2'
-                      >
-                        {positionOptions.map((o) => (
-                          <FormItem
-                            key={o.key}
-                            className='flex items-center space-y-0'
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                            className='flex flex-wrap items-center gap-4'
                           >
-                            <FormControl>
-                              <RadioGroupItem
-                                value={o.key}
-                                id={`case-position-${o.key}`}
-                              />
-                            </FormControl>
-                            <Label
-                              htmlFor={`case-position-${o.key}`}
-                              className='ms-2 cursor-pointer font-normal select-none'
-                            >
-                              {o.value}
-                            </Label>
-                          </FormItem>
-                        ))}
-                      </RadioGroup>
+                            {vesselPositionCOptions.length === 0 ? (
+                              <div className='text-sm text-muted-foreground'>
+                                -
+                              </div>
+                            ) : (
+                              vesselPositionCOptions.map((o) => (
+                                <div
+                                  key={o.value}
+                                  className='flex items-center gap-2'
+                                >
+                                  <RadioGroupItem
+                                    value={o.value}
+                                    id={`vessel_position_${o.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`vessel_position_${o.value}`}
+                                    className='cursor-pointer font-normal select-none'
+                                  >
+                                    {o.label}
+                                  </Label>
+                                </div>
+                              ))
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
                   )}
@@ -2488,12 +3079,17 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_settlement_done'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                       <FormLabel className='col-span-2 text-end'>
                         案件结算完成日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2574,33 +3170,252 @@ export function CasesActionDialog({
         onSelect={handleOwnerPicked}
       />
 
-      <ShipyardPickerDialog
-        open={shipyardPickerOpen}
-        onOpenChange={setShipyardPickerOpen}
-        initialSelectedName={form.getValues('shipyard_business') || undefined}
-        onSelect={handleShipyardPicked}
-      />
-
-      <AgentPickerDialog
-        open={agentPickerOpen}
-        onOpenChange={setAgentPickerOpen}
-        initialSelectedName={form.getValues('case_agent') || undefined}
-        onSelect={handleAgentPicked}
-      />
-
       <SuperintendentPickerDialog
         open={superintendentPickerOpen}
         onOpenChange={setSuperintendentPickerOpen}
         initialSelectedName={form.getValues('case_superintendent') || undefined}
+        departmentLabel={superintendentDeptLabel}
         onSelect={handleSuperintendentPicked}
       />
 
-      <SurveyorPickerDialog
-        open={surveyorPickerOpen}
-        onOpenChange={setSurveyorPickerOpen}
-        initialSelectedName={form.getValues('case_surveyor') || undefined}
-        onSelect={handleSurveyorPicked}
+      <AgentContactPickerDialog
+        open={agentContactPickerOpen}
+        onOpenChange={setAgentContactPickerOpen}
+        initialSelectedName={form.getValues('case_agent') || undefined}
+        onSelect={handleAgentContactPicked}
       />
+
+      <ShipyardContactPickerDialog
+        open={shipyardContactPickerOpen}
+        onOpenChange={setShipyardContactPickerOpen}
+        initialSelectedName={form.getValues('shipyard_business') || undefined}
+        onSelect={handleShipyardContactPicked}
+      />
+      <SurveyorContactPickerDialog
+        open={surveyorContactPickerOpen}
+        onOpenChange={setSurveyorContactPickerOpen}
+        initialSelectedName={form.getValues('case_surveyor') || undefined}
+        onSelect={handleSurveyorContactPicked}
+      />
+
+      <SupplierPickerDialog
+        open={inquirySupplierPickerOpen}
+        onOpenChange={setInquirySupplierPickerOpen}
+        initialSelectedId={
+          inquiryForm.getValues('case_inquiry_division_id')
+            ? String(inquiryForm.getValues('case_inquiry_division_id'))
+            : undefined
+        }
+        onSelect={handleInquirySupplierPicked}
+      />
+
+      <Dialog
+        open={inquiryDialogOpen}
+        onOpenChange={(state) => {
+          if (!state) {
+            inquiryForm.reset()
+          }
+          setInquiryDialogOpen(state)
+        }}
+      >
+        <DialogContent className='sm:max-w-3xl'>
+          <DialogHeader>
+            <DialogTitle>新增询价</DialogTitle>
+            <DialogDescription>
+              填写本次询价信息，完成后点击「添加」即可加入询价记录列表。
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...inquiryForm}>
+            <form
+              id='inquiry-add-form'
+              onSubmit={inquiryForm.handleSubmit(handleAddInquirySubmit)}
+              className='grid grid-cols-6 gap-4 py-2'
+            >
+              <FormField
+                control={inquiryForm.control}
+                name='case_inquiry_division_id'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      单位名称
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <div className='relative'>
+                          <Input
+                            placeholder='点击输入框从供应商列表中选择...'
+                            className='cursor-pointer pe-20 pr-20'
+                            readOnly
+                            value={inquirySupplierName || ''}
+                            onClick={() => setInquirySupplierPickerOpen(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setInquirySupplierPickerOpen(true)
+                              }
+                            }}
+                          />
+                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                            {inquirySupplierName ? (
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleClearInquirySupplier()
+                                }}
+                                aria-label='清空单位名称'
+                              >
+                                <X className='h-3.5 w-3.5' />
+                              </Button>
+                            ) : null}
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              aria-label='选择供应商'
+                            >
+                              <Search className='h-3.5 w-3.5' />
+                            </Button>
+                            <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inquiryForm.control}
+                name='case_inquiry_type'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 space-y-3'>
+                    <div className='grid grid-cols-6 items-start gap-x-4'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
+                        询价阶段
+                      </FormLabel>
+                      <div className='col-span-4'>
+                        <FormControl>
+                          <RadioGroup
+                            value={field.value ?? ''}
+                            onValueChange={(v) => {
+                              field.onChange(v)
+                            }}
+                            className='flex flex-wrap gap-x-6 gap-y-2 pt-1'
+                          >
+                            {inquiryTypeQOptions.length === 0 ? (
+                              <div className='text-xs text-muted-foreground'>
+                                暂无询价阶段字典配置（Q 前缀）
+                              </div>
+                            ) : (
+                              inquiryTypeQOptions.map((o) => {
+                                const checked =
+                                  String(field.value ?? '').toUpperCase() ===
+                                  String(o.value ?? '').toUpperCase()
+                                return (
+                                  <Label
+                                    key={o.value}
+                                    className={cn(
+                                      'flex cursor-pointer select-none items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors',
+                                      checked
+                                        ? 'border-primary bg-primary/10 text-primary'
+                                        : 'border-input hover:border-primary/50 hover:bg-accent/30'
+                                    )}
+                                  >
+                                    <RadioGroupItem
+                                      value={o.value}
+                                      id={`inq-type-q-${o.value}`}
+                                      className='sr-only'
+                                    />
+                                    <span>{o.label || o.value}</span>
+                                  </Label>
+                                )
+                              })
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
+                    </div>
+                    <FormMessage className='block pl-[calc((100%+1rem)/3)]' />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inquiryForm.control}
+                name='case_inquired_date'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      询价日期
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inquiryForm.control}
+                name='remark'
+                render={({ field }) => (
+                  <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      备注
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <Textarea
+                          rows={4}
+                          placeholder='请输入备注...'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => {
+                inquiryForm.reset()
+                setInquiryDialogOpen(false)
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              type='submit'
+              form='inquiry-add-form'
+              disabled={inquiryForm.formState.isSubmitting}
+            >
+              添加
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

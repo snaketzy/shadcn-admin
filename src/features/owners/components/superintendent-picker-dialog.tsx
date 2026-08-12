@@ -10,7 +10,7 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { Cog, Search } from 'lucide-react'
+import { Search, Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,7 @@ import {
   fetchOwnerGroups,
   type Owner,
   type OwnerDictEntry,
-} from '../../owners/api/client'
+} from '../api/client'
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
 
@@ -94,8 +94,8 @@ function makeDictMap(dict: OwnerDictEntry[]): DictMap {
 export type SuperintendentPickerResult = {
   owner_id: string
   owner_name: string
-  owner_phone?: string
   owner_email?: string
+  owner_phone?: string
   owner_team?: string
   owner_department?: string
   owner_rank?: string
@@ -106,6 +106,7 @@ export type SuperintendentPickerDialogProps = {
   onOpenChange: (open: boolean) => void
   onSelect: (result: SuperintendentPickerResult) => void
   initialSelectedName?: string
+  departmentLabel?: string
 }
 
 function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
@@ -119,11 +120,14 @@ function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
   return p
 }
 
+const F1_DEPT_CODE = 'F1'
+
 export function SuperintendentPickerDialog({
   open,
   onOpenChange,
   onSelect,
   initialSelectedName,
+  departmentLabel,
 }: SuperintendentPickerDialogProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
@@ -139,20 +143,10 @@ export function SuperintendentPickerDialog({
   }, [open, initialSelectedName])
 
   const { data: owners = [], isLoading: ownersLoading } = useQuery({
-    queryKey: ['superintendent-picker-all'],
+    queryKey: ['owner-picker-all'],
     queryFn: fetchOwnerAll,
     enabled: open,
     staleTime: 60000,
-    select: useCallback((rows: Owner[]) => {
-      return rows.filter((r) => {
-        const t = String(r.owner_department ?? '').trim()
-        return (
-          t.toUpperCase() === 'F1' ||
-          t === 'F1' ||
-          t.includes('F1')
-        )
-      })
-    }, []),
   })
 
   const { data: groupsData } = useQuery({
@@ -166,7 +160,7 @@ export function SuperintendentPickerDialog({
     () => makeDictMap(groupsData?.teamDict ?? []),
     [groupsData]
   )
-  const deptMap = useMemo(
+  const departmentMap = useMemo(
     () => makeDictMap(groupsData?.departmentDict ?? []),
     [groupsData]
   )
@@ -175,33 +169,58 @@ export function SuperintendentPickerDialog({
     [groupsData]
   )
 
+  const superintendentRows = useMemo<Owner[]>(() => {
+    return (owners as Owner[]).filter(
+      (o) =>
+        String(o.owner_department ?? '').toUpperCase() === F1_DEPT_CODE
+    )
+  }, [owners])
+
+  const f1Label = useMemo(() => {
+    if (departmentLabel) return departmentLabel
+    const hit = departmentMap.keyMap.get(F1_DEPT_CODE)
+    return hit || F1_DEPT_CODE
+  }, [departmentLabel, departmentMap])
+
   const filteredRows: Owner[] = useMemo(() => {
     const q = searchKeyword.trim().toLowerCase()
-    if (!q) return owners as Owner[]
-    return (owners as Owner[]).filter((v) => {
+    if (!q) return superintendentRows
+    return superintendentRows.filter((o) => {
       return (
-        String(v.owner_name ?? '').toLowerCase().includes(q) ||
-        String(v.owner_email ?? '').toLowerCase().includes(q) ||
-        String(v.owner_phone ?? '').toLowerCase().includes(q) ||
-        resolveLabel(v.owner_team, teamMap).toLowerCase().includes(q) ||
-        resolveLabel(v.owner_department, deptMap).toLowerCase().includes(q) ||
-        resolveLabel(v.owner_rank, rankMap).toLowerCase().includes(q)
+        String(o.owner_name ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(o.owner_email ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(o.owner_phone ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        resolveLabel(o.owner_team, teamMap)
+          .toLowerCase()
+          .includes(q) ||
+        resolveLabel(o.owner_department, departmentMap)
+          .toLowerCase()
+          .includes(q) ||
+        resolveLabel(o.owner_rank, rankMap)
+          .toLowerCase()
+          .includes(q)
       )
     })
-  }, [owners, searchKeyword, teamMap, deptMap, rankMap])
+  }, [superintendentRows, searchKeyword, teamMap, departmentMap, rankMap])
 
   const columns = useMemo<ColumnDef<Owner, unknown>[]>(() => {
     return [
       {
         accessorKey: 'owner_name',
-        header: '案件机务姓名',
+        header: '机务人员名称',
         size: 200,
         cell: ({ row }) => {
           const v = row.original.owner_name
           return <LongText className='max-w-[200px]'>{v ?? '-'}</LongText>
         },
         meta: {
-          label: '案件机务姓名',
+          label: '机务人员名称',
           className: cn(
             'sticky left-0 z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
             'shadow-[inset_-1px_0_0_hsl(var(--border))]'
@@ -214,31 +233,31 @@ export function SuperintendentPickerDialog({
         enableHiding: false,
       },
       {
-        accessorKey: 'owner_phone',
-        header: '电话',
-        size: 140,
-        cell: ({ row }) => {
-          const raw = row.original.owner_phone
-          if (!raw) return <div>-</div>
-          return <LongText className='max-w-[140px]'>{raw}</LongText>
-        },
-        meta: { label: '电话' },
-      },
-      {
         accessorKey: 'owner_email',
         header: '邮箱',
-        size: 200,
+        size: 220,
         cell: ({ row }) => {
           const raw = row.original.owner_email
           if (!raw) return <div>-</div>
-          return <LongText className='max-w-[200px]'>{raw}</LongText>
+          return <LongText className='max-w-[220px]'>{raw}</LongText>
         },
         meta: { label: '邮箱' },
       },
       {
+        accessorKey: 'owner_phone',
+        header: '电话',
+        size: 160,
+        cell: ({ row }) => {
+          const raw = row.original.owner_phone
+          if (!raw) return <div>-</div>
+          return <span>{raw}</span>
+        },
+        meta: { label: '电话' },
+      },
+      {
         accessorKey: 'owner_team',
         header: '小组',
-        size: 140,
+        size: 120,
         cell: ({ row }) => {
           const raw = row.original.owner_team
           const label = resolveLabel(raw, teamMap)
@@ -254,10 +273,10 @@ export function SuperintendentPickerDialog({
       {
         accessorKey: 'owner_department',
         header: '部门',
-        size: 140,
+        size: 120,
         cell: ({ row }) => {
           const raw = row.original.owner_department
-          const label = resolveLabel(raw, deptMap)
+          const label = resolveLabel(raw, departmentMap)
           if (!label) return <div>-</div>
           return (
             <Badge variant='outline' className={cn('bg-secondary/30')}>
@@ -270,7 +289,7 @@ export function SuperintendentPickerDialog({
       {
         accessorKey: 'owner_rank',
         header: '职级',
-        size: 110,
+        size: 120,
         cell: ({ row }) => {
           const raw = row.original.owner_rank
           const label = resolveLabel(raw, rankMap)
@@ -314,12 +333,13 @@ export function SuperintendentPickerDialog({
                   const result: SuperintendentPickerResult = {
                     owner_id: String(v.owner_id),
                     owner_name: v.owner_name ?? '',
-                    owner_phone: v.owner_phone ?? undefined,
                     owner_email: v.owner_email ?? undefined,
+                    owner_phone: v.owner_phone ?? undefined,
                     owner_team:
                       resolveLabel(v.owner_team, teamMap) || undefined,
                     owner_department:
-                      resolveLabel(v.owner_department, deptMap) || undefined,
+                      resolveLabel(v.owner_department, departmentMap) ||
+                      undefined,
                     owner_rank:
                       resolveLabel(v.owner_rank, rankMap) || undefined,
                   }
@@ -334,7 +354,7 @@ export function SuperintendentPickerDialog({
         },
       },
     ]
-  }, [selectedName, teamMap, deptMap, rankMap, onSelect, onOpenChange])
+  }, [selectedName, teamMap, departmentMap, rankMap, onSelect, onOpenChange])
 
   const table = useReactTable({
     data: filteredRows,
@@ -352,26 +372,26 @@ export function SuperintendentPickerDialog({
       const result: SuperintendentPickerResult = {
         owner_id: String(v.owner_id),
         owner_name: v.owner_name ?? '',
-        owner_phone: v.owner_phone ?? undefined,
         owner_email: v.owner_email ?? undefined,
+        owner_phone: v.owner_phone ?? undefined,
         owner_team: resolveLabel(v.owner_team, teamMap) || undefined,
         owner_department:
-          resolveLabel(v.owner_department, deptMap) || undefined,
+          resolveLabel(v.owner_department, departmentMap) || undefined,
         owner_rank: resolveLabel(v.owner_rank, rankMap) || undefined,
       }
       onSelect(result)
       queueMicrotask(() => onOpenChange(false))
     },
-    [teamMap, deptMap, rankMap, onSelect, onOpenChange]
+    [teamMap, departmentMap, rankMap, onSelect, onOpenChange]
   )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[1200px]'>
+      <DialogContent className='sm:max-w-[1100px]'>
         <DialogHeader>
-          <DialogTitle>选择案件机务</DialogTitle>
+          <DialogTitle>选择案件机务（{f1Label}）</DialogTitle>
           <DialogDescription>
-            从船东联络人中部门为“机务”(F1) 的列表中选择，支持关键词搜索、列排序、行点击快速选择。
+            从船东列表的 {f1Label} 部门中选择作为案件机务，支持关键词搜索、列排序、行点击快速选择。
           </DialogDescription>
         </DialogHeader>
         <div className='flex flex-col gap-3'>
@@ -379,16 +399,16 @@ export function SuperintendentPickerDialog({
             <div className='relative w-[420px] min-w-[360px]'>
               <Search className='pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
-                placeholder='按姓名 / 电话 / 邮箱 / 小组 / 部门 / 职级搜索...'
+                placeholder='按机务名称 / 邮箱 / 电话 / 小组 / 部门 / 职级搜索...'
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 className='ps-9 pl-9'
               />
             </div>
             <div className='flex items-center gap-1 text-xs text-muted-foreground'>
-              <Cog className='size-3.5' />
+              <Wrench className='size-3.5' />
               <span>
-                共 {filteredRows.length} 条 / 总 {owners.length} 条
+                共 {filteredRows.length} 条 / 总 {superintendentRows.length} 条（{f1Label}）
               </span>
             </div>
           </div>
@@ -444,8 +464,8 @@ export function SuperintendentPickerDialog({
                         className='h-24 text-center text-muted-foreground'
                       >
                         {searchKeyword.trim() !== ''
-                          ? '未找到匹配的案件机务，请更换搜索关键词。'
-                          : '暂无案件机务数据（请在船东联络人中维护 owner_department=F1 的记录）。'}
+                          ? `未找到匹配的案件机务（${f1Label}），请更换搜索关键词。`
+                          : `暂无案件机务（${f1Label}）数据。`}
                       </TableCell>
                     </TableRow>
                   ) : (
