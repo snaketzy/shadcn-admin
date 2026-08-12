@@ -99,6 +99,42 @@ import {
 import { createCase, updateCase } from '../api/client'
 import type { Case } from '../data/schema'
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`
+}
+
+function formatDateAsHyphen(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const str = String(raw).trim()
+  if (!str) return ''
+  if (
+    /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str) ||
+    /^\d{4}\d{2}\d{2}$/.test(str)
+  ) {
+    const normalized = /^\d{8}$/.test(str)
+      ? `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`
+      : str.replace(/\//g, '-')
+    const [y, m, day] = normalized.split('-').map((s) => parseInt(s, 10))
+    if (
+      !Number.isNaN(y) &&
+      !Number.isNaN(m) &&
+      !Number.isNaN(day) &&
+      y >= 1000 &&
+      m >= 1 &&
+      m <= 12 &&
+      day >= 1 &&
+      day <= 31
+    ) {
+      return `${y}-${pad2(m)}-${pad2(day)}`
+    }
+  }
+  const d = new Date(str)
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  }
+  return str
+}
+
 const formSchema = z.object({
   vessel_name: z.string().optional().catch(''),
   invoice_number: z.string().optional().catch(''),
@@ -107,9 +143,27 @@ const formSchema = z.object({
   case_progress: z.string().optional().catch(''),
   case_urgent: z.string().optional().catch(''),
   case_inquiry_type: z.string().optional().catch(''),
-  case_inquiry_date: z.string().optional().catch(''),
-  case_follow_date: z.string().optional().catch(''),
-  case_uptodate_date: z.string().optional().catch(''),
+  case_inquiry_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_follow_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_uptodate_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
   case_should_handle_today: z.string().optional().catch(''),
   owner_following: z.string().optional().catch(''),
   shipyard_business: z.string().optional().catch(''),
@@ -117,14 +171,56 @@ const formSchema = z.object({
   case_superintendent: z.string().optional().catch(''),
   case_surveyor: z.string().optional().catch(''),
   case_delivery_or_service_incharge: z.string().optional().catch(''),
-  case_delivery_or_service_deadline: z.string().optional().catch(''),
-  case_eta_cargo_ready_date: z.string().optional().catch(''),
-  case_etb_cargo_departure_date: z.string().optional().catch(''),
-  case_etd_cargo_delivery_date: z.string().optional().catch(''),
+  case_delivery_or_service_deadline: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_eta_cargo_ready_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_etb_cargo_departure_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_etd_cargo_delivery_date: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
   vessel_position: z.string().optional().catch(''),
-  case_settlement_done: z.string().optional().catch(''),
-  case_epd: z.string().optional().catch(''),
-  case_spd: z.string().optional().catch(''),
+  case_settlement_done: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_epd: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
+  case_spd: z
+    .preprocess(
+      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      z.string()
+    )
+    .optional()
+    .catch(''),
   case_incharge: z.string().optional().catch(''),
   case_memo_name: z.string().optional().catch(''),
   case_memo_address: z.string().optional().catch(''),
@@ -675,11 +771,8 @@ export function CasesActionDialog({
   const agentContactDivisionKeyMap = useMemo(() => {
     const m = new Map<string, string>()
     const list =
-      (
-        agentContactGroups as
-          | { divisionDict?: ContactDictEntry[] }
-          | undefined
-      )?.divisionDict ?? []
+      (agentContactGroups as { divisionDict?: ContactDictEntry[] } | undefined)
+        ?.divisionDict ?? []
     for (const d of list) {
       m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
@@ -1043,73 +1136,86 @@ export function CasesActionDialog({
     [vesselNameMap, resolveInchargeLabel]
   )
 
-  const defaultValues = isEdit
-    ? {
-        vessel_name: currentRow.vessel_name ?? '',
-        invoice_number: currentRow.invoice_number ?? '',
-        order_number: currentRow.order_number ?? '',
-        case_inquiry_keyword: currentRow.case_inquiry_keyword ?? '',
-        case_progress: currentRow.case_progress ?? '',
-        case_urgent: currentRow.case_urgent ?? '',
-        case_inquiry_type: currentRow.case_inquiry_type ?? '',
-        case_inquiry_date: currentRow.case_inquiry_date ?? '',
-        case_follow_date: currentRow.case_follow_date ?? '',
-        case_uptodate_date: currentRow.case_uptodate_date ?? '',
-        case_should_handle_today: currentRow.case_should_handle_today ?? '',
-        owner_following: currentRow.owner_following ?? '',
-        shipyard_business: currentRow.shipyard_business ?? '',
-        case_agent: currentRow.case_agent ?? '',
-        case_superintendent: currentRow.case_superintendent ?? '',
-        case_surveyor: currentRow.case_surveyor ?? '',
-        case_delivery_or_service_incharge:
-          currentRow.case_delivery_or_service_incharge ?? '',
-        case_delivery_or_service_deadline:
-          currentRow.case_delivery_or_service_deadline ?? '',
-        case_eta_cargo_ready_date: currentRow.case_eta_cargo_ready_date ?? '',
-        case_etb_cargo_departure_date:
-          currentRow.case_etb_cargo_departure_date ?? '',
-        case_etd_cargo_delivery_date:
-          currentRow.case_etd_cargo_delivery_date ?? '',
-        vessel_position: currentRow.vessel_position ?? '',
-        case_settlement_done: currentRow.case_settlement_done ?? '',
-        case_epd: currentRow.case_epd ?? '',
-        case_spd: currentRow.case_spd ?? '',
-        case_incharge: currentRow.case_incharge ?? '',
-        case_memo_name: currentRow.case_memo_name ?? '',
-        case_memo_address: currentRow.case_memo_address ?? '',
-        case_rank: currentRow.case_rank ?? '',
-      }
-    : {
-        vessel_name: '',
-        invoice_number: '',
-        order_number: '',
-        case_inquiry_keyword: '',
-        case_progress: '',
-        case_urgent: defaultUrgentBNoKey,
-        case_inquiry_type: '',
-        case_inquiry_date: '',
-        case_follow_date: '',
-        case_uptodate_date: '',
-        case_should_handle_today: defaultUrgentBNoKey,
-        owner_following: '',
-        shipyard_business: '',
-        case_agent: '',
-        case_superintendent: '',
-        case_surveyor: '',
-        case_delivery_or_service_incharge: '',
-        case_delivery_or_service_deadline: '',
-        case_eta_cargo_ready_date: '',
-        case_etb_cargo_departure_date: '',
-        case_etd_cargo_delivery_date: '',
-        vessel_position: '',
-        case_settlement_done: '',
-        case_epd: '',
-        case_spd: '',
-        case_incharge: '',
-        case_memo_name: '',
-        case_memo_address: '',
-        case_rank: '',
-      }
+  const defaultValues = useMemo<CaseForm>(
+    () =>
+      isEdit
+        ? {
+            vessel_name: currentRow.vessel_name ?? '',
+            invoice_number: currentRow.invoice_number ?? '',
+            order_number: currentRow.order_number ?? '',
+            case_inquiry_keyword: currentRow.case_inquiry_keyword ?? '',
+            case_progress: currentRow.case_progress ?? '',
+            case_urgent: currentRow.case_urgent ?? '',
+            case_inquiry_type: currentRow.case_inquiry_type ?? '',
+            case_inquiry_date: formatDateAsHyphen(currentRow.case_inquiry_date),
+            case_follow_date: formatDateAsHyphen(currentRow.case_follow_date),
+            case_uptodate_date: formatDateAsHyphen(
+              currentRow.case_uptodate_date
+            ),
+            case_should_handle_today: currentRow.case_should_handle_today ?? '',
+            owner_following: currentRow.owner_following ?? '',
+            shipyard_business: currentRow.shipyard_business ?? '',
+            case_agent: currentRow.case_agent ?? '',
+            case_superintendent: currentRow.case_superintendent ?? '',
+            case_surveyor: currentRow.case_surveyor ?? '',
+            case_delivery_or_service_incharge:
+              currentRow.case_delivery_or_service_incharge ?? '',
+            case_delivery_or_service_deadline: formatDateAsHyphen(
+              currentRow.case_delivery_or_service_deadline
+            ),
+            case_eta_cargo_ready_date: formatDateAsHyphen(
+              currentRow.case_eta_cargo_ready_date
+            ),
+            case_etb_cargo_departure_date: formatDateAsHyphen(
+              currentRow.case_etb_cargo_departure_date
+            ),
+            case_etd_cargo_delivery_date: formatDateAsHyphen(
+              currentRow.case_etd_cargo_delivery_date
+            ),
+            vessel_position: currentRow.vessel_position ?? '',
+            case_settlement_done: formatDateAsHyphen(
+              currentRow.case_settlement_done
+            ),
+            case_epd: formatDateAsHyphen(currentRow.case_epd),
+            case_spd: formatDateAsHyphen(currentRow.case_spd),
+            case_incharge: currentRow.case_incharge ?? '',
+            case_memo_name: currentRow.case_memo_name ?? '',
+            case_memo_address: currentRow.case_memo_address ?? '',
+            case_rank: currentRow.case_rank ?? '',
+          }
+        : {
+            vessel_name: '',
+            invoice_number: '',
+            order_number: '',
+            case_inquiry_keyword: '',
+            case_progress: '',
+            case_urgent: defaultUrgentBNoKey,
+            case_inquiry_type: '',
+            case_inquiry_date: '',
+            case_follow_date: '',
+            case_uptodate_date: '',
+            case_should_handle_today: defaultUrgentBNoKey,
+            owner_following: '',
+            shipyard_business: '',
+            case_agent: '',
+            case_superintendent: '',
+            case_surveyor: '',
+            case_delivery_or_service_incharge: '',
+            case_delivery_or_service_deadline: '',
+            case_eta_cargo_ready_date: '',
+            case_etb_cargo_departure_date: '',
+            case_etd_cargo_delivery_date: '',
+            vessel_position: '',
+            case_settlement_done: '',
+            case_epd: '',
+            case_spd: '',
+            case_incharge: '',
+            case_memo_name: '',
+            case_memo_address: '',
+            case_rank: '',
+          },
+    [isEdit, currentRow, defaultUrgentBNoKey]
+  )
 
   const form = useForm<CaseForm>({
     resolver: zodResolver(formSchema),
@@ -2042,7 +2148,12 @@ export function CasesActionDialog({
                         询价日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2057,7 +2168,12 @@ export function CasesActionDialog({
                         开始日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2072,7 +2188,12 @@ export function CasesActionDialog({
                         跟进日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2211,9 +2332,7 @@ export function CasesActionDialog({
                                 size='icon'
                                 className='pointer-events-auto h-7 w-7'
                                 tabIndex={-1}
-                                onClick={() =>
-                                  setAgentContactPickerOpen(true)
-                                }
+                                onClick={() => setAgentContactPickerOpen(true)}
                                 aria-label='选择案件代理'
                               >
                                 <Search className='h-3.5 w-3.5' />
@@ -2463,7 +2582,12 @@ export function CasesActionDialog({
                         运输｜服务截止日
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2478,7 +2602,12 @@ export function CasesActionDialog({
                         船舶到港 | 备货完成
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2493,7 +2622,12 @@ export function CasesActionDialog({
                         船舶靠港 ｜ 货物发出
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2508,7 +2642,12 @@ export function CasesActionDialog({
                         船舶开航 ｜ 货物签收
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2523,7 +2662,12 @@ export function CasesActionDialog({
                         船东结账日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2538,7 +2682,12 @@ export function CasesActionDialog({
                         供应商结账日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
@@ -2617,7 +2766,12 @@ export function CasesActionDialog({
                         案件结算完成日期
                       </FormLabel>
                       <FormControl>
-                        <Input type='date' className='col-span-4' {...field} />
+                        <Input
+                          type='date'
+                          className='col-span-4'
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
                     </FormItem>
