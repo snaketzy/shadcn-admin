@@ -14,11 +14,19 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, CalendarIcon } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   TableBody,
@@ -158,6 +166,7 @@ export function CasesTable(_: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
+  const [inqDatePopoverOpen, setInqDatePopoverOpen] = useState(false)
 
   const {
     data: allRowsData = [],
@@ -376,6 +385,12 @@ export function CasesTable(_: DataTableProps) {
   const urlKeyword: string =
     (search as unknown as { caseInquiryKeyword?: string }).caseInquiryKeyword ??
     ''
+  const urlInqDateFrom: string =
+    (search as unknown as { caseInquiryDateFrom?: string })
+      .caseInquiryDateFrom ?? ''
+  const urlInqDateTo: string =
+    (search as unknown as { caseInquiryDateTo?: string }).caseInquiryDateTo ??
+    ''
 
   const [editingVesselName, setEditingVesselName] = useState(urlVesselName)
   const vesselNameComposingRef = useRef(false)
@@ -387,6 +402,10 @@ export function CasesTable(_: DataTableProps) {
   const keywordComposingRef = useRef(false)
   const keywordDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [editingInqDateFrom, setEditingInqDateFrom] = useState(urlInqDateFrom)
+  const [editingInqDateTo, setEditingInqDateTo] = useState(urlInqDateTo)
+  const inqDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     if (editingVesselName !== urlVesselName) setEditingVesselName(urlVesselName)
   }, [urlVesselName])
@@ -394,6 +413,15 @@ export function CasesTable(_: DataTableProps) {
   useEffect(() => {
     if (editingKeyword !== urlKeyword) setEditingKeyword(urlKeyword)
   }, [urlKeyword])
+
+  useEffect(() => {
+    if (editingInqDateFrom !== urlInqDateFrom)
+      setEditingInqDateFrom(urlInqDateFrom)
+  }, [urlInqDateFrom])
+
+  useEffect(() => {
+    if (editingInqDateTo !== urlInqDateTo) setEditingInqDateTo(urlInqDateTo)
+  }, [urlInqDateTo])
 
   const scheduleVesselNameCommit = useCallback(
     (value: string) => {
@@ -459,6 +487,62 @@ export function CasesTable(_: DataTableProps) {
     setEditingKeyword(value)
     scheduleKeywordCommit(value)
   }
+
+  const pad2Inq = (n: number): string => (n < 10 ? `0${n}` : `${n}`)
+
+  const formatInqDateISO = (d: Date): string =>
+    `${d.getFullYear()}-${pad2Inq(d.getMonth() + 1)}-${pad2Inq(d.getDate())}`
+
+  const scheduleInqDateCommit = useCallback(
+    (fromRaw: string, toRaw: string) => {
+      if (inqDateCommitRef.current) clearTimeout(inqDateCommitRef.current)
+      inqDateCommitRef.current = setTimeout(() => {
+        const from = fromRaw.trim()
+        const to = toRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            caseInquiryDateFrom: from || undefined,
+            caseInquiryDateTo: to || undefined,
+            page: undefined,
+          }),
+        })
+      }, 180)
+    },
+    [navigate]
+  )
+
+  const setInquiryDatePreset = useCallback(
+    (preset: 'thisWeek' | 'thisMonth') => {
+      const now = new Date()
+      let from: Date
+      let to: Date
+      if (preset === 'thisWeek') {
+        const day = now.getDay()
+        const diffMon = day === 0 ? -6 : 1 - day
+        from = new Date(now)
+        from.setHours(0, 0, 0, 0)
+        from.setDate(now.getDate() + diffMon)
+        to = new Date(from)
+        to.setDate(from.getDate() + 6)
+      } else {
+        from = new Date(now.getFullYear(), now.getMonth(), 1)
+        to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      }
+      const fromStr = formatInqDateISO(from)
+      const toStr = formatInqDateISO(to)
+      setEditingInqDateFrom(fromStr)
+      setEditingInqDateTo(toStr)
+      scheduleInqDateCommit(fromStr, toStr)
+    },
+    [scheduleInqDateCommit]
+  )
+
+  const clearInquiryDateFilter = useCallback(() => {
+    setEditingInqDateFrom('')
+    setEditingInqDateTo('')
+    scheduleInqDateCommit('', '')
+  }, [scheduleInqDateCommit])
 
   const caseProgressFilter = useMemo(
     () =>
@@ -580,11 +664,40 @@ export function CasesTable(_: DataTableProps) {
         vesselPositionFilter.includes(r.vessel_position ?? '')
       )
     }
+    const inqDateFrom = editingInqDateFrom.trim()
+    const inqDateTo = editingInqDateTo.trim()
+    if (inqDateFrom || inqDateTo) {
+      const normRow = (raw: unknown): string => {
+        if (raw === null || raw === undefined || raw === '') return ''
+        const s = String(raw).trim()
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+        if (/^\d{4}\/\d{2}\/\d{2}$/.test(s)) return s.replace(/\//g, '-')
+        if (/^\d{8}$/.test(s))
+          return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+        const d = new Date(s)
+        if (!Number.isNaN(d.getTime())) {
+          const y = d.getFullYear()
+          const m = d.getMonth() + 1
+          const da = d.getDate()
+          return `${y}-${m < 10 ? `0${m}` : `${m}`}-${da < 10 ? `0${da}` : `${da}`}`
+        }
+        return s
+      }
+      result = result.filter((r) => {
+        const rowDate = normRow(r.case_inquiry_date)
+        if (!rowDate) return false
+        if (inqDateFrom && rowDate < inqDateFrom) return false
+        if (inqDateTo && rowDate > inqDateTo) return false
+        return true
+      })
+    }
     return result
   }, [
     allRows,
     editingVesselName,
     editingKeyword,
+    editingInqDateFrom,
+    editingInqDateTo,
     caseProgressFilter,
     caseInquiryTypeFilter,
     caseInchargeFilter,
@@ -601,6 +714,8 @@ export function CasesTable(_: DataTableProps) {
         pageSize: undefined,
         vesselName: undefined,
         caseInquiryKeyword: undefined,
+        caseInquiryDateFrom: undefined,
+        caseInquiryDateTo: undefined,
         invoiceNumber: undefined,
         orderNumber: undefined,
         caseProgress: undefined,
@@ -648,7 +763,9 @@ export function CasesTable(_: DataTableProps) {
   const isFiltered =
     columnFilters.length > 0 ||
     editingVesselName.trim() !== '' ||
-    editingKeyword.trim() !== ''
+    editingKeyword.trim() !== '' ||
+    editingInqDateFrom.trim() !== '' ||
+    editingInqDateTo.trim() !== ''
 
   if (isLoading) {
     return (
@@ -673,6 +790,189 @@ export function CasesTable(_: DataTableProps) {
     )
   }
 
+  const filtersToolbar = (
+    <div className='flex shrink-0 items-center gap-2'>
+      <Popover open={inqDatePopoverOpen} onOpenChange={setInqDatePopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-8 shrink-0 border-dashed'
+          >
+            <CalendarIcon className='size-4' />
+            询价日期
+            {(editingInqDateFrom || editingInqDateTo) && (
+              <>
+                <Separator orientation='vertical' className='mx-2 h-4' />
+                <div className='hidden gap-x-1 lg:flex'>
+                  {editingInqDateFrom && (
+                    <Badge
+                      variant='secondary'
+                      className='rounded-sm px-1 font-normal'
+                    >
+                      {editingInqDateFrom}
+                    </Badge>
+                  )}
+                  {(editingInqDateFrom || editingInqDateTo) &&
+                    (editingInqDateFrom ? '→' : 'Until')}
+                  {editingInqDateTo && (
+                    <Badge
+                      variant='secondary'
+                      className='rounded-sm px-1 font-normal'
+                    >
+                      {editingInqDateTo}
+                    </Badge>
+                  )}
+                </div>
+                <Badge
+                  variant='secondary'
+                  className='rounded-sm px-1 font-normal lg:hidden'
+                >
+                  {(editingInqDateFrom ? '1' : '') +
+                    (editingInqDateTo ? '1' : '')}
+                </Badge>
+              </>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className='w-80' align='start'>
+          <div className='space-y-3'>
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setInquiryDatePreset('thisWeek')}
+              >
+                本周
+              </Button>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setInquiryDatePreset('thisMonth')}
+              >
+                本月
+              </Button>
+              {(editingInqDateFrom || editingInqDateTo) && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={clearInquiryDateFilter}
+                >
+                  清空
+                </Button>
+              )}
+            </div>
+            <div className='space-y-2'>
+              <div className='grid grid-cols-8 items-center gap-2'>
+                <label className='col-span-2 text-xs text-muted-foreground'>
+                  起始日期
+                </label>
+                <Input
+                  type='date'
+                  value={editingInqDateFrom}
+                  className='col-span-6 h-8 text-xs'
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setEditingInqDateFrom(v)
+                    scheduleInqDateCommit(v, editingInqDateTo)
+                  }}
+                />
+              </div>
+              <div className='grid grid-cols-8 items-center gap-2'>
+                <label className='col-span-2 text-xs text-muted-foreground'>
+                  结束日期
+                </label>
+                <Input
+                  type='date'
+                  value={editingInqDateTo}
+                  className='col-span-6 h-8 text-xs'
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setEditingInqDateTo(v)
+                    scheduleInqDateCommit(editingInqDateFrom, v)
+                  }}
+                />
+              </div>
+            </div>
+            <p className='pt-1 text-center text-xs text-muted-foreground'>
+              支持自定义日期范围或点击上方「本周 / 本月」快速选择
+            </p>
+          </div>
+        </PopoverContent>
+      </Popover>
+      {progressROptions.length > 0 && table.getColumn('case_progress') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('case_progress')!}
+            title='案件进度'
+            options={progressROptions}
+          />
+        </div>
+      )}
+      {urgentBOptions.length > 0 && table.getColumn('case_urgent') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('case_urgent')!}
+            title='紧急案件'
+            options={urgentBOptions}
+          />
+        </div>
+      )}
+      {urgentBOptions.length > 0 &&
+        table.getColumn('case_should_handle_today') && (
+          <div className='shrink-0'>
+            <DataTableFacetedFilter
+              column={table.getColumn('case_should_handle_today')!}
+              title='当日需处理'
+              options={urgentBOptions}
+            />
+          </div>
+        )}
+      {inqTypeAOptions.length > 0 && table.getColumn('case_inquiry_type') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('case_inquiry_type')!}
+            title='需求类型'
+            options={inqTypeAOptions}
+          />
+        </div>
+      )}
+      {inchargeEOptions.length > 0 && table.getColumn('case_incharge') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('case_incharge')!}
+            title='案件负责人'
+            options={inchargeEOptions}
+          />
+        </div>
+      )}
+      {rankDOptions.length > 0 && table.getColumn('case_rank') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('case_rank')!}
+            title='案件评级'
+            options={rankDOptions}
+          />
+        </div>
+      )}
+      {vesselPositionCOptions.length > 0 &&
+        table.getColumn('vessel_position') && (
+          <div className='shrink-0'>
+            <DataTableFacetedFilter
+              column={table.getColumn('vessel_position')!}
+              title='船舶位置'
+              options={vesselPositionCOptions}
+            />
+          </div>
+        )}
+    </div>
+  )
+
+  const portalTarget =
+    typeof document !== 'undefined'
+      ? document.getElementById('header-filters-portal')
+      : null
+
   return (
     <div
       className={cn(
@@ -680,6 +980,7 @@ export function CasesTable(_: DataTableProps) {
         'flex w-full flex-1 flex-col gap-4 overflow-hidden'
       )}
     >
+      {portalTarget && createPortal(filtersToolbar, portalTarget)}
       <div className='flex items-center justify-between gap-2'>
         <div className='flex flex-1 flex-col items-start gap-y-2 sm:flex-row sm:flex-wrap sm:items-center sm:space-x-2'>
           <Input
@@ -702,62 +1003,6 @@ export function CasesTable(_: DataTableProps) {
             }
             className='h-8 w-45 lg:w-75'
           />
-          <div className='flex gap-x-2'>
-            {progressROptions.length > 0 &&
-              table.getColumn('case_progress') && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('case_progress')!}
-                  title='案件进度'
-                  options={progressROptions}
-                />
-              )}
-            {urgentBOptions.length > 0 && table.getColumn('case_urgent') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('case_urgent')!}
-                title='紧急案件'
-                options={urgentBOptions}
-              />
-            )}
-            {urgentBOptions.length > 0 &&
-              table.getColumn('case_should_handle_today') && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('case_should_handle_today')!}
-                  title='当日需处理'
-                  options={urgentBOptions}
-                />
-              )}
-            {inqTypeAOptions.length > 0 &&
-              table.getColumn('case_inquiry_type') && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('case_inquiry_type')!}
-                  title='需求类型'
-                  options={inqTypeAOptions}
-                />
-              )}
-            {inchargeEOptions.length > 0 &&
-              table.getColumn('case_incharge') && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('case_incharge')!}
-                  title='案件负责人'
-                  options={inchargeEOptions}
-                />
-              )}
-            {rankDOptions.length > 0 && table.getColumn('case_rank') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('case_rank')!}
-                title='案件评级'
-                options={rankDOptions}
-              />
-            )}
-            {vesselPositionCOptions.length > 0 &&
-              table.getColumn('vessel_position') && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('vessel_position')!}
-                  title='船舶位置'
-                  options={vesselPositionCOptions}
-                />
-              )}
-          </div>
           {isFiltered && (
             <Button
               variant='ghost'

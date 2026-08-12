@@ -22,6 +22,10 @@ export function Cases() {
     <CasesProvider>
       <Header fixed>
         <CasesPrimaryButtons />
+        <div
+          id='header-filters-portal'
+          className='flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        />
         <div className='me-auto' />
         <ThemeSwitch />
         <ConfigDrawer />
