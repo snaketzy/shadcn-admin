@@ -155,10 +155,6 @@ export function VesselPickerDialog({
     () => makeDictMap(groupsData?.inchargeDict ?? []),
     [groupsData]
   )
-  const fleetManagerMap = useMemo(
-    () => makeDictMap(groupsData?.fleetManagerDict ?? []),
-    [groupsData]
-  )
 
   const filteredRows: Vessel[] = useMemo(() => {
     const q = searchKeyword.trim().toLowerCase()

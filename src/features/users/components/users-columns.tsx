@@ -87,6 +87,7 @@ export function getUsersColumns(
       const value = row.getValue('building_year') as string | null
       return <div>{value ?? '-'}</div>
     },
+    meta: { className: 'w-[1%] min-w-[110px]' },
     enableSorting: false,
   },
   {
@@ -110,6 +111,7 @@ export function getUsersColumns(
       }
       return <div>{age < 0 ? '-' : `${age}年`}</div>
     },
+    meta: { className: 'w-[1%] min-w-[80px]' },
     enableSorting: false,
   },
   {
@@ -121,6 +123,7 @@ export function getUsersColumns(
       const value = row.getValue('vessel_imo') as number | null
       return <div>{value != null ? value : '-'}</div>
     },
+    meta: { className: 'w-[1%] min-w-[100px]' },
     enableSorting: false,
   },
   {
@@ -132,6 +135,7 @@ export function getUsersColumns(
       const value = row.getValue('vessel_loa') as string | null
       return <div>{value ?? '-'}</div>
     },
+    meta: { className: 'w-[1%] min-w-[90px]' },
     enableSorting: false,
   },
   {
@@ -143,6 +147,7 @@ export function getUsersColumns(
       const value = row.getValue('vessel_breadth') as string | null
       return <div>{value ?? '-'}</div>
     },
+    meta: { className: 'w-[1%] min-w-[100px]' },
     enableSorting: false,
   },
   {
@@ -154,6 +159,7 @@ export function getUsersColumns(
       const value = row.getValue('vessel_gross') as number | null
       return <div>{value != null ? value : '-'}</div>
     },
+    meta: { className: 'w-[1%] min-w-[90px]' },
     enableSorting: false,
   },
   {
@@ -165,6 +171,7 @@ export function getUsersColumns(
       const value = row.getValue('vessel_dwt') as number | null
       return <div>{value != null ? value : '-'}</div>
     },
+    meta: { className: 'w-[1%] min-w-[90px]' },
     enableSorting: false,
   },
   {
@@ -184,6 +191,7 @@ export function getUsersColumns(
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
+    meta: { className: 'w-[1%] min-w-[100px]' },
     enableHiding: false,
     enableSorting: false,
   },
@@ -204,6 +212,7 @@ export function getUsersColumns(
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
+    meta: { className: 'w-[1%] min-w-[110px]' },
     enableHiding: false,
     enableSorting: false,
   },
@@ -224,6 +233,7 @@ export function getUsersColumns(
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
+    meta: { className: 'w-[1%] min-w-[90px]' },
     enableHiding: false,
     enableSorting: false,
   },
@@ -250,6 +260,7 @@ export function getUsersColumns(
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
+    meta: { className: 'w-[1%] min-w-[120px]' },
     enableHiding: false,
     enableSorting: false,
   },

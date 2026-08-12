@@ -339,7 +339,7 @@ export function UsersTable(_: DataTableProps) {
     <div
       className={cn(
         'max-sm:has-[div[role="toolbar"]]:mb-16',
-        'flex flex-1 flex-col gap-4 overflow-hidden'
+        'flex flex-1 flex-col gap-4 overflow-hidden w-full min-w-0'
       )}
     >
       <div className='flex items-center justify-between gap-2'>
@@ -420,9 +420,9 @@ export function UsersTable(_: DataTableProps) {
           <DataTableViewOptions table={table} />
         </div>
       </div>
-      <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>
+      <div className='flex flex-1 flex-col overflow-hidden rounded-md border w-full min-w-0'>
         <div className='relative w-full flex-1 overflow-auto'>
-          <table className='w-max min-w-full table-auto caption-bottom text-sm'>
+          <table className='w-full min-w-[1200px] table-auto caption-bottom text-sm'>
             <TableHeader className='bg-background'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='group/row'>
