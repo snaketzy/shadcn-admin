@@ -456,32 +456,10 @@ export function ContactsTable(_: DataTableProps) {
             size='sm'
             className='h-8 gap-1'
             onClick={async () => {
-              if (commitDebounceTimerRef.current) {
-                clearTimeout(commitDebounceTimerRef.current)
-                commitDebounceTimerRef.current = null
-                const flush: { contactName?: string; contactSearch?: string } = {}
-                if (editingName.trim() !== '' || urlContactName !== editingName) {
-                  flush.contactName = editingName || undefined
-                }
-                if (editingSearch.trim() !== '' || urlContactSearch !== editingSearch) {
-                  flush.contactSearch = editingSearch || undefined
-                }
-                if (Object.keys(flush).length > 0) {
-                  navigate({
-                    search: (prev: any) => ({
-                      ...(prev ?? {}),
-                      ...flush,
-                      page: undefined,
-                    }),
-                  })
-                }
-              }
-              await Promise.all([
-                queryClient.refetchQueries({ queryKey: ['contact-list'] }),
-                queryClient.refetchQueries({ queryKey: ['contact-list-groups'] }),
-                queryClient.refetchQueries({ queryKey: ['division-picker-suppliers'] }),
-                queryClient.refetchQueries({ queryKey: ['division-picker-collaborations'] }),
-              ])
+              await queryClient.refetchQueries({ queryKey: ['case-dict'] })
+              await queryClient.refetchQueries({
+                queryKey: ['case-dict-groups'],
+              })
             }}
           >
             <SearchIcon className='size-4' />

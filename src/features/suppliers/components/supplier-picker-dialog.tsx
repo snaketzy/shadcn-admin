@@ -50,15 +50,15 @@ const FIXED_COL_STYLES: Record<
       top: 0,
       left: 0,
       zIndex: 50,
-      width: 240,
-      minWidth: 240,
+      width: 320,
+      minWidth: 320,
     },
     td: {
       position: 'sticky',
       left: 0,
       zIndex: 20,
-      width: 240,
-      minWidth: 240,
+      width: 320,
+      minWidth: 320,
     },
   },
   _action: {
@@ -67,15 +67,15 @@ const FIXED_COL_STYLES: Record<
       top: 0,
       right: 0,
       zIndex: 50,
-      width: 100,
-      minWidth: 100,
+      width: 120,
+      minWidth: 120,
     },
     td: {
       position: 'sticky',
       right: 0,
       zIndex: 30,
-      width: 100,
-      minWidth: 100,
+      width: 120,
+      minWidth: 120,
     },
   },
 }
@@ -174,8 +174,12 @@ export function SupplierPickerDialog({
           .toLowerCase()
           .includes(q) ||
         resolveField(s.supplier_field, fieldMap).toLowerCase().includes(q) ||
-        String(s.supplier_remark ?? '').toLowerCase().includes(q) ||
-        String(s.supplier_id ?? '').toLowerCase().includes(q)
+        String(s.supplier_remark ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(s.supplier_id ?? '')
+          .toLowerCase()
+          .includes(q)
       )
     })
   }, [suppliers, searchKeyword, fieldMap])
@@ -185,17 +189,17 @@ export function SupplierPickerDialog({
       {
         accessorKey: 'supplier_name',
         header: '单位名称',
-        size: 240,
+        size: 320,
         cell: ({ row }) => {
           const s = row.original
           const sn = s.supplier_shortname?.trim()
           return (
             <div className='flex flex-col gap-0.5'>
-              <div className='max-w-[220px] truncate leading-tight font-medium'>
+              <div className='max-w-[300px] truncate leading-tight font-medium'>
                 {sn ?? s.supplier_name ?? '-'}
               </div>
               {sn && sn !== s.supplier_name ? (
-                <div className='text-[10px] leading-none text-muted-foreground max-w-[220px] truncate'>
+                <div className='max-w-[300px] truncate text-[10px] leading-none text-muted-foreground'>
                   全称：{s.supplier_name ?? '-'}
                 </div>
               ) : null}
@@ -204,80 +208,46 @@ export function SupplierPickerDialog({
         },
         meta: {
           className: cn(
-            'sticky left-0 z-20 w-[240px] min-w-[240px] bg-background ps-0.5',
+            'sticky left-0 z-20 w-[320px] min-w-[320px] bg-background ps-0.5',
             'shadow-[inset_-1px_0_0_hsl(var(--border))]'
           ),
           thClassName: cn(
-            'sticky top-0 left-0 z-40 w-[240px] min-w-[240px] rounded-tl-[inherit] bg-background ps-0.5',
+            'sticky top-0 left-0 z-40 w-[320px] min-w-[320px] rounded-tl-[inherit] bg-background ps-0.5',
             'shadow-[inset_-1px_0_0_hsl(var(--border))]'
           ),
         },
         enableHiding: false,
       },
       {
-        accessorKey: 'supplier_id',
-        header: '编号',
-        size: 90,
-        cell: ({ row }) => (
-          <span className='font-mono text-xs'>
-            {row.original.supplier_id ?? '-'}
-          </span>
-        ),
-      },
-      {
-        accessorKey: 'supplier_field',
-        header: '业务领域',
-        size: 140,
-        cell: ({ row }) => {
-          const raw = row.original.supplier_field
-          const label = resolveField(raw, fieldMap)
-          if (!label) return <div>-</div>
-          return (
-            <Badge variant='outline' className={cn('bg-secondary/30')}>
-              {label}
-            </Badge>
-          )
-        },
-      },
-      {
         accessorKey: 'supplier_advantage',
         header: '优势',
-        size: 160,
+        size: 240,
         cell: ({ row }) => {
           const v = row.original.supplier_advantage
-          return <LongText className='max-w-[160px]'>{v ?? '-'}</LongText>
-        },
-      },
-      {
-        accessorKey: 'supplier_address',
-        header: '地址',
-        size: 220,
-        cell: ({ row }) => {
-          const v = row.original.supplier_address
-          return <LongText className='max-w-[220px]'>{v ?? '-'}</LongText>
+          return <LongText className='max-w-[240px]'>{v ?? '-'}</LongText>
         },
       },
       {
         accessorKey: 'supplier_remark',
         header: '备注',
-        size: 220,
+        size: 240,
         cell: ({ row }) => {
           const v = row.original.supplier_remark
-          return <LongText className='max-w-[220px]'>{v ?? '-'}</LongText>
+          return <LongText className='max-w-[240px]'>{v ?? '-'}</LongText>
         },
       },
       {
         id: '_action',
         header: '',
-        size: 100,
+        size: 120,
         enableSorting: false,
         enableHiding: false,
         meta: {
           className: cn(
-            'sticky right-0 z-30 w-[100px] min-w-[100px] rounded-tr-[inherit] bg-background pe-0'
+            'sticky right-0 z-30 w-[120px] min-w-[120px] rounded-tr-[inherit] bg-background pe-0'
           ),
           thClassName: cn(
-            'sticky top-0 right-0 z-40 w-[100px] min-w-[100px] rounded-tr-[inherit] bg-background pe-0'
+            'sticky top-0 right-0 z-40 w-[120px] min-w-[120px] rounded-tr-[inherit] bg-background pe-0'
           ),
         },
         cell: ({ row }) => {
@@ -309,7 +279,7 @@ export function SupplierPickerDialog({
         },
       },
     ]
-  }, [selectedId, fieldMap])
+  }, [selectedId])
 
   const table = useReactTable<Supplier>({
     data: filteredRows,
@@ -324,7 +294,12 @@ export function SupplierPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChangeRef.current}>
-      <DialogContent className='max-w-6xl'>
+      <DialogContent
+        style={{
+          width: 'min(800px, calc(100vw - 32px))',
+          maxWidth: 'calc(100vw - 32px)',
+        }}
+      >
         <DialogHeader>
           <DialogTitle className='flex items-center gap-2'>
             <Briefcase className='h-4 w-4 text-muted-foreground' />
@@ -355,7 +330,7 @@ export function SupplierPickerDialog({
         </div>
         <div className='overflow-hidden rounded-md border'>
           <div className='relative max-h-[55vh] overflow-auto'>
-            <table className='w-full table-fixed border-collapse text-sm'>
+            <table className='min-w-full table-fixed border-collapse text-sm'>
               <thead className='sticky top-0 z-30 bg-secondary/60 backdrop-blur'>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
@@ -365,14 +340,19 @@ export function SupplierPickerDialog({
                           header.column.id ??
                           ''
                       )
-                      const style =
-                        FIXED_COL_STYLES[accessorKey]?.th ?? undefined
+                      const w = header.column.getSize()
+                      const baseStyle = FIXED_COL_STYLES[accessorKey]?.th ?? {}
+                      const style: React.CSSProperties = {
+                        ...baseStyle,
+                        width: w,
+                        minWidth: w,
+                      }
                       return (
                         <th
                           key={header.id}
                           style={style}
                           className={cn(
-                            'whitespace-nowrap border-b bg-secondary/50 px-2 py-2 text-left text-xs font-medium',
+                            'border-b bg-secondary/50 px-2 py-2 text-left text-xs font-medium',
                             header.column.getCanSort()
                               ? 'cursor-pointer select-none'
                               : ''
@@ -413,9 +393,8 @@ export function SupplierPickerDialog({
                     <tr
                       key={row.id}
                       className={cn(
-                        'border-b last:border-b-0 transition-colors hover:bg-accent/40',
-                        selectedId ===
-                          String(row.original.supplier_id)
+                        'border-b transition-colors last:border-b-0 hover:bg-accent/40',
+                        selectedId === String(row.original.supplier_id)
                           ? 'bg-accent/20'
                           : ''
                       )}
@@ -426,8 +405,14 @@ export function SupplierPickerDialog({
                             cell.column.id ??
                             ''
                         )
-                        const style =
-                          FIXED_COL_STYLES[accessorKey]?.td ?? undefined
+                        const w = cell.column.getSize()
+                        const baseStyle =
+                          FIXED_COL_STYLES[accessorKey]?.td ?? {}
+                        const style: React.CSSProperties = {
+                          ...baseStyle,
+                          width: w,
+                          minWidth: w,
+                        }
                         return (
                           <td
                             key={cell.id}
