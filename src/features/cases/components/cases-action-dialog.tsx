@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -685,6 +686,19 @@ export function CasesActionDialog({
     },
     [inquiryTypeQKeyToLabel]
   )
+
+  const getInquiryTypeQBadgeClass = useCallback((label: string): string => {
+    if (!label) return ''
+    if (label.includes('报价'))
+      return 'bg-amber-100/60 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200'
+    if (label.includes('竞标') || label.includes('投标'))
+      return 'bg-blue-100/60 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200'
+    if (label.includes('中标'))
+      return 'bg-emerald-100/60 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200'
+    if (label.includes('未中') || label.includes('流标'))
+      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/40 dark:text-slate-300'
+    return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/40 dark:text-slate-300'
+  }, [])
 
   const { data: supplierRows = [] } = useQuery({
     queryKey: ['supplier-picker-all'],
@@ -2581,7 +2595,6 @@ export function CasesActionDialog({
                         <Button
                           type='button'
                           size='sm'
-                          variant='outline'
                           onClick={() => {
                             setInquiryEditingId(null)
                             inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
@@ -2643,8 +2656,21 @@ export function CasesActionDialog({
                                     <TableCell>
                                       {supplierName || '-'}
                                     </TableCell>
-                                    <TableCell>
-                                      {inqTypeLabel || '-'}
+                                    <TableCell className='text-center'>
+                                      {inqTypeLabel ? (
+                                        <Badge
+                                          variant='outline'
+                                          className={cn(
+                                            getInquiryTypeQBadgeClass(
+                                              inqTypeLabel
+                                            )
+                                          )}
+                                        >
+                                          {inqTypeLabel}
+                                        </Badge>
+                                      ) : (
+                                        '-'
+                                      )}
                                     </TableCell>
                                     <TableCell className='font-mono text-xs text-center whitespace-nowrap'>
                                       {row.case_inquired_date

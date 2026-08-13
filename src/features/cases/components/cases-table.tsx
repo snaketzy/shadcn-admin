@@ -179,14 +179,30 @@ export function CasesTable(_: DataTableProps) {
         lbl.includes('常规') ||
         val === 'NO' ||
         /^B-?0/.test(val)
-      if (
-        !isNo &&
-        (lbl.includes('紧急') ||
-          val.includes('URGENT') ||
-          /^B-?1/.test(val) ||
-          lbl.includes('是') ||
-          lbl === 'YES')
-      ) {
+      if (!isNo && (lbl.includes('紧急') || val.includes('URGENT') || /^B-?1/.test(val) || lbl.includes('是') || lbl === 'YES')) {
+        s.add(String(o.value).toUpperCase())
+      }
+    }
+    return s
+  }, [urgentBOptions])
+
+  const handleTodayBIsYesSet = useMemo<Set<string>>(() => {
+    const s = new Set<string>()
+    for (const o of urgentBOptions) {
+      if (!o.value) continue
+      const lbl = (o.label || '').trim().toUpperCase()
+      const val = String(o.value).trim().toUpperCase()
+      const isNo =
+        lbl === 'NO' ||
+        lbl === '否' ||
+        lbl.includes('不需') ||
+        lbl.includes('不用') ||
+        lbl.includes('普通') ||
+        lbl.includes('非当日') ||
+        lbl.includes('无需') ||
+        val === 'NO' ||
+        /^B-?0/.test(val)
+      if (!isNo && (lbl.includes('当日需处理') || lbl.includes('当日') || lbl === '是' || lbl === 'YES' || /^B-?1/.test(val) || lbl.includes('需要处理'))) {
         s.add(String(o.value).toUpperCase())
       }
     }
@@ -310,6 +326,7 @@ export function CasesTable(_: DataTableProps) {
       getCasesColumns({
         urgentBMap,
         urgentBIsUrgentSet,
+        handleTodayBIsYesSet,
         inqTypeAMap,
         inchargeEMap,
         rankDMap,
@@ -319,6 +336,7 @@ export function CasesTable(_: DataTableProps) {
     [
       urgentBMap,
       urgentBIsUrgentSet,
+      handleTodayBIsYesSet,
       inqTypeAMap,
       inchargeEMap,
       rankDMap,
@@ -879,16 +897,6 @@ export function CasesTable(_: DataTableProps) {
           />
         </div>
       )}
-      {urgentBOptions.length > 0 &&
-        table.getColumn('case_should_handle_today') && (
-          <div className='shrink-0'>
-            <DataTableFacetedFilter
-              column={table.getColumn('case_should_handle_today')!}
-              title='当日需处理'
-              options={urgentBOptions}
-            />
-          </div>
-        )}
       {inqTypeAOptions.length > 0 && table.getColumn('case_inquiry_type') && (
         <div className='shrink-0'>
           <DataTableFacetedFilter

@@ -1,5 +1,5 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -49,6 +49,7 @@ function formatDateAsHyphen(raw: unknown): string {
 export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
   urgentBIsUrgentSet?: Set<string>
+  handleTodayBIsYesSet?: Set<string>
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -57,6 +58,7 @@ export function getCasesColumns(params?: {
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
+  const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
   const rankDMap = params?.rankDMap
@@ -68,6 +70,13 @@ export function getCasesColumns(params?: {
     const p = String(raw).trim()
     if (!p) return false
     return urgentBIsUrgentSet.has(p.toUpperCase())
+  }
+  const isHandleTodayRow = (raw: unknown): boolean => {
+    if (!handleTodayBIsYesSet) return false
+    if (raw === null || raw === undefined || raw === '') return false
+    const p = String(raw).trim()
+    if (!p) return false
+    return handleTodayBIsYesSet.has(p.toUpperCase())
   }
   const resolveUrgentBLabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''
@@ -163,16 +172,31 @@ export function getCasesColumns(params?: {
       header: () => <div className='w-full text-center' aria-hidden />,
       cell: ({ row }) => {
         const urgent = isUrgentRow(row.original.case_urgent)
-        if (!urgent) return <div className='h-full w-full' aria-hidden />
+        const handleToday = isHandleTodayRow(
+          row.original.case_should_handle_today
+        )
+        if (!urgent && !handleToday)
+          return <div className='h-full w-full' aria-hidden />
+        const tooltip: string[] = []
+        if (urgent) tooltip.push('紧急案件')
+        if (handleToday) tooltip.push('当日需处理')
         return (
           <div
-            className='flex w-full items-center justify-center text-destructive'
-            title='紧急案件'
+            className='flex w-full items-center justify-center gap-1'
+            title={tooltip.join(' / ')}
           >
-            <AlertCircle
-              className='size-4 shrink-0 fill-red-100 text-red-600'
-              aria-hidden
-            />
+            {urgent && (
+              <AlertCircle
+                className='size-4 shrink-0 fill-red-100 text-red-600'
+                aria-hidden
+              />
+            )}
+            {handleToday && (
+              <ListChecks
+                className='size-4 shrink-0 fill-blue-100 text-blue-600'
+                aria-hidden
+              />
+            )}
           </div>
         )
       },
@@ -365,31 +389,6 @@ export function getCasesColumns(params?: {
         label: '跟进日期',
         className: 'w-[144px] min-w-[144px]',
         thClassName: 'w-[144px] min-w-[144px]',
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'case_should_handle_today',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='当日需处理' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('case_should_handle_today') as string | null
-        if (!value) return <div>-</div>
-        const display = resolveUrgentBLabel(value)
-        return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {display}
-          </Badge>
-        )
-      },
-      meta: {
-        label: '当日需处理',
-        className: 'w-[110px] min-w-[110px]',
-        thClassName: 'w-[110px] min-w-[110px]',
-      },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
       },
       enableSorting: false,
     },
