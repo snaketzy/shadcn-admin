@@ -13,6 +13,14 @@ function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`
 }
 
+function getTodayHyphen(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  return `${y}-${pad2(m)}-${pad2(day)}`
+}
+
 function formatDateAsHyphen(raw: unknown): string {
   if (raw === null || raw === undefined || raw === '') return ''
   const str = String(raw).trim()
@@ -393,7 +401,23 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('case_uptodate_date') as string | null
         const formatted = formatDateAsHyphen(value)
-        return <div>{formatted || '-'}</div>
+        if (!formatted) return <div>-</div>
+        const today = getTodayHyphen()
+        const isToday = formatted === today
+        const isHandleToday = isHandleTodayRow(row.original.case_should_handle_today)
+        return (
+          <div
+            className={cn(
+              isToday &&
+                'inline-flex items-center rounded border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-900/40 dark:text-emerald-300',
+              !isToday &&
+                isHandleToday &&
+                'inline-flex items-center rounded border border-rose-200 bg-rose-100 px-2 py-0.5 text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/40 dark:text-rose-300'
+            )}
+          >
+            {formatted}
+          </div>
+        )
       },
       meta: {
         label: '跟进日期',
