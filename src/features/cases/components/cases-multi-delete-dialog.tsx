@@ -41,7 +41,7 @@ export function CasesMultiDeleteDialog<TData>({
     mutationFn: (ids: number[]) => deleteCaseBulk(ids),
     onSuccess: (n) => {
       toast.success(`已删除 ${n} 个案件`)
-      queryClient.invalidateQueries({ queryKey: ['case-list'] })
+      queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
       table.resetRowSelection()
       onOpenChange(false)

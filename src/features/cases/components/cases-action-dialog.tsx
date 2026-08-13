@@ -1769,7 +1769,7 @@ export function CasesActionDialog({
     },
     onSuccess: () => {
       toast.success('案件创建成功')
-      queryClient.invalidateQueries({ queryKey: ['case-list'] })
+      queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
       form.reset()
       onOpenChange(false)
@@ -1808,7 +1808,7 @@ export function CasesActionDialog({
     },
     onSuccess: () => {
       toast.success('案件更新成功')
-      queryClient.invalidateQueries({ queryKey: ['case-list'] })
+      queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
       form.reset()
       onOpenChange(false)

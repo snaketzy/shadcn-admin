@@ -53,7 +53,7 @@ const SELECT_COLS = `
 
 export async function getAllCaseList(): Promise<CaseListRow[]> {
   const rows = await query<CaseListRow[]>(
-    `SELECT ${SELECT_COLS} FROM \`case_list\` ORDER BY vessel_name`
+    `SELECT ${SELECT_COLS} FROM \`case_list\` ORDER BY case_inquiry_date DESC, case_id DESC`
   )
   return rows.map(normalizeRow)
 }
@@ -175,8 +175,15 @@ export async function getCaseListPaginated(params: {
   invoiceNumber?: string
   orderNumber?: string
   caseInquiryKeyword?: string
-  caseProgress?: string
-  caseIncharge?: string
+  caseInquiryDateFrom?: string
+  caseInquiryDateTo?: string
+  caseProgress?: string | string[]
+  caseUrgent?: string | string[]
+  caseShouldHandleToday?: string | string[]
+  caseInquiryType?: string | string[]
+  caseIncharge?: string | string[]
+  caseRank?: string | string[]
+  vesselPosition?: string | string[]
 }): Promise<{
   rows: CaseListRow[]
   total: number
@@ -194,32 +201,74 @@ export async function getCaseListPaginated(params: {
     whereClauses.push('vessel_name LIKE ?')
     whereParams.push(`%${params.vesselName}%`)
   }
-  if (params.invoiceNumber && params.invoiceNumber.trim() !== '') {
-    whereClauses.push('invoice_number LIKE ?')
-    whereParams.push(`%${params.invoiceNumber}%`)
-  }
-  if (params.orderNumber && params.orderNumber.trim() !== '') {
-    whereClauses.push('order_number LIKE ?')
-    whereParams.push(`%${params.orderNumber}%`)
-  }
   if (params.caseInquiryKeyword && params.caseInquiryKeyword.trim() !== '') {
-    whereClauses.push('case_inquiry_keyword LIKE ?')
-    whereParams.push(`%${params.caseInquiryKeyword}%`)
+    const kw = `%${params.caseInquiryKeyword}%`
+    whereClauses.push(
+      '(case_inquiry_keyword LIKE ? OR invoice_number LIKE ? OR order_number LIKE ?)'
+    )
+    whereParams.push(kw, kw, kw)
+  } else {
+    if (params.invoiceNumber && params.invoiceNumber.trim() !== '') {
+      whereClauses.push('invoice_number LIKE ?')
+      whereParams.push(`%${params.invoiceNumber}%`)
+    }
+    if (params.orderNumber && params.orderNumber.trim() !== '') {
+      whereClauses.push('order_number LIKE ?')
+      whereParams.push(`%${params.orderNumber}%`)
+    }
   }
-  if (params.caseProgress && params.caseProgress.trim() !== '') {
-    whereClauses.push('case_progress LIKE ?')
-    whereParams.push(`%${params.caseProgress}%`)
+  const normDate = (raw: string): string => {
+    const s = String(raw).trim()
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(s)) return s.replace(/\//g, '-')
+    if (/^\d{8}$/.test(s))
+      return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+    return s
   }
-  if (params.caseIncharge && params.caseIncharge.trim() !== '') {
-    whereClauses.push('case_incharge LIKE ?')
-    whereParams.push(`%${params.caseIncharge}%`)
+  if (params.caseInquiryDateFrom && params.caseInquiryDateFrom.trim() !== '') {
+    whereClauses.push('case_inquiry_date >= ?')
+    whereParams.push(normDate(params.caseInquiryDateFrom))
   }
+  if (params.caseInquiryDateTo && params.caseInquiryDateTo.trim() !== '') {
+    whereClauses.push('case_inquiry_date <= ?')
+    whereParams.push(normDate(params.caseInquiryDateTo))
+  }
+  const pushInClauses = (
+    col: string,
+    raw: string | string[] | undefined,
+    opts?: { splitComma?: boolean }
+  ) => {
+    if (!raw) return
+    const arr = Array.isArray(raw)
+      ? raw.map((s) => String(s).trim()).filter(Boolean)
+      : [String(raw).trim()].filter(Boolean)
+    if (arr.length === 0) return
+    if (opts?.splitComma) {
+      const ors: string[] = []
+      for (const val of arr) {
+        ors.push(`(',' || REPLACE(${col}, ', ', ',') || ',' LIKE ?)`)
+        whereParams.push(`%,${val},%`)
+      }
+      whereClauses.push(`(${ors.join(' OR ')})`)
+    } else {
+      const placeholders = arr.map(() => '?').join(', ')
+      whereClauses.push(`${col} IN (${placeholders})`)
+      for (const val of arr) whereParams.push(val)
+    }
+  }
+  pushInClauses('case_progress', params.caseProgress)
+  pushInClauses('case_urgent', params.caseUrgent)
+  pushInClauses('case_should_handle_today', params.caseShouldHandleToday)
+  pushInClauses('case_inquiry_type', params.caseInquiryType)
+  pushInClauses('case_incharge', params.caseIncharge, { splitComma: true })
+  pushInClauses('case_rank', params.caseRank)
+  pushInClauses('vessel_position', params.vesselPosition)
 
   const whereSql =
     whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
 
   const countSql = `SELECT COUNT(*) as total FROM \`case_list\` ${whereSql}`
-  const dataSql = `SELECT ${SELECT_COLS} FROM \`case_list\` ${whereSql} ORDER BY vessel_name LIMIT ? OFFSET ?`
+  const dataSql = `SELECT ${SELECT_COLS} FROM \`case_list\` ${whereSql} ORDER BY case_inquiry_date DESC, case_id DESC LIMIT ? OFFSET ?`
 
   const [countRows, dataRows] = await Promise.all([
     query<[{ total: number }]>(countSql, whereParams),

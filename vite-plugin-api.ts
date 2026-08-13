@@ -972,7 +972,16 @@ async function handleCaseListApi(
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
         const page = Number(searchParams.get('page') ?? 1)
-        const pageSize = Number(searchParams.get('pageSize') ?? 1000)
+        const pageSize = Number(searchParams.get('pageSize') ?? 10)
+        const toArr = (key: string): string[] | undefined => {
+          const raw = searchParams.getAll(key)
+          if (raw.length === 0) return undefined
+          const list = raw
+            .flatMap((v) => String(v ?? '').split(','))
+            .map((s) => s.trim())
+            .filter(Boolean)
+          return list.length > 0 ? list : undefined
+        }
         const result = await getCaseListPaginated({
           page,
           pageSize,
@@ -980,8 +989,17 @@ async function handleCaseListApi(
           invoiceNumber: toOptStr(searchParams.get('invoiceNumber')),
           orderNumber: toOptStr(searchParams.get('orderNumber')),
           caseInquiryKeyword: toOptStr(searchParams.get('caseInquiryKeyword')),
-          caseProgress: toOptStr(searchParams.get('caseProgress')),
-          caseIncharge: toOptStr(searchParams.get('caseIncharge')),
+          caseInquiryDateFrom: toOptStr(
+            searchParams.get('caseInquiryDateFrom')
+          ),
+          caseInquiryDateTo: toOptStr(searchParams.get('caseInquiryDateTo')),
+          caseProgress: toArr('caseProgress'),
+          caseUrgent: toArr('caseUrgent'),
+          caseShouldHandleToday: toArr('caseShouldHandleToday'),
+          caseInquiryType: toArr('caseInquiryType'),
+          caseIncharge: toArr('caseIncharge'),
+          caseRank: toArr('caseRank'),
+          vesselPosition: toArr('vesselPosition'),
         })
         sendJson(res, 200, { success: true, data: result })
         return true

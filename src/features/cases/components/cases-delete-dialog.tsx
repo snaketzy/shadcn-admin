@@ -36,7 +36,7 @@ export function CasesDeleteDialog({
     onSuccess: (ok) => {
       if (ok) {
         toast.success('案件已删除')
-        queryClient.invalidateQueries({ queryKey: ['case-list'] })
+        queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
         onOpenChange(false)
       } else {

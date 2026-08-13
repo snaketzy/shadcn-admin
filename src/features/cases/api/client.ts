@@ -123,15 +123,24 @@ export async function fetchCasePaginated(params: {
   page?: number
   pageSize?: number
   vesselName?: string
-  invoiceNumber?: string
-  orderNumber?: string
-  caseProgress?: string
-  caseInquiryType?: string
-  caseIncharge?: string
-  caseRank?: string
+  invoiceNumber?: string | string[]
+  orderNumber?: string | string[]
+  caseInquiryKeyword?: string
+  caseInquiryDateFrom?: string
+  caseInquiryDateTo?: string
+  caseProgress?: string | string[]
+  caseUrgent?: string | string[]
+  caseShouldHandleToday?: string | string[]
+  caseInquiryType?: string | string[]
+  caseIncharge?: string | string[]
+  caseRank?: string | string[]
+  vesselPosition?: string | string[]
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/case-list/', {
     params,
+    paramsSerializer: {
+      indexes: null,
+    },
   })
   return (
     res.data.data ?? {

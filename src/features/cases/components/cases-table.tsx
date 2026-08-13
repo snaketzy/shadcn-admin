@@ -10,7 +10,6 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
@@ -43,7 +42,7 @@ import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
 } from '@/features/dictionaries/api/client'
-import { fetchCaseAll, fetchCaseGroups } from '../api/client'
+import { fetchCaseGroups, fetchCasePaginated } from '../api/client'
 import { type Case } from '../data/schema'
 import { getCasesColumns } from './cases-columns'
 import { DataTableBulkActions } from './data-table-bulk-actions'
@@ -168,17 +167,6 @@ export function CasesTable(_: DataTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
   const [inqDatePopoverOpen, setInqDatePopoverOpen] = useState(false)
-
-  const {
-    data: allRowsData = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ['case-list'],
-    queryFn: fetchCaseAll,
-  })
-  const allRows: Case[] = allRowsData as Case[]
 
   const { data: groupsData } = useQuery({
     queryKey: ['case-list-groups'],
@@ -545,49 +533,49 @@ export function CasesTable(_: DataTableProps) {
     scheduleInqDateCommit('', '')
   }, [scheduleInqDateCommit])
 
-  const caseProgressFilter = useMemo(
+  const caseProgressFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseProgress)
         ? ((search as any).caseProgress as string[])
         : [],
     [search]
   )
-  const caseInquiryTypeFilter = useMemo(
+  const caseInquiryTypeFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseInquiryType)
         ? ((search as any).caseInquiryType as string[])
         : [],
     [search]
   )
-  const caseInchargeFilter = useMemo(
+  const caseInchargeFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseIncharge)
         ? ((search as any).caseIncharge as string[])
         : [],
     [search]
   )
-  const caseRankFilter = useMemo(
+  const caseRankFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseRank)
         ? ((search as any).caseRank as string[])
         : [],
     [search]
   )
-  const caseUrgentFilter = useMemo(
+  const caseUrgentFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseUrgent)
         ? ((search as any).caseUrgent as string[])
         : [],
     [search]
   )
-  const caseShouldHandleTodayFilter = useMemo(
+  const caseShouldHandleTodayFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseShouldHandleToday)
         ? ((search as any).caseShouldHandleToday as string[])
         : [],
     [search]
   )
-  const vesselPositionFilter = useMemo(
+  const vesselPositionFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).vesselPosition)
         ? ((search as any).vesselPosition as string[])
@@ -595,118 +583,82 @@ export function CasesTable(_: DataTableProps) {
     [search]
   )
 
-  const filteredData: Case[] = useMemo(() => {
-    const vesselName = editingVesselName
-    const keyword = editingKeyword
-    let result = allRows
-    if (vesselName.trim() !== '') {
-      const q = vesselName.trim().toLowerCase()
-      result = result.filter((r) =>
-        String(r.vessel_name ?? '')
-          .toLowerCase()
-          .includes(q)
-      )
-    }
-    if (keyword.trim() !== '') {
-      const q = keyword.trim().toLowerCase()
-      result = result.filter(
-        (r) =>
-          String(r.case_inquiry_keyword ?? '')
-            .toLowerCase()
-            .includes(q) ||
-          String(r.invoice_number ?? '')
-            .toLowerCase()
-            .includes(q) ||
-          String(r.order_number ?? '')
-            .toLowerCase()
-            .includes(q)
-      )
-    }
-    if (caseProgressFilter.length > 0) {
-      result = result.filter((r) =>
-        caseProgressFilter.includes(r.case_progress ?? '')
-      )
-    }
-    if (caseInquiryTypeFilter.length > 0) {
-      result = result.filter((r) =>
-        caseInquiryTypeFilter.includes(r.case_inquiry_type ?? '')
-      )
-    }
-    if (caseInchargeFilter.length > 0) {
-      const filterKeys = caseInchargeFilter.map((s) =>
-        String(s ?? '')
-          .trim()
-          .toUpperCase()
-      )
-      result = result.filter((r) => {
-        const rowRaw = r.case_incharge ?? ''
-        const rowKeys = (rowRaw ? String(rowRaw).split(',') : [])
-          .map((s) => s.trim().toUpperCase())
-          .filter(Boolean)
-        if (rowKeys.length === 0) return false
-        return filterKeys.some((f) => rowKeys.includes(f))
-      })
-    }
-    if (caseRankFilter.length > 0) {
-      result = result.filter((r) => caseRankFilter.includes(r.case_rank ?? ''))
-    }
-    if (caseUrgentFilter.length > 0) {
-      result = result.filter((r) =>
-        caseUrgentFilter.includes(r.case_urgent ?? '')
-      )
-    }
-    if (caseShouldHandleTodayFilter.length > 0) {
-      result = result.filter((r) =>
-        caseShouldHandleTodayFilter.includes(r.case_should_handle_today ?? '')
-      )
-    }
-    if (vesselPositionFilter.length > 0) {
-      result = result.filter((r) =>
-        vesselPositionFilter.includes(r.vessel_position ?? '')
-      )
-    }
-    const inqDateFrom = editingInqDateFrom.trim()
-    const inqDateTo = editingInqDateTo.trim()
-    if (inqDateFrom || inqDateTo) {
-      const normRow = (raw: unknown): string => {
-        if (raw === null || raw === undefined || raw === '') return ''
-        const s = String(raw).trim()
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
-        if (/^\d{4}\/\d{2}\/\d{2}$/.test(s)) return s.replace(/\//g, '-')
-        if (/^\d{8}$/.test(s))
-          return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
-        const d = new Date(s)
-        if (!Number.isNaN(d.getTime())) {
-          const y = d.getFullYear()
-          const m = d.getMonth() + 1
-          const da = d.getDate()
-          return `${y}-${m < 10 ? `0${m}` : `${m}`}-${da < 10 ? `0${da}` : `${da}`}`
-        }
-        return s
-      }
-      result = result.filter((r) => {
-        const rowDate = normRow(r.case_inquiry_date)
-        if (!rowDate) return false
-        if (inqDateFrom && rowDate < inqDateFrom) return false
-        if (inqDateTo && rowDate > inqDateTo) return false
-        return true
-      })
-    }
-    return result
-  }, [
-    allRows,
-    editingVesselName,
-    editingKeyword,
-    editingInqDateFrom,
-    editingInqDateTo,
-    caseProgressFilter,
-    caseInquiryTypeFilter,
-    caseInchargeFilter,
-    caseRankFilter,
-    caseUrgentFilter,
-    caseShouldHandleTodayFilter,
-    vesselPositionFilter,
-  ])
+  const invoiceNumberFilter: string[] = useMemo(
+    () =>
+      Array.isArray((search as any).invoiceNumber)
+        ? ((search as any).invoiceNumber as string[])
+        : [],
+    [search]
+  )
+  const orderNumberFilter: string[] = useMemo(
+    () =>
+      Array.isArray((search as any).orderNumber)
+        ? ((search as any).orderNumber as string[])
+        : [],
+    [search]
+  )
+
+  const {
+    data: pageData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: [
+      'case-list-paginated',
+      pagination.pageIndex,
+      pagination.pageSize,
+      urlVesselName,
+      urlKeyword,
+      urlInqDateFrom,
+      urlInqDateTo,
+      invoiceNumberFilter,
+      orderNumberFilter,
+      caseProgressFilter,
+      caseUrgentFilter,
+      caseShouldHandleTodayFilter,
+      caseInquiryTypeFilter,
+      caseInchargeFilter,
+      caseRankFilter,
+      vesselPositionFilter,
+    ],
+    queryFn: () =>
+      fetchCasePaginated({
+        page: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+        vesselName: urlVesselName || undefined,
+        caseInquiryKeyword: urlKeyword || undefined,
+        caseInquiryDateFrom: urlInqDateFrom || undefined,
+        caseInquiryDateTo: urlInqDateTo || undefined,
+        invoiceNumber:
+          invoiceNumberFilter.length > 0 ? invoiceNumberFilter : undefined,
+        orderNumber:
+          orderNumberFilter.length > 0 ? orderNumberFilter : undefined,
+        caseProgress:
+          caseProgressFilter.length > 0 ? caseProgressFilter : undefined,
+        caseUrgent: caseUrgentFilter.length > 0 ? caseUrgentFilter : undefined,
+        caseShouldHandleToday:
+          caseShouldHandleTodayFilter.length > 0
+            ? caseShouldHandleTodayFilter
+            : undefined,
+        caseInquiryType:
+          caseInquiryTypeFilter.length > 0 ? caseInquiryTypeFilter : undefined,
+        caseIncharge:
+          caseInchargeFilter.length > 0 ? caseInchargeFilter : undefined,
+        caseRank: caseRankFilter.length > 0 ? caseRankFilter : undefined,
+        vesselPosition:
+          vesselPositionFilter.length > 0 ? vesselPositionFilter : undefined,
+      }),
+    placeholderData: (prev) => prev,
+  })
+  const pagedRows: Case[] = (pageData?.rows as Case[]) ?? []
+  const totalRows: number = pageData?.total ?? 0
+  const rowCount = totalRows
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(totalRows / Math.max(1, pagination.pageSize))
+  )
 
   const handleResetFilters = () => {
     navigate({
@@ -732,7 +684,7 @@ export function CasesTable(_: DataTableProps) {
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: filteredData,
+    data: pagedRows,
     columns,
     state: {
       sorting,
@@ -747,16 +699,16 @@ export function CasesTable(_: DataTableProps) {
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
-    getPaginationRowModel: getPaginationRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    manualPagination: false,
+    manualPagination: true,
+    pageCount,
+    rowCount,
   })
 
-  const pageCount = table.getPageCount()
   useEffect(() => {
     ensurePageInRange(pageCount)
   }, [pageCount, ensurePageInRange])
@@ -1042,7 +994,9 @@ export function CasesTable(_: DataTableProps) {
             size='sm'
             className='h-8 gap-1'
             onClick={async () => {
-              await queryClient.refetchQueries({ queryKey: ['case-list'] })
+              await queryClient.refetchQueries({
+                queryKey: ['case-list-paginated'],
+              })
               await queryClient.refetchQueries({
                 queryKey: ['case-list-groups'],
               })
