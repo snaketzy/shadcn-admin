@@ -43,6 +43,7 @@ import {
   type CaseDict,
 } from '@/features/dictionaries/api/client'
 import { fetchCaseGroups, fetchCasePaginated } from '../api/client'
+import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import { type Case } from '../data/schema'
 import { getCasesColumns } from './cases-columns'
 import { DataTableBulkActions } from './data-table-bulk-actions'
@@ -142,6 +143,27 @@ export function CasesTable(_: DataTableProps) {
   const caseInquiryTypes = groupsData?.caseInquiryTypes ?? []
   const caseInCharges = groupsData?.caseInCharges ?? []
   const caseRanks = groupsData?.caseRanks ?? []
+
+  const { data: ownerAllRows = [] } = useQuery({
+    queryKey: ['owner-picker-all-for-case-list'],
+    queryFn: fetchOwnerAll,
+    staleTime: 60000,
+  })
+  const ownerNameEmailMap = useMemo<
+    Map<string, { owner_name: string; owner_email: string }>
+  >(() => {
+    const m = new Map<string, { owner_name: string; owner_email: string }>()
+    const list = (ownerAllRows as Owner[]) ?? []
+    for (const o of list) {
+      if (o.owner_name) {
+        m.set(String(o.owner_name), {
+          owner_name: o.owner_name,
+          owner_email: o.owner_email ? String(o.owner_email) : '',
+        })
+      }
+    }
+    return m
+  }, [ownerAllRows])
 
   const { data: urgentBRowsData = [] } = useQuery({
     queryKey: ['case-dict-prefix-B-table'],
@@ -327,6 +349,7 @@ export function CasesTable(_: DataTableProps) {
         urgentBMap,
         urgentBIsUrgentSet,
         handleTodayBIsYesSet,
+        ownerNameEmailMap,
         inqTypeAMap,
         inchargeEMap,
         rankDMap,
@@ -337,6 +360,7 @@ export function CasesTable(_: DataTableProps) {
       urgentBMap,
       urgentBIsUrgentSet,
       handleTodayBIsYesSet,
+      ownerNameEmailMap,
       inqTypeAMap,
       inchargeEMap,
       rankDMap,

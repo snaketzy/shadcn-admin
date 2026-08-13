@@ -50,6 +50,10 @@ export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
   urgentBIsUrgentSet?: Set<string>
   handleTodayBIsYesSet?: Set<string>
+  ownerNameEmailMap?: Map<
+    string,
+    { owner_name: string; owner_email: string }
+  >
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -59,6 +63,7 @@ export function getCasesColumns(params?: {
   const urgentBMap = params?.urgentBMap
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
   const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
+  const ownerNameEmailMap = params?.ownerNameEmailMap
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
   const rankDMap = params?.rankDMap
@@ -395,14 +400,29 @@ export function getCasesColumns(params?: {
     {
       accessorKey: 'owner_following',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='船東联络人' />
+        <DataTableColumnHeader column={column} title='船东联系人' />
       ),
       cell: ({ row }) => {
         const value = row.getValue('owner_following') as string | null
-        return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+        if (!value) return <div>-</div>
+        const info = ownerNameEmailMap?.get(String(value))
+        const name = info?.owner_name ?? String(value)
+        const email = info?.owner_email ?? ''
+        const parts = [name, email].filter(
+          (p) => p && String(p).trim().length > 0
+        )
+        if (parts.length === 0) return <div>-</div>
+        const text = parts.join(' ')
+        return (
+          <LongText className='max-w-[300px]' title={text}>
+            {text}
+          </LongText>
+        )
       },
       meta: {
-        label: '船東联络人',
+        label: '船东联系人',
+        className: 'w-[300px] min-w-[220px]',
+        thClassName: 'w-[300px] min-w-[220px]',
       },
       enableSorting: false,
     },
