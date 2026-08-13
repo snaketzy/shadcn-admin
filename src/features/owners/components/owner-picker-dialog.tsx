@@ -105,6 +105,8 @@ export type OwnerPickerDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelect: (result: OwnerPickerResult) => void
+  initialSelectedId?: string | number | null
+  /** @deprecated 建议用 initialSelectedId；仅作为无 id 时按名称兜底回填 */
   initialSelectedName?: string
 }
 
@@ -123,20 +125,29 @@ export function OwnerPickerDialog({
   open,
   onOpenChange,
   onSelect,
+  initialSelectedId,
   initialSelectedName,
 }: OwnerPickerDialogProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
-  const [selectedName, setSelectedName] = useState<string | null>(
-    initialSelectedName ?? null
-  )
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setSearchKeyword('')
-    const next = initialSelectedName ?? null
-    setSelectedName((prev) => (prev === next ? prev : next))
-  }, [open, initialSelectedName])
+  const resolveInitialOwnerId = useCallback(
+    (owners: Owner[]): string | null => {
+      if (initialSelectedId != null && initialSelectedId !== '') {
+        const s = String(initialSelectedId)
+        const hit = owners.find((o) => String(o.owner_id ?? '') === s)
+        if (hit) return String(hit.owner_id)
+      }
+      if (initialSelectedName && initialSelectedName.trim()) {
+        const n = initialSelectedName.trim()
+        const hit = owners.find((o) => String(o.owner_name ?? '').trim() === n)
+        if (hit) return String(hit.owner_id)
+      }
+      return null
+    },
+    [initialSelectedId, initialSelectedName]
+  )
 
   const { data: owners = [], isLoading: ownersLoading } = useQuery({
     queryKey: ['owner-picker-all'],
@@ -144,6 +155,21 @@ export function OwnerPickerDialog({
     enabled: open,
     staleTime: 60000,
   })
+
+  useEffect(() => {
+    if (!open) return
+    setSearchKeyword('')
+    const init = resolveInitialOwnerId(owners as Owner[])
+    if (init) setSelectedOwnerId(init)
+    else if (!initialSelectedId && !initialSelectedName)
+      setSelectedOwnerId(null)
+  }, [
+    open,
+    initialSelectedId,
+    initialSelectedName,
+    owners,
+    resolveInitialOwnerId,
+  ])
 
   const { data: groupsData } = useQuery({
     queryKey: ['owner-picker-groups'],
@@ -179,15 +205,11 @@ export function OwnerPickerDialog({
         String(o.owner_phone ?? '')
           .toLowerCase()
           .includes(q) ||
-        resolveLabel(o.owner_team, teamMap)
-          .toLowerCase()
-          .includes(q) ||
+        resolveLabel(o.owner_team, teamMap).toLowerCase().includes(q) ||
         resolveLabel(o.owner_department, departmentMap)
           .toLowerCase()
           .includes(q) ||
-        resolveLabel(o.owner_rank, rankMap)
-          .toLowerCase()
-          .includes(q)
+        resolveLabel(o.owner_rank, rankMap).toLowerCase().includes(q)
       )
     })
   }, [owners, searchKeyword, teamMap, departmentMap, rankMap])
@@ -301,8 +323,8 @@ export function OwnerPickerDialog({
           ),
         },
         cell: ({ row }) => {
-          const name = row.original.owner_name
-          const isSelected = selectedName === name
+          const oid = String(row.original.owner_id ?? '')
+          const isSelected = oid !== '' && selectedOwnerId === oid
           return (
             <div className='flex justify-end'>
               <Button
@@ -312,7 +334,7 @@ export function OwnerPickerDialog({
                 onClick={(e) => {
                   e.stopPropagation()
                   const v = row.original
-                  setSelectedName(v.owner_name)
+                  setSelectedOwnerId(String(v.owner_id))
                   const result: OwnerPickerResult = {
                     owner_id: String(v.owner_id),
                     owner_name: v.owner_name ?? '',
@@ -337,7 +359,7 @@ export function OwnerPickerDialog({
         },
       },
     ]
-  }, [selectedName, teamMap, departmentMap, rankMap, onSelect, onOpenChange])
+  }, [selectedOwnerId, teamMap, departmentMap, rankMap, onSelect, onOpenChange])
 
   const table = useReactTable({
     data: filteredRows,
@@ -351,7 +373,7 @@ export function OwnerPickerDialog({
   const handleRowClick = useCallback(
     (row: { original: Owner }) => {
       const v = row.original
-      setSelectedName(v.owner_name)
+      setSelectedOwnerId(String(v.owner_id))
       const result: OwnerPickerResult = {
         owner_id: String(v.owner_id),
         owner_name: v.owner_name ?? '',
@@ -415,8 +437,7 @@ export function OwnerPickerDialog({
                               'sticky top-0 z-10',
                             h.column.columnDef.meta?.thClassName,
                             h.column.columnDef.meta?.className as
-                              | string
-                              | undefined
+                              string | undefined
                           )}
                         >
                           {h.isPlaceholder
@@ -453,8 +474,9 @@ export function OwnerPickerDialog({
                     </TableRow>
                   ) : (
                     table.getRowModel().rows.map((row) => {
-                      const rowName = row.original.owner_name
-                      const isSelectedRow = selectedName === rowName
+                      const rowId = String(row.original.owner_id ?? '')
+                      const isSelectedRow =
+                        rowId !== '' && selectedOwnerId === rowId
                       return (
                         <TableRow
                           key={row.id}
@@ -478,10 +500,8 @@ export function OwnerPickerDialog({
                               }}
                               className={cn(
                                 cell.column.columnDef.meta?.className as
-                                  | string
-                                  | undefined,
-                                (cell.column.columnDef.meta as any)
-                                  ?.tdClassName
+                                  string | undefined,
+                                (cell.column.columnDef.meta as any)?.tdClassName
                               )}
                             >
                               {flexRender(

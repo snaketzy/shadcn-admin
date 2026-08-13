@@ -62,6 +62,10 @@ export function getCasesColumns(params?: {
     string,
     { owner_name: string; owner_email: string }
   >
+  ownerIdEmailMap?: Map<
+    string,
+    { owner_name: string; owner_email: string }
+  >
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -72,6 +76,7 @@ export function getCasesColumns(params?: {
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
   const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
   const ownerNameEmailMap = params?.ownerNameEmailMap
+  const ownerIdEmailMap = params?.ownerIdEmailMap
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
   const rankDMap = params?.rankDMap
@@ -443,9 +448,15 @@ export function getCasesColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('owner_following') as string | null
-        if (!value) return <div>-</div>
-        const info = ownerNameEmailMap?.get(String(value))
-        const name = info?.owner_name ?? String(value)
+        const ownerIdRaw = (row.original as any)?.owner_following_id
+        const ownerIdStr =
+          ownerIdRaw != null && ownerIdRaw !== '' && !Number.isNaN(Number(ownerIdRaw))
+            ? String(ownerIdRaw)
+            : ''
+        let info: { owner_name: string; owner_email: string } | undefined
+        if (ownerIdStr) info = ownerIdEmailMap?.get(ownerIdStr)
+        if (!info && value) info = ownerNameEmailMap?.get(String(value))
+        const name = info?.owner_name ?? (value ? String(value) : '')
         const email = info?.owner_email ?? ''
         const parts = [name, email].filter(
           (p) => p && String(p).trim().length > 0

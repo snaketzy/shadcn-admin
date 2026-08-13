@@ -14,6 +14,7 @@ export const caseSchema = z.object({
   case_uptodate_date: z.string().nullable(),
   case_should_handle_today: z.string().nullable(),
   owner_following: z.string().nullable(),
+  owner_following_id: z.number().nullable().optional(),
   shipyard_business: z.string().nullable(),
   case_agent: z.string().nullable(),
   case_superintendent: z.string().nullable(),

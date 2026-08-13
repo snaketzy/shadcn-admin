@@ -71,6 +71,7 @@ import {
   deleteCaseList,
   deleteCaseListBulk,
   checkDuplicateInquiryKeyword,
+  ensureCaseOwnerFollowingIdColumn,
 } from './src/service/connection/case-list-service'
 import {
   createCaseInquiryListBulk,
@@ -969,7 +970,19 @@ async function handleCaseListApi(
     return str
   }
 
+  function toOptNumOrNull(
+    v: unknown
+  ): number | string | null | undefined {
+    if (v === null) return null
+    if (v === undefined) return undefined
+    if (v === '') return null
+    const n = Number(v)
+    if (Number.isNaN(n)) return undefined
+    return n
+  }
+
   try {
+    await ensureCaseOwnerFollowingIdColumn()
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
         const page = Number(searchParams.get('page') ?? 1)
@@ -1028,6 +1041,7 @@ async function handleCaseListApi(
           case_uptodate_date: toOptStr(body.case_uptodate_date),
           case_should_handle_today: toOptStr(body.case_should_handle_today),
           owner_following: toOptStr(body.owner_following),
+          owner_following_id: toOptNumOrNull(body.owner_following_id),
           shipyard_business: toOptStr(body.shipyard_business),
           case_agent: toOptStr(body.case_agent),
           case_superintendent: toOptStr(body.case_superintendent),
@@ -1130,6 +1144,7 @@ async function handleCaseListApi(
           case_uptodate_date: toOptStr(body.case_uptodate_date),
           case_should_handle_today: toOptStr(body.case_should_handle_today),
           owner_following: toOptStr(body.owner_following),
+          owner_following_id: toOptNumOrNull(body.owner_following_id),
           shipyard_business: toOptStr(body.shipyard_business),
           case_agent: toOptStr(body.case_agent),
           case_superintendent: toOptStr(body.case_superintendent),

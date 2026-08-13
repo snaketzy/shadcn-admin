@@ -274,6 +274,14 @@ const formSchema = z.object({
     .catch(''),
   case_should_handle_today: z.string().optional().catch(''),
   owner_following: z.string().optional().catch(''),
+  owner_following_id: z
+    .preprocess((v) => {
+      if (v === null || v === undefined || v === '') return ''
+      const n = Number(v)
+      return Number.isNaN(n) ? '' : String(n)
+    }, z.string().optional().catch(''))
+    .optional()
+    .catch(''),
   shipyard_business: z.string().optional().catch(''),
   case_agent: z.string().optional().catch(''),
   case_superintendent: z.string().optional().catch(''),
@@ -779,6 +787,16 @@ export function CasesActionDialog({
     return map
   }, [ownerRows])
 
+  const ownerIdMap = useMemo(() => {
+    const map = new Map<string, Owner>()
+    for (const o of ownerRows as Owner[]) {
+      if (o.owner_id != null && o.owner_id !== '') {
+        map.set(String(o.owner_id), o)
+      }
+    }
+    return map
+  }, [ownerRows])
+
   const ownerTeamKeyMap = useMemo(() => {
     const m = new Map<string, string>()
     const list =
@@ -857,7 +875,8 @@ export function CasesActionDialog({
 
   const resolveOwnerDisplay = useCallback(
     (
-      ownerName: string | null | undefined
+      ownerName: string | null | undefined,
+      ownerId?: string | number | null | undefined
     ): {
       name: string
       email: string
@@ -866,6 +885,23 @@ export function CasesActionDialog({
       department: string
       rank: string
     } => {
+      const idStr =
+        ownerId != null && ownerId !== '' && !Number.isNaN(Number(ownerId))
+          ? String(ownerId)
+          : ''
+      if (idStr) {
+        const o = ownerIdMap.get(idStr)
+        if (o) {
+          return {
+            name: o.owner_name ?? '',
+            email: o.owner_email ?? '',
+            phone: o.owner_phone ?? '',
+            team: resolveOwnerTeamLabel(o.owner_team),
+            department: resolveOwnerDeptLabel(o.owner_department),
+            rank: resolveOwnerRankLabel(o.owner_rank),
+          }
+        }
+      }
       const name = ownerName ?? ''
       if (!name)
         return {
@@ -890,6 +926,7 @@ export function CasesActionDialog({
       return { name, email: '', phone: '', team: '', department: '', rank: '' }
     },
     [
+      ownerIdMap,
       ownerNameMap,
       resolveOwnerTeamLabel,
       resolveOwnerDeptLabel,
@@ -1389,6 +1426,12 @@ export function CasesActionDialog({
             ),
             case_should_handle_today: currentRow.case_should_handle_today ?? '',
             owner_following: currentRow.owner_following ?? '',
+            owner_following_id:
+              currentRow.owner_following_id != null &&
+              currentRow.owner_following_id !== 0 &&
+              !Number.isNaN(Number(currentRow.owner_following_id))
+                ? String(currentRow.owner_following_id)
+                : '',
             shipyard_business: currentRow.shipyard_business ?? '',
             case_agent: currentRow.case_agent ?? '',
             case_superintendent: currentRow.case_superintendent ?? '',
@@ -1461,6 +1504,7 @@ export function CasesActionDialog({
   const formInquiryKeyword = form.watch('case_inquiry_keyword')
   const formInquiryDate = form.watch('case_inquiry_date')
   const formOwnerFollowing = form.watch('owner_following')
+  const formOwnerFollowingId = form.watch('owner_following_id')
   const formCaseAgent = form.watch('case_agent')
   const formCaseSuperintendent = form.watch('case_superintendent')
   const formShipyardBusiness = form.watch('shipyard_business')
@@ -1471,8 +1515,11 @@ export function CasesActionDialog({
   }, [formVesselName, resolveVesselDisplay])
 
   const ownerDisplay = useMemo(() => {
-    return resolveOwnerDisplay(formOwnerFollowing ?? '')
-  }, [formOwnerFollowing, resolveOwnerDisplay])
+    return resolveOwnerDisplay(
+      formOwnerFollowing ?? '',
+      formOwnerFollowingId ?? ''
+    )
+  }, [formOwnerFollowing, formOwnerFollowingId, resolveOwnerDisplay])
 
   const agentContactDisplay = useMemo(() => {
     return resolveAgentContactDisplay(formCaseAgent ?? '')
@@ -1679,12 +1726,24 @@ export function CasesActionDialog({
         shouldDirty: true,
         shouldValidate: false,
       })
+      form.setValue(
+        'owner_following_id',
+        r.owner_id != null && r.owner_id !== '' ? String(r.owner_id) : '',
+        {
+          shouldDirty: true,
+          shouldValidate: false,
+        }
+      )
     },
     [form]
   )
 
   const handleClearOwner = useCallback(() => {
     form.setValue('owner_following', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    form.setValue('owner_following_id', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -1986,6 +2045,12 @@ export function CasesActionDialog({
         case_uptodate_date: toOptStr(values.case_uptodate_date),
         case_should_handle_today: toOptStr(values.case_should_handle_today),
         owner_following: toOptStr(values.owner_following),
+        owner_following_id:
+          values.owner_following_id != null &&
+          values.owner_following_id !== '' &&
+          !Number.isNaN(Number(values.owner_following_id))
+            ? Number(values.owner_following_id)
+            : null,
         shipyard_business: toOptStr(values.shipyard_business),
         case_agent: toOptStr(values.case_agent),
         case_superintendent: toOptStr(values.case_superintendent),
@@ -3539,6 +3604,7 @@ export function CasesActionDialog({
       <OwnerPickerDialog
         open={ownerPickerOpen}
         onOpenChange={setOwnerPickerOpen}
+        initialSelectedId={form.getValues('owner_following_id') || null}
         initialSelectedName={form.getValues('owner_following') || undefined}
         onSelect={handleOwnerPicked}
       />

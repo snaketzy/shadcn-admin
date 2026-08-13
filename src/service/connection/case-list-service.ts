@@ -1,4 +1,4 @@
-import { query, execute, type ExecuteValues } from './db'
+import { query, execute, type ExecuteValues, describeTable } from './db'
 import {
   auditInsert,
   auditUpdate,
@@ -21,6 +21,7 @@ export interface CaseListRow {
   case_uptodate_date: string | null
   case_should_handle_today: string | null
   owner_following: string | null
+  owner_following_id: number | null
   shipyard_business: string | null
   case_agent: string | null
   case_superintendent: string | null
@@ -44,7 +45,7 @@ const SELECT_COLS = `
   case_id, vessel_name, invoice_number, order_number,
   case_inquiry_keyword, case_progress, case_urgent, case_inquiry_type,
   case_inquiry_date, case_follow_date, case_uptodate_date, case_should_handle_today,
-  owner_following, shipyard_business, case_agent, case_superintendent,
+  owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent,
   case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_deadline,
   case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
   vessel_position, case_settlement_done, case_epd, case_spd,
@@ -346,6 +347,7 @@ export async function createCaseList(data: {
   case_uptodate_date?: string | null
   case_should_handle_today?: string | null
   owner_following?: string | null
+  owner_following_id?: number | string | null
   shipyard_business?: string | null
   case_agent?: string | null
   case_superintendent?: string | null
@@ -369,14 +371,14 @@ export async function createCaseList(data: {
       (vessel_name, invoice_number, order_number, case_inquiry_keyword,
        case_progress, case_urgent, case_inquiry_type, case_inquiry_date,
        case_follow_date, case_uptodate_date, case_should_handle_today,
-       owner_following, shipyard_business, case_agent, case_superintendent,
+       owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent,
        case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_deadline,
        case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
        vessel_position, case_settlement_done, case_epd, case_spd,
        case_incharge, case_memo_name, case_memo_address, case_rank)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name ?? null,
       data.invoice_number ?? null,
@@ -390,6 +392,9 @@ export async function createCaseList(data: {
       data.case_uptodate_date ?? null,
       data.case_should_handle_today ?? null,
       data.owner_following ?? null,
+      data.owner_following_id != null && data.owner_following_id !== '' && !Number.isNaN(Number(data.owner_following_id))
+        ? Number(data.owner_following_id)
+        : null,
       data.shipyard_business ?? null,
       data.case_agent ?? null,
       data.case_superintendent ?? null,
@@ -435,6 +440,7 @@ export async function updateCaseList(
     case_uptodate_date?: string | null
     case_should_handle_today?: string | null
     owner_following?: string | null
+    owner_following_id?: number | string | null
     shipyard_business?: string | null
     case_agent?: string | null
     case_superintendent?: string | null
@@ -470,6 +476,7 @@ export async function updateCaseList(
     'case_uptodate_date',
     'case_should_handle_today',
     'owner_following',
+    'owner_following_id',
     'shipyard_business',
     'case_agent',
     'case_superintendent',
@@ -492,6 +499,14 @@ export async function updateCaseList(
     if (key in data) {
       sets.push(`\`${key}\` = ?`)
       const v = (data as any)[key]
+      if (key === 'owner_following_id') {
+        if (v == null || v === '' || Number.isNaN(Number(v))) {
+          params.push(null)
+        } else {
+          params.push(Number(v))
+        }
+        continue
+      }
       if (typeof v === 'string' && v.trim() === '') params.push(null)
       else if (v === undefined) params.push(null)
       else params.push(v)
@@ -571,6 +586,10 @@ function normalizeRow(row: any): CaseListRow {
     case_uptodate_date: row.case_uptodate_date ? String(row.case_uptodate_date) : null,
     case_should_handle_today: row.case_should_handle_today ? String(row.case_should_handle_today) : null,
     owner_following: row.owner_following ? String(row.owner_following) : null,
+    owner_following_id:
+      row.owner_following_id != null && row.owner_following_id !== '' && !Number.isNaN(Number(row.owner_following_id))
+        ? Number(row.owner_following_id)
+        : null,
     shipyard_business: row.shipyard_business ? String(row.shipyard_business) : null,
     case_agent: row.case_agent ? String(row.case_agent) : null,
     case_superintendent: row.case_superintendent ? String(row.case_superintendent) : null,
@@ -589,4 +608,37 @@ function normalizeRow(row: any): CaseListRow {
     case_memo_address: row.case_memo_address ? String(row.case_memo_address) : null,
     case_rank: row.case_rank ? String(row.case_rank) : null,
   }
+}
+
+let _ensureCaseOwnerFollowingIdPromise: Promise<void> | null = null
+
+export async function ensureCaseOwnerFollowingIdColumn(): Promise<void> {
+  if (_ensureCaseOwnerFollowingIdPromise) return _ensureCaseOwnerFollowingIdPromise
+  _ensureCaseOwnerFollowingIdPromise = (async () => {
+    const TABLE_NAME = 'case_list'
+    const COL_NAME = 'owner_following_id'
+    try {
+      const info = await describeTable(TABLE_NAME)
+      const hasCol = info.columns.some((c) => c.field === COL_NAME)
+      if (!hasCol) {
+        await execute(
+          `ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${COL_NAME}\` INT NULL COMMENT '船东联络人ID（对应 owner_list.owner_id）' AFTER \`owner_following\``
+        )
+      }
+      try {
+        await execute(
+          `UPDATE \`${TABLE_NAME}\` c
+           INNER JOIN \`owner_list\` o ON TRIM(COALESCE(c.owner_following, '')) = TRIM(COALESCE(o.owner_name, ''))
+           SET c.\`${COL_NAME}\` = o.owner_id
+           WHERE c.owner_following IS NOT NULL AND TRIM(c.owner_following) <> '' AND c.\`${COL_NAME}\` IS NULL`
+        )
+      } catch (e) {
+        // ignore backfill errors (e.g. owner_list table missing) — schema change is the critical part
+      }
+    } catch (e) {
+      _ensureCaseOwnerFollowingIdPromise = null
+      throw e
+    }
+  })()
+  return _ensureCaseOwnerFollowingIdPromise
 }
