@@ -119,7 +119,12 @@ import {
   VesselPickerDialog,
   type VesselPickerResult,
 } from '@/features/users/components/vessel-picker-dialog'
-import { createCase, updateCase } from '../api/client'
+import {
+  createCase,
+  updateCase,
+  createCaseInquiryBulk,
+  fetchCaseInquiryListByCaseId,
+} from '../api/client'
 import type { Case } from '../data/schema'
 
 function pad2(n: number): string {
@@ -277,9 +282,6 @@ type CaseInquiry = {
   case_inquired_date: string | null
   case_inquiry_division_id: number | null
   case_inquiry_type: string | null
-  inquiry_amount: string | null
-  currency: string | null
-  inquiry_status: string | null
   remark: string | null
 }
 
@@ -318,6 +320,7 @@ export function CasesActionDialog({
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
   const [inquiryList, setInquiryList] = useState<CaseInquiry[]>([])
+  const localAddedInquiryIdsRef = useRef<Set<number>>(new Set())
 
   const { data: vesselRows = [] } = useQuery({
     queryKey: ['vessel-picker-all'],
@@ -1399,12 +1402,22 @@ export function CasesActionDialog({
   useEffect(() => {
     if (!open) {
       didResetRef.current = false
+      setInquiryList([])
+      localAddedInquiryIdsRef.current.clear()
       return
     }
     if (didResetRef.current) return
     didResetRef.current = true
     form.reset(defaultValues)
-  }, [open, form, defaultValues])
+    localAddedInquiryIdsRef.current.clear()
+    if (isEdit && currentRow?.case_id) {
+      fetchCaseInquiryListByCaseId(currentRow.case_id)
+        .then((rows) => {
+          setInquiryList(rows as CaseInquiry[])
+        })
+        .catch(() => {})
+    }
+  }, [open, form, defaultValues, isEdit, currentRow])
 
   useEffect(() => {
     if (open || didResetRef.current) return
@@ -1578,13 +1591,13 @@ export function CasesActionDialog({
         values.case_inquiry_division_id == null
           ? null
           : Number(values.case_inquiry_division_id)
-      const nextId =
-        inquiryList.reduce(
-          (m, r) => Math.max(m, Number(r.inquiry_id) || 0),
-          0
-        ) - 1
+      const minId = inquiryList.reduce(
+        (m, r) => Math.min(m, Number(r.inquiry_id) || 0),
+        0
+      )
+      const nextId = Math.min(minId, 0) - 1
       const row: CaseInquiry = {
-        inquiry_id: Number.isFinite(nextId) && nextId < 0 ? nextId : Date.now(),
+        inquiry_id: nextId,
         case_id: currentRow?.case_id ?? null,
         case_inquired_date: values.case_inquired_date
           ? String(values.case_inquired_date)
@@ -1594,11 +1607,9 @@ export function CasesActionDialog({
         case_inquiry_type: values.case_inquiry_type
           ? String(values.case_inquiry_type)
           : null,
-        inquiry_amount: null,
-        currency: null,
-        inquiry_status: null,
         remark: values.remark ? String(values.remark) : null,
       }
+      localAddedInquiryIdsRef.current.add(nextId)
       setInquiryList((prev) => [...prev, row])
       toast.success('询价已添加')
       inquiryForm.reset()
@@ -1608,7 +1619,29 @@ export function CasesActionDialog({
   )
 
   const createMutation = useMutation({
-    mutationFn: createCase,
+    mutationFn: async (payload: Parameters<typeof createCase>[0]) => {
+      const created = await createCase(payload)
+      const addedRows = inquiryList.filter((r) =>
+        localAddedInquiryIdsRef.current.has(Number(r.inquiry_id))
+      )
+      if (addedRows.length > 0) {
+        try {
+          await createCaseInquiryBulk(
+            addedRows.map((r) => ({
+              case_id: Number(created.case_id),
+              case_inquiry_division_id: r.case_inquiry_division_id,
+              case_inquiry_type: r.case_inquiry_type,
+              case_inquired_date: r.case_inquired_date,
+              remark: r.remark,
+            }))
+          )
+        } catch (e: any) {
+          console.error('[case-inquiry-bulk-insert(create)]', e)
+          toast.error(`询价记录保存失败: ${e.message || String(e)}`)
+        }
+      }
+      return created
+    },
     onSuccess: () => {
       toast.success('案件创建成功')
       queryClient.invalidateQueries({ queryKey: ['case-list'] })
@@ -1622,13 +1655,35 @@ export function CasesActionDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       data,
     }: {
       id: number
       data: Parameters<typeof updateCase>[1]
-    }) => updateCase(id, data),
+    }) => {
+      const updated = await updateCase(id, data)
+      const addedRows = inquiryList.filter((r) =>
+        localAddedInquiryIdsRef.current.has(Number(r.inquiry_id))
+      )
+      if (addedRows.length > 0) {
+        try {
+          await createCaseInquiryBulk(
+            addedRows.map((r) => ({
+              case_id: Number(id),
+              case_inquiry_division_id: r.case_inquiry_division_id,
+              case_inquiry_type: r.case_inquiry_type,
+              case_inquired_date: r.case_inquired_date,
+              remark: r.remark,
+            }))
+          )
+        } catch (e: any) {
+          console.error('[case-inquiry-bulk-insert(update)]', e)
+          toast.error(`询价记录保存失败: ${e.message || String(e)}`)
+        }
+      }
+      return updated
+    },
     onSuccess: () => {
       toast.success('案件更新成功')
       queryClient.invalidateQueries({ queryKey: ['case-list'] })

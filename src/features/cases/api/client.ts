@@ -261,18 +261,60 @@ export interface CaseInquiry {
   case_inquiry_division_id: number | null
   case_inquiry_type: string | null
   case_inquired_date: string | null
+  remark: string | null
+}
+
+function apiRowToCaseInquiry(row: any): CaseInquiry {
+  return {
+    inquiry_id:
+      row.case_inquiry_id != null ? Number(row.case_inquiry_id) : Number(row.inquiry_id),
+    case_id: Number(row.case_id),
+    case_inquiry_division_id:
+      row.case_inquiry_division_id == null || row.case_inquiry_division_id === ''
+        ? null
+        : Number(row.case_inquiry_division_id),
+    case_inquiry_type:
+      row.case_inquiry_type == null || row.case_inquiry_type === ''
+        ? null
+        : String(row.case_inquiry_type),
+    case_inquired_date:
+      row.case_inquired_date == null || row.case_inquired_date === ''
+        ? null
+        : String(row.case_inquired_date).slice(0, 10),
+    remark:
+      row.case_inquiry_remark != null && row.case_inquiry_remark !== ''
+        ? String(row.case_inquiry_remark)
+        : row.remark != null && row.remark !== ''
+          ? String(row.remark)
+          : null,
+  }
 }
 
 export async function fetchCaseInquiryListByCaseId(
   caseId: number
 ): Promise<CaseInquiry[]> {
   try {
-    const res = await api.get<ApiEnvelope<CaseInquiry[]>>(
+    const res = await api.get<ApiEnvelope<any[]>>(
       `/case-inquiry-list/by-case/${caseId}`
     )
-    return res.data.data ?? []
+    const rows = res.data.data ?? []
+    return rows.map(apiRowToCaseInquiry)
   } catch (e: any) {
     if (e?.response?.status === 404) return []
     return []
   }
+}
+
+export async function createCaseInquiryBulk(rows: Array<{
+  case_id: number
+  case_inquiry_division_id: number | null
+  case_inquiry_type: string | null
+  case_inquired_date: string | null
+  remark: string | null
+}>): Promise<number> {
+  const res = await api.post<ApiEnvelope<{ inserted: number }>>(
+    '/case-inquiry-list/bulk-insert',
+    { rows }
+  )
+  return res.data.data?.inserted ?? 0
 }

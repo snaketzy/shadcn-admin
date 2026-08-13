@@ -71,6 +71,10 @@ import {
   deleteCaseList,
   deleteCaseListBulk,
 } from './src/service/connection/case-list-service'
+import {
+  createCaseInquiryListBulk,
+  getCaseInquiryListByCaseId,
+} from './src/service/connection/case-inquiry-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -1138,9 +1142,49 @@ async function handleCaseInquiryListApi(
     const byCaseMatch = subPath.match(/^\/by-case\/(\d+)$/)
     if (byCaseMatch) {
       if (method === 'GET') {
-        sendJson(res, 200, { success: true, data: [] })
+        const caseId = Number(byCaseMatch[1])
+        const rows = await getCaseInquiryListByCaseId(caseId)
+        sendJson(res, 200, { success: true, data: rows })
         return true
       }
+    }
+
+    if (subPath === '/bulk-insert' && method === 'POST') {
+      const body = (await readBody(req)) as
+        | { rows?: Array<Record<string, unknown>> }
+        | undefined
+      if (!body || !Array.isArray(body.rows)) {
+        sendJson(res, 400, {
+          success: false,
+          message: '参数非法，需要 rows 数组',
+        })
+        return true
+      }
+      const rows = body.rows.map((r) => ({
+        case_id: Number(r.case_id),
+        case_inquiry_division_id:
+          r.case_inquiry_division_id == null ||
+          r.case_inquiry_division_id === ''
+            ? null
+            : Number(r.case_inquiry_division_id),
+        case_inquiry_type:
+          r.case_inquiry_type == null || r.case_inquiry_type === ''
+            ? null
+            : String(r.case_inquiry_type),
+        case_inquired_date:
+          r.case_inquired_date == null || r.case_inquired_date === ''
+            ? null
+            : String(r.case_inquired_date),
+        case_inquiry_remark:
+          r.remark != null && r.remark !== ''
+            ? String(r.remark)
+            : r.case_inquiry_remark != null && r.case_inquiry_remark !== ''
+              ? String(r.case_inquiry_remark)
+              : null,
+      }))
+      const inserted = await createCaseInquiryListBulk(rows)
+      sendJson(res, 200, { success: true, data: { inserted } })
+      return true
     }
 
     sendJson(res, 404, { success: false, message: 'Route not found' })
