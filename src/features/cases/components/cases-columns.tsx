@@ -330,8 +330,13 @@ export function getCasesColumns(params?: {
         const value = row.getValue('case_inquiry_type') as string | null
         if (!value) return <div>-</div>
         const display = resolveInqTypeALabel(value)
+        const isService =
+          display.trim().toLowerCase() === 'service'
+        const badgeClass = isService
+          ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200'
+          : getBadgeColor(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
+          <Badge variant='outline' className={cn(badgeClass)}>
             {display}
           </Badge>
         )
