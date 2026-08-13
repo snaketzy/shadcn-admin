@@ -318,3 +318,24 @@ export async function createCaseInquiryBulk(rows: Array<{
   )
   return res.data.data?.inserted ?? 0
 }
+
+export async function replaceCaseInquiryByCaseId(args: {
+  case_id: number
+  rows: Array<{
+    case_inquiry_division_id: number | null
+    case_inquiry_type: string | null
+    case_inquired_date: string | null
+    remark: string | null
+  }>
+}): Promise<{ deleted: number; inserted: number }> {
+  const res = await api.post<
+    ApiEnvelope<{ deleted: number; inserted: number }>
+  >('/case-inquiry-list/replace-by-case', {
+    case_id: args.case_id,
+    rows: args.rows,
+  })
+  return {
+    deleted: res.data.data?.deleted ?? 0,
+    inserted: res.data.data?.inserted ?? 0,
+  }
+}

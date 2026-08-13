@@ -1,4 +1,4 @@
-import { query, execute, type ExecuteValues } from './db'
+import { query, execute, type ExecuteValues, getPool } from './db'
 
 export interface CaseInquiryListRow {
   case_inquiry_id: number
@@ -90,4 +90,68 @@ export async function createCaseInquiryListBulk(
     params
   )
   return Number(result.affectedRows)
+}
+
+export async function deleteCaseInquiryListByCaseId(caseId: number): Promise<number> {
+  const result = await execute(
+    'DELETE FROM `case_inquiry_list` WHERE case_id = ?',
+    [Number(caseId)]
+  )
+  return Number(result.affectedRows)
+}
+
+export async function replaceCaseInquiryListByCaseId(
+  caseId: number,
+  rows: Array<{
+    case_inquiry_division_id: number | null
+    case_inquiry_type: string | null
+    case_inquired_date: string | null
+    case_inquiry_remark: string | null
+  }>
+): Promise<{ deleted: number; inserted: number }> {
+  const connection = await getPool().getConnection()
+  try {
+    await connection.beginTransaction()
+    const [delResult] = (await connection.execute(
+      'DELETE FROM `case_inquiry_list` WHERE case_id = ?',
+      [Number(caseId)]
+    )) as any
+    const deleted = Number((delResult as any).affectedRows ?? 0)
+    let inserted = 0
+    if (rows.length > 0) {
+      const placeholders = rows.map(() => '(?, ?, ?, ?, ?)').join(', ')
+      const params: any[] = []
+      for (const r of rows) {
+        params.push(
+          Number(caseId),
+          r.case_inquiry_division_id == null ||
+          r.case_inquiry_division_id === ''
+            ? null
+            : Number(r.case_inquiry_division_id),
+          r.case_inquiry_type ?? null,
+          r.case_inquired_date ?? null,
+          r.case_inquiry_remark ?? null
+        )
+      }
+      const [insResult] = (await connection.execute(
+        `INSERT INTO \`case_inquiry_list\`
+         (case_id, case_inquiry_division_id, case_inquiry_type,
+          case_inquired_date, case_inquiry_remark)
+         VALUES ${placeholders}`,
+        params
+      )) as any
+      inserted = Number((insResult as any).affectedRows ?? 0)
+    }
+    await connection.commit()
+    return { deleted, inserted }
+  } catch (e) {
+    try {
+      await connection.rollback()
+    } catch {
+      /* ignore rollback error */
+    }
+    throw e
+  } finally {
+    connection.release()
+  }
 }

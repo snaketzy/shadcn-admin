@@ -123,8 +123,8 @@ import {
 import {
   createCase,
   updateCase,
-  createCaseInquiryBulk,
   fetchCaseInquiryListByCaseId,
+  replaceCaseInquiryByCaseId,
 } from '../api/client'
 import type { Case } from '../data/schema'
 
@@ -1749,24 +1749,21 @@ export function CasesActionDialog({
   const createMutation = useMutation({
     mutationFn: async (payload: Parameters<typeof createCase>[0]) => {
       const created = await createCase(payload)
-      const addedRows = inquiryList.filter((r) =>
-        localAddedInquiryIdsRef.current.has(Number(r.inquiry_id))
-      )
-      if (addedRows.length > 0) {
-        try {
-          await createCaseInquiryBulk(
-            addedRows.map((r) => ({
-              case_id: Number(created.case_id),
-              case_inquiry_division_id: r.case_inquiry_division_id,
-              case_inquiry_type: r.case_inquiry_type,
-              case_inquired_date: r.case_inquired_date,
-              remark: r.remark,
-            }))
-          )
-        } catch (e: any) {
-          console.error('[case-inquiry-bulk-insert(create)]', e)
-          toast.error(`询价记录保存失败: ${e.message || String(e)}`)
-        }
+      try {
+        await replaceCaseInquiryByCaseId({
+          case_id: Number(created.case_id),
+          rows: inquiryList.map((r) => ({
+            case_inquiry_division_id: r.case_inquiry_division_id ?? null,
+            case_inquiry_type: r.case_inquiry_type ?? null,
+            case_inquired_date: r.case_inquired_date
+              ? normalizeDatetimeForStorage(r.case_inquired_date)
+              : null,
+            remark: r.remark ?? null,
+          })),
+        })
+      } catch (e: any) {
+        console.error('[case-inquiry-replace(create)]', e)
+        toast.error(`询价记录保存失败: ${e.message || String(e)}`)
       }
       return created
     },
@@ -1791,24 +1788,21 @@ export function CasesActionDialog({
       data: Parameters<typeof updateCase>[1]
     }) => {
       const updated = await updateCase(id, data)
-      const addedRows = inquiryList.filter((r) =>
-        localAddedInquiryIdsRef.current.has(Number(r.inquiry_id))
-      )
-      if (addedRows.length > 0) {
-        try {
-          await createCaseInquiryBulk(
-            addedRows.map((r) => ({
-              case_id: Number(id),
-              case_inquiry_division_id: r.case_inquiry_division_id,
-              case_inquiry_type: r.case_inquiry_type,
-              case_inquired_date: r.case_inquired_date,
-              remark: r.remark,
-            }))
-          )
-        } catch (e: any) {
-          console.error('[case-inquiry-bulk-insert(update)]', e)
-          toast.error(`询价记录保存失败: ${e.message || String(e)}`)
-        }
+      try {
+        await replaceCaseInquiryByCaseId({
+          case_id: Number(id),
+          rows: inquiryList.map((r) => ({
+            case_inquiry_division_id: r.case_inquiry_division_id ?? null,
+            case_inquiry_type: r.case_inquiry_type ?? null,
+            case_inquired_date: r.case_inquired_date
+              ? normalizeDatetimeForStorage(r.case_inquired_date)
+              : null,
+            remark: r.remark ?? null,
+          })),
+        })
+      } catch (e: any) {
+        console.error('[case-inquiry-replace(update)]', e)
+        toast.error(`询价记录保存失败: ${e.message || String(e)}`)
       }
       return updated
     },

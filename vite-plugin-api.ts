@@ -74,6 +74,7 @@ import {
 import {
   createCaseInquiryListBulk,
   getCaseInquiryListByCaseId,
+  replaceCaseInquiryListByCaseId,
 } from './src/service/connection/case-inquiry-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
@@ -1184,6 +1185,51 @@ async function handleCaseInquiryListApi(
       }))
       const inserted = await createCaseInquiryListBulk(rows)
       sendJson(res, 200, { success: true, data: { inserted } })
+      return true
+    }
+
+    if (subPath === '/replace-by-case' && method === 'POST') {
+      const body = (await readBody(req)) as
+        | { case_id: unknown; rows?: Array<Record<string, unknown>> }
+        | undefined
+      const caseId = Number(body?.case_id)
+      if (!Number.isFinite(caseId) || caseId <= 0) {
+        sendJson(res, 400, {
+          success: false,
+          message: '参数非法，需要 case_id',
+        })
+        return true
+      }
+      if (!body || !Array.isArray(body.rows)) {
+        sendJson(res, 400, {
+          success: false,
+          message: '参数非法，需要 rows 数组',
+        })
+        return true
+      }
+      const rows = body.rows.map((r) => ({
+        case_inquiry_division_id:
+          r.case_inquiry_division_id == null ||
+          r.case_inquiry_division_id === ''
+            ? null
+            : Number(r.case_inquiry_division_id),
+        case_inquiry_type:
+          r.case_inquiry_type == null || r.case_inquiry_type === ''
+            ? null
+            : String(r.case_inquiry_type),
+        case_inquired_date:
+          r.case_inquired_date == null || r.case_inquired_date === ''
+            ? null
+            : String(r.case_inquired_date),
+        case_inquiry_remark:
+          r.remark != null && r.remark !== ''
+            ? String(r.remark)
+            : r.case_inquiry_remark != null && r.case_inquiry_remark !== ''
+              ? String(r.case_inquiry_remark)
+              : null,
+      }))
+      const result = await replaceCaseInquiryListByCaseId(caseId, rows)
+      sendJson(res, 200, { success: true, data: result })
       return true
     }
 
