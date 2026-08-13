@@ -15,6 +15,7 @@ import {
   Wrench,
   Compass,
   Plus,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -163,6 +164,82 @@ function formatDateAsHyphen(raw: unknown): string {
   return str
 }
 
+function formatDateTimeMinute(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const str = String(raw).trim()
+  if (!str) return ''
+  const m1 = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::\d{1,2})?/)
+  if (m1) {
+    const [, y, m, d, hh, mm] = m1
+    return `${y}-${pad2(Number(m))}-${pad2(Number(d))} ${pad2(Number(hh))}:${pad2(Number(mm))}`
+  }
+  const m2 = str.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/)
+  if (m2) {
+    const [, y, m, d, hh, mm] = m2
+    return `${y}-${m}-${d} ${hh}:${mm}`
+  }
+  if (
+    /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str) ||
+    /^\d{4}\d{2}\d{2}$/.test(str)
+  ) {
+    return formatDateAsHyphen(str) + ' 00:00'
+  }
+  const d = new Date(str)
+  if (!Number.isNaN(d.getTime())) {
+    const y = d.getFullYear()
+    const m = d.getMonth() + 1
+    const day = d.getDate()
+    const hh = d.getHours()
+    const mm = d.getMinutes()
+    return `${y}-${pad2(m)}-${pad2(day)} ${pad2(hh)}:${pad2(mm)}`
+  }
+  return str
+}
+
+function toDatetimeLocalValue(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const str = String(raw).trim()
+  if (!str) return ''
+  const m1 = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})/)
+  if (m1) {
+    const [, y, m, d, hh, mm] = m1
+    return `${y}-${pad2(Number(m))}-${pad2(Number(d))}T${pad2(Number(hh))}:${pad2(Number(mm))}`
+  }
+  const m2 = str.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/)
+  if (m2) {
+    const [, y, m, d, hh, mm] = m2
+    return `${y}-${m}-${d}T${hh}:${mm}`
+  }
+  const hyphenDate = formatDateAsHyphen(str)
+  if (hyphenDate && /^\d{4}-\d{2}-\d{2}$/.test(hyphenDate)) {
+    return `${hyphenDate}T00:00`
+  }
+  const d = new Date(str)
+  if (!Number.isNaN(d.getTime())) {
+    const y = d.getFullYear()
+    const m = d.getMonth() + 1
+    const day = d.getDate()
+    const hh = d.getHours()
+    const mm = d.getMinutes()
+    return `${y}-${pad2(m)}-${pad2(day)}T${pad2(hh)}:${pad2(mm)}`
+  }
+  return ''
+}
+
+function normalizeDatetimeForStorage(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === '') return null
+  const str = String(raw).trim()
+  if (!str) return null
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (m) {
+    const [, y, mo, d, hh, mm] = m
+    return `${y}-${mo}-${d} ${hh}:${mm}:00`
+  }
+  const f = formatDateTimeMinute(str)
+  if (f) return f + ':00'
+  return null
+}
+
 const formSchema = z.object({
   vessel_name: z.string().optional().catch(''),
   invoice_number: z.string().optional().catch(''),
@@ -297,7 +374,11 @@ const inquiryFormSchema = z.object({
   case_inquiry_type: z.string().optional().catch(''),
   case_inquired_date: z
     .preprocess(
-      (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
+      (v) => {
+        if (v === undefined || v === null) return ''
+        const norm = toDatetimeLocalValue(v)
+        return norm ? norm.replace('T', ' ') : ''
+      },
       z.string()
     )
     .optional()
@@ -641,6 +722,7 @@ export function CasesActionDialog({
   const [surveyorContactPickerOpen, setSurveyorContactPickerOpen] =
     useState(false)
   const [inquiryDialogOpen, setInquiryDialogOpen] = useState(false)
+  const [inquiryEditingId, setInquiryEditingId] = useState<number | null>(null)
   const [inquirySupplierPickerOpen, setInquirySupplierPickerOpen] =
     useState(false)
 
@@ -1591,31 +1673,75 @@ export function CasesActionDialog({
         values.case_inquiry_division_id == null
           ? null
           : Number(values.case_inquiry_division_id)
-      const minId = inquiryList.reduce(
-        (m, r) => Math.min(m, Number(r.inquiry_id) || 0),
-        0
-      )
-      const nextId = Math.min(minId, 0) - 1
-      const row: CaseInquiry = {
-        inquiry_id: nextId,
-        case_id: currentRow?.case_id ?? null,
-        case_inquired_date: values.case_inquired_date
-          ? String(values.case_inquired_date)
-          : null,
-        case_inquiry_division_id:
-          divisionId && Number.isFinite(divisionId) ? divisionId : null,
-        case_inquiry_type: values.case_inquiry_type
-          ? String(values.case_inquiry_type)
-          : null,
-        remark: values.remark ? String(values.remark) : null,
+      const storedDate = normalizeDatetimeForStorage(values.case_inquired_date)
+      const formattedDate = storedDate ? storedDate.slice(0, 16) : null
+      if (inquiryEditingId != null) {
+        setInquiryList((prev) =>
+          prev.map((r) =>
+            Number(r.inquiry_id) === Number(inquiryEditingId)
+              ? {
+                  ...r,
+                  case_inquired_date: formattedDate,
+                  case_inquiry_division_id:
+                    divisionId && Number.isFinite(divisionId)
+                      ? divisionId
+                      : null,
+                  case_inquiry_type: values.case_inquiry_type
+                    ? String(values.case_inquiry_type)
+                    : null,
+                  remark: values.remark ? String(values.remark) : null,
+                }
+              : r
+          )
+        )
+        toast.success('询价已更新')
+      } else {
+        const minId = inquiryList.reduce(
+          (m, r) => Math.min(m, Number(r.inquiry_id) || 0),
+          0
+        )
+        const nextId = Math.min(minId, 0) - 1
+        const row: CaseInquiry = {
+          inquiry_id: nextId,
+          case_id: currentRow?.case_id ?? null,
+          case_inquired_date: formattedDate,
+          case_inquiry_division_id:
+            divisionId && Number.isFinite(divisionId) ? divisionId : null,
+          case_inquiry_type: values.case_inquiry_type
+            ? String(values.case_inquiry_type)
+            : null,
+          remark: values.remark ? String(values.remark) : null,
+        }
+        localAddedInquiryIdsRef.current.add(nextId)
+        setInquiryList((prev) => [...prev, row])
+        toast.success('询价已添加')
       }
-      localAddedInquiryIdsRef.current.add(nextId)
-      setInquiryList((prev) => [...prev, row])
-      toast.success('询价已添加')
       inquiryForm.reset()
+      setInquiryEditingId(null)
       setInquiryDialogOpen(false)
     },
-    [inquiryList, currentRow, inquiryForm]
+    [inquiryList, currentRow, inquiryForm, inquiryEditingId]
+  )
+
+  const handleStartEditInquiry = useCallback(
+    (row: CaseInquiry) => {
+      inquiryForm.reset({
+        case_inquiry_division_id:
+          row.case_inquiry_division_id != null &&
+          Number.isFinite(Number(row.case_inquiry_division_id))
+            ? Number(row.case_inquiry_division_id)
+            : '',
+        case_inquiry_type: row.case_inquiry_type ?? '',
+        case_inquired_date: toDatetimeLocalValue(row.case_inquired_date).replace(
+          'T',
+          ' '
+        ),
+        remark: row.remark ?? '',
+      })
+      setInquiryEditingId(row.inquiry_id)
+      setInquiryDialogOpen(true)
+    },
+    [inquiryForm]
   )
 
   const createMutation = useMutation({
@@ -2461,6 +2587,7 @@ export function CasesActionDialog({
                           size='sm'
                           variant='outline'
                           onClick={() => {
+                            setInquiryEditingId(null)
                             inquiryForm.reset()
                             setInquiryDialogOpen(true)
                           }}
@@ -2523,9 +2650,9 @@ export function CasesActionDialog({
                                     <TableCell>
                                       {inqTypeLabel || '-'}
                                     </TableCell>
-                                    <TableCell className='font-mono text-xs'>
+                                    <TableCell className='font-mono text-xs text-center whitespace-nowrap'>
                                       {row.case_inquired_date
-                                        ? formatDateAsHyphen(
+                                        ? formatDateTimeMinute(
                                             row.case_inquired_date
                                           )
                                         : '-'}
@@ -2534,19 +2661,41 @@ export function CasesActionDialog({
                                       {row.remark || '-'}
                                     </TableCell>
                                     <TableCell className='text-center'>
-                                      <Button
-                                        type='button'
-                                        variant='ghost'
-                                        size='icon'
-                                        className='h-7 w-7'
-                                        onClick={() => {
-                                          toast.info(
-                                            `编辑询价 #${row.inquiry_id} 功能待接入`
-                                          )
-                                        }}
-                                      >
-                                        <X className='h-3.5 w-3.5' />
-                                      </Button>
+                                      <div className='inline-flex items-center justify-center gap-1'>
+                                        <Button
+                                          type='button'
+                                          variant='ghost'
+                                          size='icon'
+                                          className='h-7 w-7'
+                                          aria-label='编辑询价'
+                                          onClick={() =>
+                                            handleStartEditInquiry(row)
+                                          }
+                                        >
+                                          <Pencil className='h-3.5 w-3.5' />
+                                        </Button>
+                                        <Button
+                                          type='button'
+                                          variant='ghost'
+                                          size='icon'
+                                          className='h-7 w-7 text-destructive/80 hover:text-destructive'
+                                          aria-label='删除询价'
+                                          onClick={() => {
+                                            setInquiryList((prev) =>
+                                              prev.filter(
+                                                (r) =>
+                                                  Number(r.inquiry_id) !==
+                                                  Number(row.inquiry_id)
+                                              )
+                                            )
+                                            localAddedInquiryIdsRef.current.delete(
+                                              Number(row.inquiry_id)
+                                            )
+                                          }}
+                                        >
+                                          <X className='h-3.5 w-3.5' />
+                                        </Button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 )
@@ -3255,15 +3404,20 @@ export function CasesActionDialog({
         onOpenChange={(state) => {
           if (!state) {
             inquiryForm.reset()
+            setInquiryEditingId(null)
           }
           setInquiryDialogOpen(state)
         }}
       >
         <DialogContent className='sm:max-w-3xl'>
           <DialogHeader>
-            <DialogTitle>新增询价</DialogTitle>
+            <DialogTitle>
+              {inquiryEditingId != null ? '编辑询价' : '新增询价'}
+            </DialogTitle>
             <DialogDescription>
-              填写本次询价信息，完成后点击「添加」即可加入询价记录列表。
+              {inquiryEditingId != null
+                ? '修改询价信息，点击「保存」即可更新到本对话的询价记录列表。'
+                : '填写本次询价信息，完成后点击「添加」即可加入询价记录列表。'}
             </DialogDescription>
           </DialogHeader>
           <Form {...inquiryForm}>
@@ -3400,10 +3554,15 @@ export function CasesActionDialog({
                     <div className='col-span-4'>
                       <FormControl>
                         <Input
-                          type='date'
+                          type='datetime-local'
+                          step={60}
                           className='col-span-4'
                           {...field}
-                          value={field.value ?? ''}
+                          value={toDatetimeLocalValue(field.value ?? '')}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            field.onChange(v ? v.replace('T', ' ') : '')
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -3442,6 +3601,7 @@ export function CasesActionDialog({
               variant='outline'
               onClick={() => {
                 inquiryForm.reset()
+                setInquiryEditingId(null)
                 setInquiryDialogOpen(false)
               }}
             >
@@ -3452,7 +3612,7 @@ export function CasesActionDialog({
               form='inquiry-add-form'
               disabled={inquiryForm.formState.isSubmitting}
             >
-              添加
+              {inquiryEditingId != null ? '保存' : '添加'}
             </Button>
           </DialogFooter>
         </DialogContent>

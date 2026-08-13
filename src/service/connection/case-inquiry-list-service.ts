@@ -23,9 +23,12 @@ function normalizeInquiryRow(row: any): CaseInquiryListRow {
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, '0')
       const day = String(d.getDate()).padStart(2, '0')
-      dateStr = `${y}-${m}-${day}`
+      const hh = String(d.getHours()).padStart(2, '0')
+      const mm = String(d.getMinutes()).padStart(2, '0')
+      dateStr = `${y}-${m}-${day} ${hh}:${mm}`
     } else {
-      dateStr = String(rawDate).slice(0, 10)
+      const s = String(rawDate)
+      dateStr = s.length >= 16 ? s.slice(0, 16) : s
     }
   }
   return {

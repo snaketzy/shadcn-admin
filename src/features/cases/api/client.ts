@@ -280,7 +280,7 @@ function apiRowToCaseInquiry(row: any): CaseInquiry {
     case_inquired_date:
       row.case_inquired_date == null || row.case_inquired_date === ''
         ? null
-        : String(row.case_inquired_date).slice(0, 10),
+        : String(row.case_inquired_date).slice(0, 16),
     remark:
       row.case_inquiry_remark != null && row.case_inquiry_remark !== ''
         ? String(row.case_inquiry_remark)
