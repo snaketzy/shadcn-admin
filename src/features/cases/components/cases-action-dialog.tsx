@@ -1878,15 +1878,15 @@ export function CasesActionDialog({
           onOpenChange(state)
         }}
       >
-        <DialogContent className='sm:max-w-5xl'>
-          <DialogHeader className='text-start'>
+        <DialogContent className='sm:max-w-5xl h-[90vh] max-h-[90vh] flex flex-col overflow-hidden p-6'>
+          <DialogHeader className='text-start shrink-0'>
             <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
             <DialogDescription>
               {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
               完成后点击保存。
             </DialogDescription>
           </DialogHeader>
-          <div className='h-[560px] w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
+          <div className='flex-1 min-h-0 w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
             <Form {...form}>
               <form
                 id='cases-form'
