@@ -1474,13 +1474,16 @@ export function CasesActionDialog({
     return resolveSurveyorContactDisplay(formCaseSurveyor ?? '')
   }, [formCaseSurveyor, resolveSurveyorContactDisplay])
 
+  const memoNameEditedRef = useRef(false)
+
   useEffect(() => {
+    if (memoNameEditedRef.current) return
     const parts = [
       formVesselName ?? '',
       formInquiryKeyword ?? '',
       formInquiryDate ?? '',
     ].filter((p) => p && p.trim().length > 0)
-    const memoName = parts.join(' / ')
+    const memoName = parts.join(' // ')
     form.setValue('case_memo_name', memoName, {
       shouldDirty: true,
       shouldValidate: false,
@@ -1490,6 +1493,7 @@ export function CasesActionDialog({
   const didResetRef = useRef(false)
   useEffect(() => {
     if (!open) {
+      memoNameEditedRef.current = false
       didResetRef.current = false
       setInquiryList([])
       localAddedInquiryIdsRef.current.clear()
@@ -1497,6 +1501,7 @@ export function CasesActionDialog({
     }
     if (didResetRef.current) return
     didResetRef.current = true
+    memoNameEditedRef.current = false
     form.reset(defaultValues)
     localAddedInquiryIdsRef.current.clear()
     if (isEdit && currentRow?.case_id) {
@@ -1507,11 +1512,6 @@ export function CasesActionDialog({
         .catch(() => {})
     }
   }, [open, form, defaultValues, isEdit, currentRow])
-
-  useEffect(() => {
-    if (open || didResetRef.current) return
-    didResetRef.current = false
-  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -3310,10 +3310,17 @@ export function CasesActionDialog({
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder='由「船名」// 「需求名称」//「询价日期」生成'
-                          className='col-span-10 cursor-not-allowed bg-muted/40'
-                          readOnly
+                          placeholder='由「船名」// 「需求名称」//「询价日期」生成，可手动修改'
+                          className='col-span-10'
                           {...field}
+                          onChange={(e) => {
+                            memoNameEditedRef.current = true
+                            field.onChange(e)
+                          }}
+                          onBlur={(e) => {
+                            memoNameEditedRef.current = true
+                            field.onBlur?.(e)
+                          }}
                         />
                       </FormControl>
                       <FormMessage className='col-span-10 col-start-3' />
