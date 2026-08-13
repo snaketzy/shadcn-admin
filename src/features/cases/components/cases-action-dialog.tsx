@@ -3330,7 +3330,7 @@ export function CasesActionDialog({
               </form>
             </Form>
           </div>
-          <DialogFooter>
+          <DialogFooter className='shrink-0 pt-4 mt-2'>
             <Button
               type='button'
               variant='outline'
