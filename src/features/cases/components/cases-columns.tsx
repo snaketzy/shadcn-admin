@@ -1,5 +1,5 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertCircle, ListChecks } from 'lucide-react'
+import { AlertCircle, ListChecks, Handshake } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -188,11 +188,15 @@ export function getCasesColumns(params?: {
         const handleToday = isHandleTodayRow(
           row.original.case_should_handle_today
         )
-        if (!urgent && !handleToday)
+        const hasOrderNumber = Boolean(
+          String(row.original.order_number ?? '').trim()
+        )
+        if (!urgent && !handleToday && !hasOrderNumber)
           return <div className='h-full w-full' aria-hidden />
         const tooltip: string[] = []
         if (urgent) tooltip.push('紧急案件')
         if (handleToday) tooltip.push('当日需处理')
+        if (hasOrderNumber) tooltip.push('已成交')
         return (
           <div
             className='flex w-full items-center justify-center gap-1'
@@ -207,6 +211,12 @@ export function getCasesColumns(params?: {
             {handleToday && (
               <ListChecks
                 className='size-4 shrink-0 fill-blue-100 text-blue-600'
+                aria-hidden
+              />
+            )}
+            {hasOrderNumber && (
+              <Handshake
+                className='size-4 shrink-0 fill-emerald-100 text-emerald-600'
                 aria-hidden
               />
             )}

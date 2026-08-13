@@ -1564,6 +1564,10 @@ export function CasesActionDialog({
 
   const setKeywordErrorIfDuplicate = useCallback(
     async (raw: string): Promise<boolean> => {
+      if (isEdit) {
+        form.clearErrors('case_inquiry_keyword')
+        return false
+      }
       const normalized = String(raw ?? '').trim()
       if (!normalized) {
         form.clearErrors('case_inquiry_keyword')
@@ -1588,7 +1592,7 @@ export function CasesActionDialog({
         return false
       }
     },
-    [form, runKeywordDuplicateCheck]
+    [form, isEdit, runKeywordDuplicateCheck]
   )
 
   useEffect(() => {
@@ -1951,21 +1955,23 @@ export function CasesActionDialog({
         toast.error('需求编号/名称不能为空')
         return
       }
-      try {
-        const dupResult = await runKeywordDuplicateCheck(keywordRaw)
-        if (dupResult.exists) {
-          const suffix = dupResult.matchedCaseId
-            ? `（已存在于案件 #${dupResult.matchedCaseId}）`
-            : ''
-          form.setError('case_inquiry_keyword', {
-            type: 'manual',
-            message: `需求编号/名称已存在，不可重复${suffix}`,
-          })
-          toast.error(`需求编号/名称已存在，不可保存${suffix}`)
-          return
+      if (!isEdit) {
+        try {
+          const dupResult = await runKeywordDuplicateCheck(keywordRaw)
+          if (dupResult.exists) {
+            const suffix = dupResult.matchedCaseId
+              ? `（已存在于案件 #${dupResult.matchedCaseId}）`
+              : ''
+            form.setError('case_inquiry_keyword', {
+              type: 'manual',
+              message: `需求编号/名称已存在，不可重复${suffix}`,
+            })
+            toast.error(`需求编号/名称已存在，不可保存${suffix}`)
+            return
+          }
+        } catch (e) {
+          // ignore network errors and proceed without duplicate pre-check
         }
-      } catch (e) {
-        // ignore network errors and proceed without duplicate pre-check
       }
       const payload = {
         vessel_name: toOptStr(values.vessel_name),
