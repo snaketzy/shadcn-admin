@@ -216,6 +216,7 @@ export async function getCaseListPaginated(params: {
   vesselName?: string
   invoiceNumber?: string
   orderNumber?: string
+  orderNumberHasValue?: boolean
   caseInquiryKeyword?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
@@ -242,6 +243,9 @@ export async function getCaseListPaginated(params: {
   if (params.vesselName && params.vesselName.trim() !== '') {
     whereClauses.push('vessel_name LIKE ?')
     whereParams.push(`%${params.vesselName}%`)
+  }
+  if (params.orderNumberHasValue) {
+    whereClauses.push("order_number IS NOT NULL AND TRIM(order_number) <> ''")
   }
   if (params.caseInquiryKeyword && params.caseInquiryKeyword.trim() !== '') {
     const kw = `%${params.caseInquiryKeyword}%`

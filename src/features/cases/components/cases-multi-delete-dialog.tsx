@@ -43,6 +43,10 @@ export function CasesMultiDeleteDialog<TData>({
       toast.success(`已删除 ${n} 个案件`)
       queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['case-today-list-paginated'] })
+      queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
+      queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
       table.resetRowSelection()
       onOpenChange(false)
     },

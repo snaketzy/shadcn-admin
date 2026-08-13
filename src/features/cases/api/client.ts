@@ -125,6 +125,7 @@ export async function fetchCasePaginated(params: {
   vesselName?: string
   invoiceNumber?: string | string[]
   orderNumber?: string | string[]
+  orderNumberHasValue?: boolean
   caseInquiryKeyword?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string

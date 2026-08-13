@@ -23,7 +23,9 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as AuthenticatedAppsIndexRouteImport } from './routes/_authenticated/apps/index'
+import { Route as AuthenticatedCase_deal_listIndexRouteImport } from './routes/_authenticated/case_deal_list/index'
 import { Route as AuthenticatedCase_listIndexRouteImport } from './routes/_authenticated/case_list/index'
+import { Route as AuthenticatedCase_today_listIndexRouteImport } from './routes/_authenticated/case_today_list/index'
 import { Route as AuthenticatedCollaboration_listIndexRouteImport } from './routes/_authenticated/collaboration_list/index'
 import { Route as AuthenticatedContact_detailContactIdRouteRouteImport } from './routes/_authenticated/contact_detail/$contactId/route'
 import { Route as AuthenticatedContact_listIndexRouteImport } from './routes/_authenticated/contact_list/index'
@@ -115,10 +117,22 @@ const AuthenticatedAppsIndexRoute = AuthenticatedAppsIndexRouteImport.update({
   path: '/apps/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCase_deal_listIndexRoute =
+  AuthenticatedCase_deal_listIndexRouteImport.update({
+    id: '/case_deal_list/',
+    path: '/case_deal_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCase_listIndexRoute =
   AuthenticatedCase_listIndexRouteImport.update({
     id: '/case_list/',
     path: '/case_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCase_today_listIndexRoute =
+  AuthenticatedCase_today_listIndexRouteImport.update({
+    id: '/case_today_list/',
+    path: '/case_today_list/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCollaboration_listIndexRoute =
@@ -262,7 +276,9 @@ export interface FileRoutesByFullPath {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/apps/': typeof AuthenticatedAppsIndexRoute
+  '/case_deal_list/': typeof AuthenticatedCase_deal_listIndexRoute
   '/case_list/': typeof AuthenticatedCase_listIndexRoute
+  '/case_today_list/': typeof AuthenticatedCase_today_listIndexRoute
   '/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
@@ -295,7 +311,9 @@ export interface FileRoutesByTo {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/apps': typeof AuthenticatedAppsIndexRoute
+  '/case_deal_list': typeof AuthenticatedCase_deal_listIndexRoute
   '/case_list': typeof AuthenticatedCase_listIndexRoute
+  '/case_today_list': typeof AuthenticatedCase_today_listIndexRoute
   '/collaboration_list': typeof AuthenticatedCollaboration_listIndexRoute
   '/contact_list': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries': typeof AuthenticatedDictionariesIndexRoute
@@ -333,7 +351,9 @@ export interface FileRoutesById {
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexRoute
+  '/_authenticated/case_deal_list/': typeof AuthenticatedCase_deal_listIndexRoute
   '/_authenticated/case_list/': typeof AuthenticatedCase_listIndexRoute
+  '/_authenticated/case_today_list/': typeof AuthenticatedCase_today_listIndexRoute
   '/_authenticated/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/_authenticated/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/_authenticated/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
@@ -371,7 +391,9 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps/'
+    | '/case_deal_list/'
     | '/case_list/'
+    | '/case_today_list/'
     | '/collaboration_list/'
     | '/contact_list/'
     | '/dictionaries/'
@@ -404,7 +426,9 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/apps'
+    | '/case_deal_list'
     | '/case_list'
+    | '/case_today_list'
     | '/collaboration_list'
     | '/contact_list'
     | '/dictionaries'
@@ -441,7 +465,9 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/apps/'
+    | '/_authenticated/case_deal_list/'
     | '/_authenticated/case_list/'
+    | '/_authenticated/case_today_list/'
     | '/_authenticated/collaboration_list/'
     | '/_authenticated/contact_list/'
     | '/_authenticated/dictionaries/'
@@ -571,11 +597,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/case_deal_list/': {
+      id: '/_authenticated/case_deal_list/'
+      path: '/case_deal_list'
+      fullPath: '/case_deal_list/'
+      preLoaderRoute: typeof AuthenticatedCase_deal_listIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/case_list/': {
       id: '/_authenticated/case_list/'
       path: '/case_list'
       fullPath: '/case_list/'
       preLoaderRoute: typeof AuthenticatedCase_listIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/case_today_list/': {
+      id: '/_authenticated/case_today_list/'
+      path: '/case_today_list'
+      fullPath: '/case_today_list/'
+      preLoaderRoute: typeof AuthenticatedCase_today_listIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/collaboration_list/': {
@@ -787,7 +827,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSupplier_detailSupplierIdRouteRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
+  AuthenticatedCase_deal_listIndexRoute: typeof AuthenticatedCase_deal_listIndexRoute
   AuthenticatedCase_listIndexRoute: typeof AuthenticatedCase_listIndexRoute
+  AuthenticatedCase_today_listIndexRoute: typeof AuthenticatedCase_today_listIndexRoute
   AuthenticatedCollaboration_listIndexRoute: typeof AuthenticatedCollaboration_listIndexRoute
   AuthenticatedContact_listIndexRoute: typeof AuthenticatedContact_listIndexRoute
   AuthenticatedDictionariesIndexRoute: typeof AuthenticatedDictionariesIndexRoute
@@ -807,7 +849,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
+  AuthenticatedCase_deal_listIndexRoute: AuthenticatedCase_deal_listIndexRoute,
   AuthenticatedCase_listIndexRoute: AuthenticatedCase_listIndexRoute,
+  AuthenticatedCase_today_listIndexRoute:
+    AuthenticatedCase_today_listIndexRoute,
   AuthenticatedCollaboration_listIndexRoute:
     AuthenticatedCollaboration_listIndexRoute,
   AuthenticatedContact_listIndexRoute: AuthenticatedContact_listIndexRoute,

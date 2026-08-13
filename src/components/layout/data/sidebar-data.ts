@@ -24,6 +24,7 @@ import {
   GalleryVerticalEnd,
   BookOpen,
   FileText,
+  ListChecks,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -58,6 +59,16 @@ export const sidebarData: SidebarData = {
           title: '工作台',
           url: '/',
           icon: LayoutDashboard,
+        },
+        {
+          title: '当天处理案件列表',
+          url: '/case_today_list',
+          icon: ListChecks,
+        },
+        {
+          title: '成交案件列表',
+          url: '/case_deal_list',
+          icon: FileText,
         },
         {
           title: '案件列表',

@@ -38,6 +38,10 @@ export function CasesDeleteDialog({
         toast.success('案件已删除')
         queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
+        queryClient.invalidateQueries({ queryKey: ['case-today-list-paginated'] })
+        queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
+        queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
+        queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
         onOpenChange(false)
       } else {
         toast.error('删除失败，请稍后重试')

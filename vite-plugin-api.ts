@@ -989,6 +989,10 @@ async function handleCaseListApi(
           vesselName: toOptStr(searchParams.get('vesselName')),
           invoiceNumber: toOptStr(searchParams.get('invoiceNumber')),
           orderNumber: toOptStr(searchParams.get('orderNumber')),
+          orderNumberHasValue:
+            searchParams.get('orderNumberHasValue') === 'true'
+              ? true
+              : undefined,
           caseInquiryKeyword: toOptStr(searchParams.get('caseInquiryKeyword')),
           caseInquiryDateFrom: toOptStr(
             searchParams.get('caseInquiryDateFrom')
