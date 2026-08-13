@@ -387,6 +387,13 @@ const inquiryFormSchema = z.object({
 })
 type InquiryFormValues = z.infer<typeof inquiryFormSchema>
 
+const DEFAULT_INQUIRY_FORM_VALUES: InquiryFormValues = {
+  case_inquiry_division_id: '',
+  case_inquiry_type: '',
+  case_inquired_date: '',
+  remark: '',
+}
+
 type CasesActionDialogProps = {
   currentRow?: Case
   open: boolean
@@ -1634,12 +1641,7 @@ export function CasesActionDialog({
 
   const inquiryForm = useForm<InquiryFormValues>({
     resolver: zodResolver(inquiryFormSchema),
-    defaultValues: {
-      case_inquiry_division_id: '',
-      case_inquiry_type: '',
-      case_inquired_date: '',
-      remark: '',
-    },
+    defaultValues: DEFAULT_INQUIRY_FORM_VALUES,
   })
 
   const inquirySupplierId = inquiryForm.watch('case_inquiry_division_id')
@@ -1716,7 +1718,7 @@ export function CasesActionDialog({
         setInquiryList((prev) => [...prev, row])
         toast.success('询价已添加')
       }
-      inquiryForm.reset()
+      inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
       setInquiryEditingId(null)
       setInquiryDialogOpen(false)
     },
@@ -2588,7 +2590,7 @@ export function CasesActionDialog({
                           variant='outline'
                           onClick={() => {
                             setInquiryEditingId(null)
-                            inquiryForm.reset()
+                            inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
                             setInquiryDialogOpen(true)
                           }}
                         >
@@ -3403,7 +3405,7 @@ export function CasesActionDialog({
         open={inquiryDialogOpen}
         onOpenChange={(state) => {
           if (!state) {
-            inquiryForm.reset()
+            inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
             setInquiryEditingId(null)
           }
           setInquiryDialogOpen(state)
@@ -3600,7 +3602,7 @@ export function CasesActionDialog({
               type='button'
               variant='outline'
               onClick={() => {
-                inquiryForm.reset()
+                inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
                 setInquiryEditingId(null)
                 setInquiryDialogOpen(false)
               }}
