@@ -25,6 +25,7 @@ import {
   BookOpen,
   FileText,
   ListChecks,
+  Handshake,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -68,7 +69,7 @@ export const sidebarData: SidebarData = {
         {
           title: '成交案件列表',
           url: '/case_deal_list',
-          icon: FileText,
+          icon: Handshake,
         },
         {
           title: '案件列表',
