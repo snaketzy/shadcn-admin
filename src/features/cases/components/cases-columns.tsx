@@ -1,4 +1,5 @@
 import { type ColumnDef } from '@tanstack/react-table'
+import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -47,6 +48,7 @@ function formatDateAsHyphen(raw: unknown): string {
 
 export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
+  urgentBIsUrgentSet?: Set<string>
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -54,11 +56,19 @@ export function getCasesColumns(params?: {
   progressRMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
+  const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
   const rankDMap = params?.rankDMap
   const vesselPositionCMap = params?.vesselPositionCMap
   const progressRMap = params?.progressRMap
+  const isUrgentRow = (raw: unknown): boolean => {
+    if (!urgentBIsUrgentSet) return false
+    if (raw === null || raw === undefined || raw === '') return false
+    const p = String(raw).trim()
+    if (!p) return false
+    return urgentBIsUrgentSet.has(p.toUpperCase())
+  }
   const resolveUrgentBLabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''
     const p = String(raw).trim()
@@ -149,6 +159,38 @@ export function getCasesColumns(params?: {
       enableHiding: false,
     },
     {
+      id: 'icon_flag',
+      header: () => <div className='w-full text-center' aria-hidden />,
+      cell: ({ row }) => {
+        const urgent = isUrgentRow(row.original.case_urgent)
+        if (!urgent) return <div className='h-full w-full' aria-hidden />
+        return (
+          <div
+            className='flex w-full items-center justify-center text-destructive'
+            title='紧急案件'
+          >
+            <AlertCircle
+              className='size-4 shrink-0 fill-red-100 text-red-600'
+              aria-hidden
+            />
+          </div>
+        )
+      },
+      meta: {
+        label: '',
+        className: cn(
+          'sticky left-12 z-20 w-11 min-w-11 bg-background',
+          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
+        ),
+        thClassName: cn(
+          'sticky top-0 left-12 z-40 w-11 min-w-11 bg-background',
+          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
+        ),
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: 'vessel_name',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='船名' />
@@ -160,20 +202,18 @@ export function getCasesColumns(params?: {
             className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium'
             title={String(value ?? '')}
           >
-            <LongText className='max-w-50 truncate'>
-              {value ?? '-'}
-            </LongText>
+            <LongText className='max-w-50 truncate'>{value ?? '-'}</LongText>
           </span>
         )
       },
       meta: {
         label: '船名',
         className: cn(
-          'sticky left-12 z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
+          'sticky left-[92px] z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
         thClassName: cn(
-          'sticky top-0 left-12 z-40 w-[200px] min-w-[200px] bg-background ps-0.5',
+          'sticky top-0 left-[92px] z-40 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
       },
@@ -187,9 +227,7 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('invoice_number') as string | null
         if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-40'>{value}</LongText>
-        )
+        return <LongText className='max-w-40'>{value}</LongText>
       },
       meta: {
         label: '发票号',
@@ -205,9 +243,7 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('order_number') as string | null
         if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-45'>{value}</LongText>
-        )
+        return <LongText className='max-w-45'>{value}</LongText>
       },
       meta: {
         label: '订单编号',
@@ -223,9 +259,7 @@ export function getCasesColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('case_inquiry_keyword') as string | null
         if (!value) return <div>-</div>
-        return (
-          <LongText className='max-w-55'>{value}</LongText>
-        )
+        return <LongText className='max-w-55'>{value}</LongText>
       },
       meta: {
         label: '需求编号/名称',
@@ -252,29 +286,6 @@ export function getCasesColumns(params?: {
         label: '案件进度',
         className: 'w-[110px] min-w-[110px]',
         thClassName: 'w-[110px] min-w-[110px]',
-      },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'case_urgent',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='紧急案件' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('case_urgent') as string | null
-        if (!value) return <div>-</div>
-        const display = resolveUrgentBLabel(value)
-        return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {display}
-          </Badge>
-        )
-      },
-      meta: {
-        label: '紧急案件',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -464,7 +475,8 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='承运人｜服务负责人' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_incharge') as string | null
+        const value = row.getValue('case_delivery_or_service_incharge') as
+          string | null
         return <LongText className='max-w-40'>{value ?? '-'}</LongText>
       },
       meta: {
@@ -480,9 +492,8 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='运输｜服务截止日' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue(
-          'case_delivery_or_service_deadline'
-        ) as string | null
+        const value = row.getValue('case_delivery_or_service_deadline') as
+          string | null
         const formatted = formatDateAsHyphen(value)
         return <div>{formatted || '-'}</div>
       },
@@ -516,9 +527,8 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='船舶靠港 ｜ 货物发出' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue(
-          'case_etb_cargo_departure_date'
-        ) as string | null
+        const value = row.getValue('case_etb_cargo_departure_date') as
+          string | null
         const formatted = formatDateAsHyphen(value)
         return <div>{formatted || '-'}</div>
       },
@@ -533,9 +543,8 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='船舶开航 ｜ 货物签收' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue(
-          'case_etd_cargo_delivery_date'
-        ) as string | null
+        const value = row.getValue('case_etd_cargo_delivery_date') as
+          string | null
         const formatted = formatDateAsHyphen(value)
         return <div>{formatted || '-'}</div>
       },
@@ -630,11 +639,7 @@ export function getCasesColumns(params?: {
         return (
           <div className='flex flex-wrap gap-1.5'>
             {keys.map((k) => (
-              <Badge
-                key={k}
-                variant='outline'
-                className={cn(getBadgeColor(k))}
-              >
+              <Badge key={k} variant='outline' className={cn(getBadgeColor(k))}>
                 {resolveInchargeELabel(k)}
               </Badge>
             ))}
@@ -649,7 +654,9 @@ export function getCasesColumns(params?: {
         const rowKeys = splitCsvKeys(rowRaw).map((s) => s.toUpperCase())
         const filterArr = Array.isArray(filterValues)
           ? (filterValues as string[]).map((s) =>
-              String(s ?? '').trim().toUpperCase()
+              String(s ?? '')
+                .trim()
+                .toUpperCase()
             )
           : []
         if (filterArr.length === 0) return true

@@ -70,18 +70,35 @@ const FIXED_COL_STYLES: Record<
       minWidth: 48,
     },
   },
-  vessel_name: {
+  icon_flag: {
     th: {
       position: 'sticky',
       top: 0,
       left: 48,
+      zIndex: 50,
+      width: 44,
+      minWidth: 44,
+    },
+    td: {
+      position: 'sticky',
+      left: 48,
+      zIndex: 30,
+      width: 44,
+      minWidth: 44,
+    },
+  },
+  vessel_name: {
+    th: {
+      position: 'sticky',
+      top: 0,
+      left: 92,
       zIndex: 50,
       width: 200,
       minWidth: 200,
     },
     td: {
       position: 'sticky',
-      left: 48,
+      left: 92,
       zIndex: 20,
       width: 200,
       minWidth: 200,
@@ -146,6 +163,34 @@ export function CasesTable(_: DataTableProps) {
       if (o.value) m.set(String(o.value).toUpperCase(), o.label)
     }
     return m
+  }, [urgentBOptions])
+
+  const urgentBIsUrgentSet = useMemo<Set<string>>(() => {
+    const s = new Set<string>()
+    for (const o of urgentBOptions) {
+      if (!o.value) continue
+      const lbl = (o.label || '').trim().toUpperCase()
+      const val = String(o.value).trim().toUpperCase()
+      const isNo =
+        lbl === 'NO' ||
+        lbl === '否' ||
+        lbl.includes('普通') ||
+        lbl.includes('非紧急') ||
+        lbl.includes('常规') ||
+        val === 'NO' ||
+        /^B-?0/.test(val)
+      if (
+        !isNo &&
+        (lbl.includes('紧急') ||
+          val.includes('URGENT') ||
+          /^B-?1/.test(val) ||
+          lbl.includes('是') ||
+          lbl === 'YES')
+      ) {
+        s.add(String(o.value).toUpperCase())
+      }
+    }
+    return s
   }, [urgentBOptions])
 
   const { data: inqTypeARowsData = [] } = useQuery({
@@ -264,6 +309,7 @@ export function CasesTable(_: DataTableProps) {
     () =>
       getCasesColumns({
         urgentBMap,
+        urgentBIsUrgentSet,
         inqTypeAMap,
         inchargeEMap,
         rankDMap,
@@ -272,6 +318,7 @@ export function CasesTable(_: DataTableProps) {
       }),
     [
       urgentBMap,
+      urgentBIsUrgentSet,
       inqTypeAMap,
       inchargeEMap,
       rankDMap,
@@ -829,15 +876,6 @@ export function CasesTable(_: DataTableProps) {
             column={table.getColumn('case_progress')!}
             title='案件进度'
             options={progressROptions}
-          />
-        </div>
-      )}
-      {urgentBOptions.length > 0 && table.getColumn('case_urgent') && (
-        <div className='shrink-0'>
-          <DataTableFacetedFilter
-            column={table.getColumn('case_urgent')!}
-            title='紧急案件'
-            options={urgentBOptions}
           />
         </div>
       )}
