@@ -87,57 +87,6 @@ const FIXED_COL_STYLES: Record<
       minWidth: 200,
     },
   },
-  invoice_number: {
-    th: {
-      position: 'sticky',
-      top: 0,
-      left: 248,
-      zIndex: 50,
-      width: 160,
-      minWidth: 160,
-    },
-    td: {
-      position: 'sticky',
-      left: 248,
-      zIndex: 20,
-      width: 160,
-      minWidth: 160,
-    },
-  },
-  order_number: {
-    th: {
-      position: 'sticky',
-      top: 0,
-      left: 408,
-      zIndex: 50,
-      width: 180,
-      minWidth: 180,
-    },
-    td: {
-      position: 'sticky',
-      left: 408,
-      zIndex: 20,
-      width: 180,
-      minWidth: 180,
-    },
-  },
-  case_inquiry_keyword: {
-    th: {
-      position: 'sticky',
-      top: 0,
-      left: 588,
-      zIndex: 50,
-      width: 220,
-      minWidth: 220,
-    },
-    td: {
-      position: 'sticky',
-      left: 588,
-      zIndex: 20,
-      width: 220,
-      minWidth: 220,
-    },
-  },
   actions: {
     th: {
       position: 'sticky',

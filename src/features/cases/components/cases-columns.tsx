@@ -193,14 +193,6 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '发票号',
-        className: cn(
-          'sticky left-[248px] z-20 w-[160px] min-w-[160px] bg-background',
-          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
-        ),
-        thClassName: cn(
-          'sticky top-0 left-[248px] z-40 w-[160px] min-w-[160px] bg-background',
-          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
-        ),
       },
       enableHiding: false,
       enableSorting: false,
@@ -219,14 +211,6 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '订单编号',
-        className: cn(
-          'sticky left-[408px] z-20 w-[180px] min-w-[180px] bg-background',
-          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
-        ),
-        thClassName: cn(
-          'sticky top-0 left-[408px] z-40 w-[180px] min-w-[180px] bg-background',
-          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
-        ),
       },
       enableHiding: false,
       enableSorting: false,
@@ -245,14 +229,6 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '需求编号/名称',
-        className: cn(
-          'sticky left-[588px] z-20 w-[220px] min-w-[220px] bg-background',
-          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
-        ),
-        thClassName: cn(
-          'sticky top-0 left-[588px] z-40 w-[220px] min-w-[220px] bg-background',
-          'shadow-[inset_-1px_0_0_hsl(var(--border))]'
-        ),
       },
       enableHiding: false,
       enableSorting: false,
