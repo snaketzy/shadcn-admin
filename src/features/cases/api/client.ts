@@ -176,6 +176,27 @@ export async function fetchCaseGroups(): Promise<CaseGroupsResponse> {
   )
 }
 
+export interface KeywordCheckResult {
+  exists: boolean
+  matchedCaseId?: number
+  matchedKeyword?: string
+}
+
+export async function fetchCaseInquiryKeywordCheck(params: {
+  keyword: string
+  excludeCaseId?: number
+}): Promise<KeywordCheckResult> {
+  const res = await api.get<ApiEnvelope<KeywordCheckResult>>(
+    '/case-list/check-keyword',
+    { params }
+  )
+  return (
+    res.data.data ?? {
+      exists: false,
+    }
+  )
+}
+
 export async function createCase(payload: {
   vessel_name?: string | null
   invoice_number?: string | null

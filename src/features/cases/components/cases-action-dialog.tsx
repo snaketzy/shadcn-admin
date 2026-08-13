@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
@@ -54,13 +55,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '@/components/ui/card'
 import {
   Table,
   TableHeader,
@@ -69,6 +63,7 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import {
   fetchContactAll,
   fetchContactGroups,
@@ -97,14 +92,6 @@ import {
   type Owner,
 } from '@/features/owners/api/client'
 import {
-  fetchSupplierAll,
-  type Supplier,
-} from '@/features/suppliers/api/client'
-import {
-  SupplierPickerDialog,
-  type SupplierPickerResult,
-} from '@/features/suppliers/components/supplier-picker-dialog'
-import {
   OwnerPickerDialog,
   type OwnerPickerResult,
 } from '@/features/owners/components/owner-picker-dialog'
@@ -112,6 +99,14 @@ import {
   SuperintendentPickerDialog,
   type SuperintendentPickerResult,
 } from '@/features/owners/components/superintendent-picker-dialog'
+import {
+  fetchSupplierAll,
+  type Supplier,
+} from '@/features/suppliers/api/client'
+import {
+  SupplierPickerDialog,
+  type SupplierPickerResult,
+} from '@/features/suppliers/components/supplier-picker-dialog'
 import {
   fetchVesselAll,
   fetchVesselGroups,
@@ -126,6 +121,7 @@ import {
   updateCase,
   fetchCaseInquiryListByCaseId,
   replaceCaseInquiryByCaseId,
+  fetchCaseInquiryKeywordCheck,
 } from '../api/client'
 import type { Case } from '../data/schema'
 
@@ -169,7 +165,9 @@ function formatDateTimeMinute(raw: unknown): string {
   if (raw === null || raw === undefined || raw === '') return ''
   const str = String(raw).trim()
   if (!str) return ''
-  const m1 = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::\d{1,2})?/)
+  const m1 = str.match(
+    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::\d{1,2})?/
+  )
   if (m1) {
     const [, y, m, d, hh, mm] = m1
     return `${y}-${pad2(Number(m))}-${pad2(Number(d))} ${pad2(Number(hh))}:${pad2(Number(mm))}`
@@ -201,7 +199,9 @@ function toDatetimeLocalValue(raw: unknown): string {
   if (raw === null || raw === undefined || raw === '') return ''
   const str = String(raw).trim()
   if (!str) return ''
-  const m1 = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})/)
+  const m1 = str.match(
+    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})/
+  )
   if (m1) {
     const [, y, m, d, hh, mm] = m1
     return `${y}-${pad2(Number(m))}-${pad2(Number(d))}T${pad2(Number(hh))}:${pad2(Number(mm))}`
@@ -231,7 +231,9 @@ function normalizeDatetimeForStorage(raw: unknown): string | null {
   if (raw === null || raw === undefined || raw === '') return null
   const str = String(raw).trim()
   if (!str) return null
-  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/)
+  const m = str.match(
+    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/
+  )
   if (m) {
     const [, y, mo, d, hh, mm] = m
     return `${y}-${mo}-${d} ${hh}:${mm}:00`
@@ -365,23 +367,23 @@ type CaseInquiry = {
 
 const inquiryFormSchema = z.object({
   case_inquiry_division_id: z
-    .preprocess((v) => {
-      if (v === null || v === undefined || v === '') return ''
-      const n = Number(v)
-      return Number.isFinite(n) && n > 0 ? n : ''
-    }, z.union([z.number().positive(), z.string().length(0)]))
+    .preprocess(
+      (v) => {
+        if (v === null || v === undefined || v === '') return ''
+        const n = Number(v)
+        return Number.isFinite(n) && n > 0 ? n : ''
+      },
+      z.union([z.number().positive(), z.string().length(0)])
+    )
     .optional()
     .catch(''),
   case_inquiry_type: z.string().optional().catch(''),
   case_inquired_date: z
-    .preprocess(
-      (v) => {
-        if (v === undefined || v === null) return ''
-        const norm = toDatetimeLocalValue(v)
-        return norm ? norm.replace('T', ' ') : ''
-      },
-      z.string()
-    )
+    .preprocess((v) => {
+      if (v === undefined || v === null) return ''
+      const norm = toDatetimeLocalValue(v)
+      return norm ? norm.replace('T', ' ') : ''
+    }, z.string())
     .optional()
     .catch(''),
   remark: z.string().optional().catch(''),
@@ -1489,6 +1491,105 @@ export function CasesActionDialog({
   }, [formCaseSurveyor, resolveSurveyorContactDisplay])
 
   const memoNameEditedRef = useRef(false)
+  const keywordDuplicateCheckRef = useRef<{
+    lastCheckedNormalized: string
+    lastResultExists: boolean
+    lastMatchedCaseId?: number
+    lastMatchedKeyword?: string
+    isChecking: boolean
+    pendingCheckToken?: number
+  }>({
+    lastCheckedNormalized: '',
+    lastResultExists: false,
+    isChecking: false,
+  })
+
+  const excludeCaseId =
+    isEdit && currentRow?.case_id && !Number.isNaN(Number(currentRow.case_id))
+      ? Number(currentRow.case_id)
+      : undefined
+
+  const runKeywordDuplicateCheck = useCallback(
+    async (
+      raw: string
+    ): Promise<{
+      exists: boolean
+      matchedCaseId?: number
+      matchedKeyword?: string
+    }> => {
+      const normalized = String(raw ?? '')
+        .trim()
+        .toLowerCase()
+      const state = keywordDuplicateCheckRef.current
+      if (!normalized) {
+        state.lastCheckedNormalized = ''
+        state.lastResultExists = false
+        return { exists: false }
+      }
+      if (state.lastCheckedNormalized === normalized && !state.isChecking) {
+        return {
+          exists: state.lastResultExists,
+          matchedCaseId: state.lastMatchedCaseId,
+          matchedKeyword: state.lastMatchedKeyword,
+        }
+      }
+      if (state.isChecking && state.pendingCheckToken) {
+        try {
+          window.clearTimeout(state.pendingCheckToken)
+        } catch (e) {
+          // ignore
+        }
+      }
+      state.isChecking = true
+      try {
+        const result = await fetchCaseInquiryKeywordCheck({
+          keyword: normalized,
+          excludeCaseId,
+        })
+        state.lastCheckedNormalized = normalized
+        state.lastResultExists = !!result.exists
+        state.lastMatchedCaseId = result.matchedCaseId
+        state.lastMatchedKeyword = result.matchedKeyword
+        return {
+          exists: !!result.exists,
+          matchedCaseId: result.matchedCaseId,
+          matchedKeyword: result.matchedKeyword,
+        }
+      } finally {
+        state.isChecking = false
+      }
+    },
+    [excludeCaseId]
+  )
+
+  const setKeywordErrorIfDuplicate = useCallback(
+    async (raw: string): Promise<boolean> => {
+      const normalized = String(raw ?? '').trim()
+      if (!normalized) {
+        form.clearErrors('case_inquiry_keyword')
+        return false
+      }
+      try {
+        const result = await runKeywordDuplicateCheck(normalized)
+        if (result.exists) {
+          const suffix = result.matchedCaseId
+            ? `（已存在于案件 #${result.matchedCaseId}）`
+            : ''
+          form.setError('case_inquiry_keyword', {
+            type: 'manual',
+            message: `需求编号/名称已存在，不可重复${suffix}`,
+          })
+          return true
+        }
+        form.clearErrors('case_inquiry_keyword')
+        return false
+      } catch (e) {
+        form.clearErrors('case_inquiry_keyword')
+        return false
+      }
+    },
+    [form, runKeywordDuplicateCheck]
+  )
 
   useEffect(() => {
     if (memoNameEditedRef.current) return
@@ -1748,10 +1849,9 @@ export function CasesActionDialog({
             ? Number(row.case_inquiry_division_id)
             : '',
         case_inquiry_type: row.case_inquiry_type ?? '',
-        case_inquired_date: toDatetimeLocalValue(row.case_inquired_date).replace(
-          'T',
-          ' '
-        ),
+        case_inquired_date: toDatetimeLocalValue(
+          row.case_inquired_date
+        ).replace('T', ' '),
         remark: row.remark ?? '',
       })
       setInquiryEditingId(row.inquiry_id)
@@ -1832,52 +1932,87 @@ export function CasesActionDialog({
     },
   })
 
-  const onSubmit = (values: CaseForm) => {
-    const payload = {
-      vessel_name: toOptStr(values.vessel_name),
-      invoice_number: toOptStr(values.invoice_number),
-      order_number: toOptStr(values.order_number),
-      case_inquiry_keyword: toOptStr(values.case_inquiry_keyword),
-      case_progress: toOptStr(values.case_progress),
-      case_urgent: toOptStr(values.case_urgent),
-      case_inquiry_type: toOptStr(values.case_inquiry_type),
-      case_inquiry_date: toOptStr(values.case_inquiry_date),
-      case_follow_date: toOptStr(values.case_follow_date),
-      case_uptodate_date: toOptStr(values.case_uptodate_date),
-      case_should_handle_today: toOptStr(values.case_should_handle_today),
-      owner_following: toOptStr(values.owner_following),
-      shipyard_business: toOptStr(values.shipyard_business),
-      case_agent: toOptStr(values.case_agent),
-      case_superintendent: toOptStr(values.case_superintendent),
-      case_surveyor: toOptStr(values.case_surveyor),
-      case_delivery_or_service_incharge: toOptStr(
-        values.case_delivery_or_service_incharge
-      ),
-      case_delivery_or_service_deadline: toOptStr(
-        values.case_delivery_or_service_deadline
-      ),
-      case_eta_cargo_ready_date: toOptStr(values.case_eta_cargo_ready_date),
-      case_etb_cargo_departure_date: toOptStr(
-        values.case_etb_cargo_departure_date
-      ),
-      case_etd_cargo_delivery_date: toOptStr(
-        values.case_etd_cargo_delivery_date
-      ),
-      vessel_position: toOptStr(values.vessel_position),
-      case_settlement_done: toOptStr(values.case_settlement_done),
-      case_epd: toOptStr(values.case_epd),
-      case_spd: toOptStr(values.case_spd),
-      case_incharge: toOptStr(values.case_incharge),
-      case_memo_name: toOptStr(values.case_memo_name),
-      case_memo_address: toOptStr(values.case_memo_address),
-      case_rank: toOptStr(values.case_rank),
-    } as any
-    if (isEdit && currentRow) {
-      updateMutation.mutate({ id: currentRow.case_id, data: payload })
-    } else {
-      createMutation.mutate(payload)
-    }
-  }
+  const onSubmit = useCallback(
+    async (values: CaseForm) => {
+      const keywordRaw = toOptStr(values.case_inquiry_keyword)
+      if (!keywordRaw) {
+        form.setError('case_inquiry_keyword', {
+          type: 'manual',
+          message: '需求编号/名称不能为空',
+        })
+        toast.error('需求编号/名称不能为空')
+        return
+      }
+      try {
+        const dupResult = await runKeywordDuplicateCheck(keywordRaw)
+        if (dupResult.exists) {
+          const suffix = dupResult.matchedCaseId
+            ? `（已存在于案件 #${dupResult.matchedCaseId}）`
+            : ''
+          form.setError('case_inquiry_keyword', {
+            type: 'manual',
+            message: `需求编号/名称已存在，不可重复${suffix}`,
+          })
+          toast.error(`需求编号/名称已存在，不可保存${suffix}`)
+          return
+        }
+      } catch (e) {
+        // ignore network errors and proceed without duplicate pre-check
+      }
+      const payload = {
+        vessel_name: toOptStr(values.vessel_name),
+        invoice_number: toOptStr(values.invoice_number),
+        order_number: toOptStr(values.order_number),
+        case_inquiry_keyword: keywordRaw,
+        case_progress: toOptStr(values.case_progress),
+        case_urgent: toOptStr(values.case_urgent),
+        case_inquiry_type: toOptStr(values.case_inquiry_type),
+        case_inquiry_date: toOptStr(values.case_inquiry_date),
+        case_follow_date: toOptStr(values.case_follow_date),
+        case_uptodate_date: toOptStr(values.case_uptodate_date),
+        case_should_handle_today: toOptStr(values.case_should_handle_today),
+        owner_following: toOptStr(values.owner_following),
+        shipyard_business: toOptStr(values.shipyard_business),
+        case_agent: toOptStr(values.case_agent),
+        case_superintendent: toOptStr(values.case_superintendent),
+        case_surveyor: toOptStr(values.case_surveyor),
+        case_delivery_or_service_incharge: toOptStr(
+          values.case_delivery_or_service_incharge
+        ),
+        case_delivery_or_service_deadline: toOptStr(
+          values.case_delivery_or_service_deadline
+        ),
+        case_eta_cargo_ready_date: toOptStr(values.case_eta_cargo_ready_date),
+        case_etb_cargo_departure_date: toOptStr(
+          values.case_etb_cargo_departure_date
+        ),
+        case_etd_cargo_delivery_date: toOptStr(
+          values.case_etd_cargo_delivery_date
+        ),
+        vessel_position: toOptStr(values.vessel_position),
+        case_settlement_done: toOptStr(values.case_settlement_done),
+        case_epd: toOptStr(values.case_epd),
+        case_spd: toOptStr(values.case_spd),
+        case_incharge: toOptStr(values.case_incharge),
+        case_memo_name: toOptStr(values.case_memo_name),
+        case_memo_address: toOptStr(values.case_memo_address),
+        case_rank: toOptStr(values.case_rank),
+      } as any
+      if (isEdit && currentRow) {
+        updateMutation.mutate({ id: currentRow.case_id, data: payload })
+      } else {
+        createMutation.mutate(payload)
+      }
+    },
+    [
+      form,
+      isEdit,
+      currentRow,
+      runKeywordDuplicateCheck,
+      createMutation,
+      updateMutation,
+    ]
+  )
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
@@ -1892,15 +2027,15 @@ export function CasesActionDialog({
           onOpenChange(state)
         }}
       >
-        <DialogContent className='sm:max-w-5xl h-[90vh] max-h-[90vh] flex flex-col overflow-hidden p-6'>
-          <DialogHeader className='text-start shrink-0'>
+        <DialogContent className='flex h-[90vh] max-h-[90vh] flex-col overflow-hidden p-6 sm:max-w-5xl'>
+          <DialogHeader className='shrink-0 text-start'>
             <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
             <DialogDescription>
               {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
               完成后点击保存。
             </DialogDescription>
           </DialogHeader>
-          <div className='flex-1 min-h-0 w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
+          <div className='min-h-0 w-[calc(100%+0.75rem)] flex-1 overflow-y-auto py-1 pe-3'>
             <Form {...form}>
               <form
                 id='cases-form'
@@ -2023,6 +2158,18 @@ export function CasesActionDialog({
                           placeholder='请输入需求编号/名称'
                           className='col-span-4'
                           {...field}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            form.clearErrors('case_inquiry_keyword')
+                            keywordDuplicateCheckRef.current.lastCheckedNormalized =
+                              ''
+                          }}
+                          onBlur={async (e) => {
+                            field.onBlur?.(e)
+                            await setKeywordErrorIfDuplicate(
+                              e.currentTarget.value ?? ''
+                            )
+                          }}
                         />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
@@ -2589,7 +2736,7 @@ export function CasesActionDialog({
                 />
                 <div className='col-span-2'>
                   <Card className='py-1.5'>
-                    <CardHeader className='pb-1 pt-0'>
+                    <CardHeader className='pt-0 pb-1'>
                       <div className='flex items-center justify-between gap-3'>
                         <CardTitle className='text-base'>询价记录</CardTitle>
                         <Button
@@ -2623,9 +2770,7 @@ export function CasesActionDialog({
                               <TableHead className='w-[calc(100%*8/24)] text-center'>
                                 备注
                               </TableHead>
-                              <TableHead
-                                className='w-[calc(100%*8/24/3)] text-center'
-                              >
+                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
                                 操作
                               </TableHead>
                             </TableRow>
@@ -2637,9 +2782,7 @@ export function CasesActionDialog({
                                   colSpan={5}
                                   className='h-24 text-center text-muted-foreground'
                                 >
-                                  <span className='text-sm'>
-                                    暂无询价记录
-                                  </span>
+                                  <span className='text-sm'>暂无询价记录</span>
                                 </TableCell>
                               </TableRow>
                             ) : (
@@ -2647,15 +2790,12 @@ export function CasesActionDialog({
                                 const supplierName = resolveSupplierNameById(
                                   row.case_inquiry_division_id
                                 )
-                                const inqTypeLabel =
-                                  resolveInquiryTypeQLabel(
-                                    row.case_inquiry_type
-                                  )
+                                const inqTypeLabel = resolveInquiryTypeQLabel(
+                                  row.case_inquiry_type
+                                )
                                 return (
                                   <TableRow key={row.inquiry_id}>
-                                    <TableCell>
-                                      {supplierName || '-'}
-                                    </TableCell>
+                                    <TableCell>{supplierName || '-'}</TableCell>
                                     <TableCell className='text-center'>
                                       {inqTypeLabel ? (
                                         <Badge
@@ -2672,7 +2812,7 @@ export function CasesActionDialog({
                                         '-'
                                       )}
                                     </TableCell>
-                                    <TableCell className='font-mono text-xs text-center whitespace-nowrap'>
+                                    <TableCell className='text-center font-mono text-xs whitespace-nowrap'>
                                       {row.case_inquired_date
                                         ? formatDateTimeMinute(
                                             row.case_inquired_date
@@ -3356,7 +3496,7 @@ export function CasesActionDialog({
               </form>
             </Form>
           </div>
-          <DialogFooter className='shrink-0 pt-4 mt-2'>
+          <DialogFooter className='mt-2 shrink-0 pt-4'>
             <Button
               type='button'
               variant='outline'
@@ -3547,7 +3687,7 @@ export function CasesActionDialog({
                                   <Label
                                     key={o.value}
                                     className={cn(
-                                      'flex cursor-pointer select-none items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors',
+                                      'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors select-none',
                                       checked
                                         ? 'border-primary bg-primary/10 text-primary'
                                         : 'border-input hover:border-primary/50 hover:bg-accent/30'

@@ -69,6 +69,48 @@ export async function getCaseListById(
   return row ? normalizeRow(row) : null
 }
 
+export async function checkDuplicateInquiryKeyword(params: {
+  keyword: string
+  excludeCaseId?: number
+}): Promise<{
+  exists: boolean
+  matchedCaseId?: number
+  matchedKeyword?: string
+}> {
+  const rawKeyword = String(params.keyword ?? '')
+  const normalizedKeyword = rawKeyword.trim().toLowerCase()
+  if (!normalizedKeyword) {
+    return { exists: false }
+  }
+  const whereClauses: string[] = [
+    "TRIM(LOWER(CAST(case_inquiry_keyword AS CHAR))) = ?",
+  ]
+  const whereParams: ExecuteValues[] = [normalizedKeyword]
+  if (
+    params.excludeCaseId != null &&
+    !Number.isNaN(Number(params.excludeCaseId))
+  ) {
+    whereClauses.push("case_id <> ?")
+    whereParams.push(Number(params.excludeCaseId))
+  }
+  const whereSql = whereClauses.join(" AND ")
+  const rows = await query<
+    { case_id: number; case_inquiry_keyword: string | null }[]
+  >(
+    `SELECT case_id, case_inquiry_keyword FROM \`case_list\` WHERE ${whereSql} ORDER BY case_id DESC LIMIT 1`,
+    whereParams as ExecuteValues[]
+  )
+  const hit = rows[0]
+  if (!hit) return { exists: false }
+  return {
+    exists: true,
+    matchedCaseId: Number(hit.case_id),
+    matchedKeyword: hit.case_inquiry_keyword
+      ? String(hit.case_inquiry_keyword)
+      : undefined,
+  }
+}
+
 function flattenUnique(values: (string | null)[]): string[] {
   const seen = new Set<string>()
   const out: string[] = []

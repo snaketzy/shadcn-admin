@@ -70,6 +70,7 @@ import {
   updateCaseList,
   deleteCaseList,
   deleteCaseListBulk,
+  checkDuplicateInquiryKeyword,
 } from './src/service/connection/case-list-service'
 import {
   createCaseInquiryListBulk,
@@ -1058,6 +1059,28 @@ async function handleCaseListApi(
       if (method === 'GET') {
         const groups = await getCaseListGroups()
         sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/check-keyword') {
+      if (method === 'GET') {
+        const keyword = toOptStr(searchParams.get('keyword'))
+        if (!keyword) {
+          sendJson(res, 200, { success: true, data: { exists: false } })
+          return true
+        }
+        const excludeCaseIdRaw = searchParams.get('excludeCaseId')
+        const excludeCaseId =
+          excludeCaseIdRaw != null && excludeCaseIdRaw !== '' &&
+          !Number.isNaN(Number(excludeCaseIdRaw))
+            ? Number(excludeCaseIdRaw)
+            : undefined
+        const result = await checkDuplicateInquiryKeyword({
+          keyword,
+          excludeCaseId,
+        })
+        sendJson(res, 200, { success: true, data: result })
         return true
       }
     }
