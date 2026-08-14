@@ -79,7 +79,7 @@ export function DictionariesTable({ search, navigate }: DataTableProps) {
   }, [allRows, groupFilter, nameFilter])
 
   const page = Number((search as any).page ?? 1)
-  const pageSize = Number((search as any).pageSize ?? 10)
+  const pageSize = Number((search as any).pageSize ?? 50)
 
   const pagination = useMemo(
     () => ({ pageIndex: Math.max(0, page - 1), pageSize }),

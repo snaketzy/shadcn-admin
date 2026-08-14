@@ -195,7 +195,7 @@ export async function getLogListPaginated(params: {
   pageSize?: number
 }): Promise<{ rows: LogListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
-  const pageSize = params.pageSize ?? 10
+  const pageSize = params.pageSize ?? 50
   const offset = (page - 1) * pageSize
   const [countRows, dataRows] = await Promise.all([
     query<[{ total: number }]>(

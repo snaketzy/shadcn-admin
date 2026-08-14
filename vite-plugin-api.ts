@@ -986,7 +986,7 @@ async function handleCaseListApi(
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
         const page = Number(searchParams.get('page') ?? 1)
-        const pageSize = Number(searchParams.get('pageSize') ?? 10)
+        const pageSize = Number(searchParams.get('pageSize') ?? 50)
         const toArr = (key: string): string[] | undefined => {
           const raw = searchParams.getAll(key)
           if (raw.length === 0) return undefined

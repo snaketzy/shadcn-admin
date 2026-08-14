@@ -120,7 +120,7 @@ export async function fetchContactPaginated(params: {
       rows: [],
       total: 0,
       page: params.page ?? 1,
-      pageSize: params.pageSize ?? 10,
+      pageSize: params.pageSize ?? 50,
     }
   )
 }

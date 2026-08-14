@@ -95,7 +95,7 @@ export async function fetchSupplierPaginated(params: {
     params,
   })
   return (
-    res.data.data ?? { rows: [], total: 0, page: params.page ?? 1, pageSize: params.pageSize ?? 10 }
+    res.data.data ?? { rows: [], total: 0, page: params.page ?? 1, pageSize: params.pageSize ?? 50 }
   )
 }
 

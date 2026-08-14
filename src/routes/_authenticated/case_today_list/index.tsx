@@ -5,7 +5,7 @@ import { CasesToday } from '@/features/cases-today'
 const casesTodaySearchSchema = z
   .object({
     page: z.number().optional().catch(1),
-    pageSize: z.number().optional().catch(10),
+    pageSize: z.number().optional().catch(50),
     vesselName: z.string().optional().catch(''),
     invoiceNumber: z.array(z.string()).optional().catch([]),
     orderNumber: z.array(z.string()).optional().catch([]),

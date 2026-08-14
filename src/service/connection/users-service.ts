@@ -51,7 +51,7 @@ export async function getUsersByStatus(
 
 export async function getUsersPaginated(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 50
 ): Promise<{ users: UserRow[]; total: number; page: number; pageSize: number }> {
   const offset = (page - 1) * pageSize
   const [countRows, users] = await Promise.all([

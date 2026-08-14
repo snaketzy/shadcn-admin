@@ -130,7 +130,7 @@ export async function getContactListPaginated(params: {
   contactSearch?: string
 }): Promise<{ rows: ContactListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
-  const pageSize = params.pageSize ?? 10
+  const pageSize = params.pageSize ?? 50
   const offset = (page - 1) * pageSize
 
   const whereClauses: string[] = []
