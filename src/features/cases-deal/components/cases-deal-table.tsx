@@ -386,7 +386,7 @@ export function CasesDealTable(_: DataTableProps) {
     navigate: navigate as unknown as Parameters<
       typeof useTableUrlState
     >[0]['navigate'],
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
       { columnId: 'invoice_number', searchKey: 'invoiceNumber', type: 'array' },
       { columnId: 'order_number', searchKey: 'orderNumber', type: 'array' },

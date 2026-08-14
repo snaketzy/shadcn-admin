@@ -149,7 +149,7 @@ export function UsersTable(_: DataTableProps) {
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
     navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
       { columnId: 'vessel_team', searchKey: 'vesselTeam', type: 'array' },
       { columnId: 'vessel_flag', searchKey: 'vesselFlag', type: 'array' },

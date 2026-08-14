@@ -166,7 +166,7 @@ export function SuppliersTable(_: DataTableProps) {
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
     navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
       { columnId: 'supplier_shortname', searchKey: 'supplierShortname', type: 'array' },
       { columnId: 'supplier_field', searchKey: 'supplierField', type: 'array' },

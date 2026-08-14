@@ -128,7 +128,7 @@ export function OwnersTable() {
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
     navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
       { columnId: 'owner_team', searchKey: 'ownerTeam', type: 'array' },
       { columnId: 'owner_department', searchKey: 'ownerDepartment', type: 'array' },

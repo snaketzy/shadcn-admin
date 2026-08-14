@@ -171,7 +171,7 @@ export function CollaborationsTable(_: DataTableProps) {
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
     navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
       { columnId: 'collaboration_shortname', searchKey: 'collaborationShortname', type: 'array' },
       { columnId: 'collaboration_field', searchKey: 'collaborationField', type: 'array' },
