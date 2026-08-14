@@ -27,6 +27,7 @@ export interface CaseListRow {
   case_superintendent: string | null
   case_surveyor: string | null
   case_delivery_or_service_incharge: string | null
+  case_delivery_or_service_incharge_id: string | null
   case_delivery_or_service_deadline: string | null
   case_eta_cargo_ready_date: string | null
   case_etb_cargo_departure_date: string | null
@@ -46,7 +47,7 @@ const SELECT_COLS = `
   case_inquiry_keyword, case_progress, case_urgent, case_inquiry_type,
   case_inquiry_date, case_follow_date, case_uptodate_date, case_should_handle_today,
   owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent,
-  case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_deadline,
+  case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_incharge_id, case_delivery_or_service_deadline,
   case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
   vessel_position, case_settlement_done, case_epd, case_spd,
   case_incharge, case_memo_name, case_memo_address, case_rank
@@ -353,6 +354,7 @@ export async function createCaseList(data: {
   case_superintendent?: string | null
   case_surveyor?: string | null
   case_delivery_or_service_incharge?: string | null
+  case_delivery_or_service_incharge_id?: string | null
   case_delivery_or_service_deadline?: string | null
   case_eta_cargo_ready_date?: string | null
   case_etb_cargo_departure_date?: string | null
@@ -372,7 +374,7 @@ export async function createCaseList(data: {
        case_progress, case_urgent, case_inquiry_type, case_inquiry_date,
        case_follow_date, case_uptodate_date, case_should_handle_today,
        owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent,
-       case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_deadline,
+       case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_incharge_id, case_delivery_or_service_deadline,
        case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
        vessel_position, case_settlement_done, case_epd, case_spd,
        case_incharge, case_memo_name, case_memo_address, case_rank)
@@ -400,6 +402,9 @@ export async function createCaseList(data: {
       data.case_superintendent ?? null,
       data.case_surveyor ?? null,
       data.case_delivery_or_service_incharge ?? null,
+      data.case_delivery_or_service_incharge_id != null && String(data.case_delivery_or_service_incharge_id).trim().length > 0
+        ? String(data.case_delivery_or_service_incharge_id)
+        : null,
       data.case_delivery_or_service_deadline ?? null,
       data.case_eta_cargo_ready_date ?? null,
       data.case_etb_cargo_departure_date ?? null,
@@ -446,6 +451,7 @@ export async function updateCaseList(
     case_superintendent?: string | null
     case_surveyor?: string | null
     case_delivery_or_service_incharge?: string | null
+    case_delivery_or_service_incharge_id?: string | null
     case_delivery_or_service_deadline?: string | null
     case_eta_cargo_ready_date?: string | null
     case_etb_cargo_departure_date?: string | null
@@ -482,6 +488,7 @@ export async function updateCaseList(
     'case_superintendent',
     'case_surveyor',
     'case_delivery_or_service_incharge',
+    'case_delivery_or_service_incharge_id',
     'case_delivery_or_service_deadline',
     'case_eta_cargo_ready_date',
     'case_etb_cargo_departure_date',
@@ -595,6 +602,7 @@ function normalizeRow(row: any): CaseListRow {
     case_superintendent: row.case_superintendent ? String(row.case_superintendent) : null,
     case_surveyor: row.case_surveyor ? String(row.case_surveyor) : null,
     case_delivery_or_service_incharge: row.case_delivery_or_service_incharge ? String(row.case_delivery_or_service_incharge) : null,
+    case_delivery_or_service_incharge_id: row.case_delivery_or_service_incharge_id ? String(row.case_delivery_or_service_incharge_id) : null,
     case_delivery_or_service_deadline: row.case_delivery_or_service_deadline ? String(row.case_delivery_or_service_deadline) : null,
     case_eta_cargo_ready_date: row.case_eta_cargo_ready_date ? String(row.case_eta_cargo_ready_date) : null,
     case_etb_cargo_departure_date: row.case_etb_cargo_departure_date ? String(row.case_etb_cargo_departure_date) : null,
@@ -641,4 +649,27 @@ export async function ensureCaseOwnerFollowingIdColumn(): Promise<void> {
     }
   })()
   return _ensureCaseOwnerFollowingIdPromise
+}
+
+let _ensureCaseDeliveryServiceInchargeIdPromise: Promise<void> | null = null
+
+export async function ensureCaseDeliveryServiceInchargeIdColumn(): Promise<void> {
+  if (_ensureCaseDeliveryServiceInchargeIdPromise) return _ensureCaseDeliveryServiceInchargeIdPromise
+  _ensureCaseDeliveryServiceInchargeIdPromise = (async () => {
+    const TABLE_NAME = 'case_list'
+    const COL_NAME = 'case_delivery_or_service_incharge_id'
+    try {
+      const info = await describeTable(TABLE_NAME)
+      const hasCol = info.columns.some((c) => c.field === COL_NAME)
+      if (!hasCol) {
+        await execute(
+          `ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${COL_NAME}\` VARCHAR(512) NULL COMMENT '服务负责人多选ID列表，逗号分隔（对应 contact_list.contact_id）' AFTER \`case_delivery_or_service_incharge\``
+        )
+      }
+    } catch (e) {
+      _ensureCaseDeliveryServiceInchargeIdPromise = null
+      throw e
+    }
+  })()
+  return _ensureCaseDeliveryServiceInchargeIdPromise
 }

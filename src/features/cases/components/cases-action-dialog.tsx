@@ -83,6 +83,10 @@ import {
   type SurveyorContactPickerResult,
 } from '@/features/contacts/components/surveyor-contact-picker-dialog'
 import {
+  CasesServiceContactMultiPickerDialog,
+  type CasesServiceContactMultiPickerResult,
+} from '@/features/cases/components/cases-service-contact-multi-picker-dialog'
+import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
 } from '@/features/dictionaries/api/client'
@@ -287,6 +291,7 @@ const formSchema = z.object({
   case_superintendent: z.string().optional().catch(''),
   case_surveyor: z.string().optional().catch(''),
   case_delivery_or_service_incharge: z.string().optional().catch(''),
+  case_delivery_or_service_incharge_id: z.string().nullable().optional().catch(null),
   case_delivery_or_service_deadline: z
     .preprocess(
       (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
@@ -751,6 +756,8 @@ export function CasesActionDialog({
   const [shipyardContactPickerOpen, setShipyardContactPickerOpen] =
     useState(false)
   const [surveyorContactPickerOpen, setSurveyorContactPickerOpen] =
+    useState(false)
+  const [serviceContactPickerOpen, setServiceContactPickerOpen] =
     useState(false)
   const [inquiryDialogOpen, setInquiryDialogOpen] = useState(false)
   const [inquiryEditingId, setInquiryEditingId] = useState<number | null>(null)
@@ -1438,6 +1445,8 @@ export function CasesActionDialog({
             case_surveyor: currentRow.case_surveyor ?? '',
             case_delivery_or_service_incharge:
               currentRow.case_delivery_or_service_incharge ?? '',
+            case_delivery_or_service_incharge_id:
+              currentRow.case_delivery_or_service_incharge_id ?? null,
             case_delivery_or_service_deadline: formatDateAsHyphen(
               currentRow.case_delivery_or_service_deadline
             ),
@@ -1479,6 +1488,7 @@ export function CasesActionDialog({
             case_superintendent: '',
             case_surveyor: '',
             case_delivery_or_service_incharge: '',
+            case_delivery_or_service_incharge_id: null,
             case_delivery_or_service_deadline: '',
             case_eta_cargo_ready_date: '',
             case_etb_cargo_departure_date: '',
@@ -1536,6 +1546,189 @@ export function CasesActionDialog({
   const surveyorContactDisplay = useMemo(() => {
     return resolveSurveyorContactDisplay(formCaseSurveyor ?? '')
   }, [formCaseSurveyor, resolveSurveyorContactDisplay])
+
+  const { data: serviceContactAll = [] } = useQuery({
+    queryKey: ['contact-picker-all'],
+    queryFn: fetchContactAll,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const serviceContactIdMap = useMemo(() => {
+    const m = new Map<string, Contact>()
+    for (const c of serviceContactAll as Contact[]) {
+      if (c.contact_id != null && c.contact_id !== '') {
+        m.set(String(c.contact_id), c)
+      }
+    }
+    return m
+  }, [serviceContactAll])
+
+  const serviceContactNameMap = useMemo(() => {
+    const m = new Map<string, Contact>()
+    for (const c of serviceContactAll as Contact[]) {
+      const n = (c.contact_name ?? '').trim()
+      if (n) m.set(n, c)
+    }
+    return m
+  }, [serviceContactAll])
+
+  const { data: serviceContactGroups } = useQuery({
+    queryKey: ['service-contact-picker-groups'],
+    queryFn: fetchContactGroups,
+    enabled: open,
+    staleTime: 60000,
+  })
+
+  const serviceContactRankKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (serviceContactGroups as
+        | { rankDict?: ContactDictEntry[] }
+        | undefined)?.rankDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [serviceContactGroups])
+
+  const serviceContactTypeKeyMap = useMemo(() => {
+    const m = new Map<string, string>()
+    const list =
+      (serviceContactGroups as
+        | { typeDict?: ContactDictEntry[] }
+        | undefined)?.typeDict ?? []
+    for (const d of list) {
+      m.set(String(d.dict_key).toUpperCase(), d.dict_value)
+    }
+    return m
+  }, [serviceContactGroups])
+
+  const resolveServiceContactRankLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const byKey = serviceContactRankKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
+      return p
+    },
+    [serviceContactRankKeyMap]
+  )
+
+  const resolveServiceContactTypeLabel = useCallback(
+    (raw: unknown): string => {
+      if (raw === null || raw === undefined || raw === '') return ''
+      const p = String(raw).trim()
+      if (!p) return ''
+      const byKey = serviceContactTypeKeyMap.get(p.toUpperCase())
+      if (byKey) return byKey
+      return p
+    },
+    [serviceContactTypeKeyMap]
+  )
+
+  const formCaseServiceIncharge = form.watch('case_delivery_or_service_incharge')
+  const formCaseServiceInchargeId = form.watch('case_delivery_or_service_incharge_id')
+
+  const resolveServiceContactInitialIds = useCallback((): string[] => {
+    const idRaw = form.getValues('case_delivery_or_service_incharge_id')
+    const nameRaw = form.getValues('case_delivery_or_service_incharge')
+    if (idRaw != null && String(idRaw).trim() !== '') {
+      return String(idRaw)
+        .split(',')
+        .map((p) => p.trim())
+        .filter((x) => x !== '')
+    }
+    if (nameRaw != null && String(nameRaw).trim() !== '') {
+      const names = String(nameRaw)
+        .split(/[,，]\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+      const ids: string[] = []
+      for (const n of names) {
+        const c = serviceContactNameMap.get(n.trim())
+        if (c && c.contact_id != null && String(c.contact_id) !== '') {
+          ids.push(String(c.contact_id))
+        }
+      }
+      return ids
+    }
+    return []
+  }, [serviceContactNameMap, form])
+
+  const serviceContactDisplay = useMemo((): {
+    count: number
+    names: string[]
+    mobiles: string[]
+    emails: string[]
+    ranks: string[]
+    divisions: string[]
+    rawNames: string
+  } => {
+    const idRaw = formCaseServiceInchargeId ?? null
+    const nameRaw = formCaseServiceIncharge ?? ''
+    if (
+      (idRaw == null || String(idRaw).trim() === '') &&
+      (nameRaw == null || String(nameRaw).trim() === '')
+    ) {
+      return {
+        count: 0,
+        names: [],
+        mobiles: [],
+        emails: [],
+        ranks: [],
+        divisions: [],
+        rawNames: '',
+      }
+    }
+    const items: Contact[] = []
+    if (idRaw != null && String(idRaw).trim() !== '') {
+      const ids = String(idRaw)
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
+      for (const id of ids) {
+        const c = serviceContactIdMap.get(id)
+        if (c) items.push(c)
+      }
+    }
+    if (items.length === 0 && nameRaw && String(nameRaw).trim() !== '') {
+      const names = String(nameRaw)
+        .split(/[,，]\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+      for (const n of names) {
+        const c = serviceContactNameMap.get(n.trim())
+        if (c) items.push(c)
+      }
+    }
+    const names = items.map((c) => c.contact_name ?? '').filter(Boolean)
+    const mobiles = items.map((c) => c.contact_mobile ?? '').filter(Boolean)
+    const emails = items.map((c) => c.contact_email ?? '').filter(Boolean)
+    const ranks = items
+      .map((c) => resolveServiceContactRankLabel(c.contact_rank))
+      .filter(Boolean)
+    const divisions = items
+      .map((c) => resolveServiceContactTypeLabel(c.contact_type))
+      .filter(Boolean)
+    return {
+      count: items.length,
+      names,
+      mobiles,
+      emails,
+      ranks,
+      divisions,
+      rawNames: names.length > 0 ? names.join('，') : nameRaw ?? '',
+    }
+  }, [
+    formCaseServiceIncharge,
+    formCaseServiceInchargeId,
+    serviceContactIdMap,
+    serviceContactNameMap,
+    resolveServiceContactRankLabel,
+    resolveServiceContactTypeLabel,
+  ])
 
   const memoNameEditedRef = useRef(false)
   const keywordDuplicateCheckRef = useRef<{
@@ -1817,6 +2010,43 @@ export function CasesActionDialog({
     })
   }, [form])
 
+  const handleServiceContactsPicked = useCallback(
+    (r: CasesServiceContactMultiPickerResult) => {
+      const idCsv =
+        r.contact_ids && r.contact_ids.length > 0
+          ? r.contact_ids.map(String).join(',')
+          : ''
+      const nameCn =
+        r.contact_names && r.contact_names.length > 0
+          ? r.contact_names.join('，')
+          : ''
+      form.setValue(
+        'case_delivery_or_service_incharge_id',
+        idCsv === '' ? null : idCsv,
+        {
+          shouldDirty: true,
+          shouldValidate: false,
+        }
+      )
+      form.setValue('case_delivery_or_service_incharge', nameCn, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+    },
+    [form]
+  )
+
+  const handleClearServiceContacts = useCallback(() => {
+    form.setValue('case_delivery_or_service_incharge_id', null, {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    form.setValue('case_delivery_or_service_incharge', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+  }, [form])
+
   const inquiryForm = useForm<InquiryFormValues>({
     resolver: zodResolver(inquiryFormSchema),
     defaultValues: DEFAULT_INQUIRY_FORM_VALUES,
@@ -2057,6 +2287,11 @@ export function CasesActionDialog({
         case_surveyor: toOptStr(values.case_surveyor),
         case_delivery_or_service_incharge: toOptStr(
           values.case_delivery_or_service_incharge
+        ),
+        case_delivery_or_service_incharge_id: toOptStr(
+          values.case_delivery_or_service_incharge_id != null
+            ? String(values.case_delivery_or_service_incharge_id)
+            : ''
         ),
         case_delivery_or_service_deadline: toOptStr(
           values.case_delivery_or_service_deadline
@@ -3326,18 +3561,114 @@ export function CasesActionDialog({
                   control={form.control}
                   name='case_delivery_or_service_incharge'
                   render={({ field }) => (
-                    <FormItem className='col-span-2 grid grid-cols-12 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
+                    <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 pt-2 text-end'>
                         承运人｜服务负责人
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入承运人｜服务负责人'
-                          className='col-span-10'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-10 col-start-3' />
+                      <div className='col-span-10'>
+                        <FormControl>
+                          <div className='relative'>
+                            <Input
+                              placeholder='点击从联系人列表中选择服务负责人（可多选）...'
+                              className='cursor-pointer pe-20 pr-20'
+                              readOnly
+                              value={serviceContactDisplay.rawNames || ''}
+                              onClick={() =>
+                                setServiceContactPickerOpen(true)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setServiceContactPickerOpen(true)
+                                }
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
+                              {(serviceContactDisplay.rawNames ||
+                                formCaseServiceInchargeId) && (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleClearServiceContacts()
+                                  }}
+                                  className='pointer-events-auto h-7 w-7'
+                                  tabIndex={-1}
+                                  aria-label='清空服务负责人'
+                                >
+                                  <X className='h-3.5 w-3.5' />
+                                </Button>
+                              )}
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                onClick={() =>
+                                  setServiceContactPickerOpen(true)
+                                }
+                                className='pointer-events-auto h-7 w-7'
+                                tabIndex={-1}
+                                aria-label='选择服务负责人'
+                              >
+                                <Search className='h-3.5 w-3.5' />
+                              </Button>
+                              <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                            </div>
+                          </div>
+                        </FormControl>
+                        {serviceContactDisplay.count > 0 &&
+                          (serviceContactDisplay.mobiles.length > 0 ||
+                            serviceContactDisplay.emails.length > 0 ||
+                            serviceContactDisplay.ranks.length > 0 ||
+                            serviceContactDisplay.divisions.length > 0) && (
+                            <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                              <div>
+                                共 {serviceContactDisplay.count} 位
+                              </div>
+                              {serviceContactDisplay.mobiles.length > 0 && (
+                                <div>
+                                  手机：
+                                  {serviceContactDisplay.mobiles.join('，')}
+                                </div>
+                              )}
+                              {serviceContactDisplay.emails.length > 0 && (
+                                <div>
+                                  邮箱：
+                                  {serviceContactDisplay.emails.join('，')}
+                                </div>
+                              )}
+                              {serviceContactDisplay.ranks.length > 0 && (
+                                <div>
+                                  职级：
+                                  {[...new Set(serviceContactDisplay.ranks)].join(
+                                    '，'
+                                  )}
+                                </div>
+                              )}
+                              {serviceContactDisplay.divisions.length > 0 && (
+                                <div>
+                                  类型：
+                                  {[
+                                    ...new Set(
+                                      serviceContactDisplay.divisions
+                                    ),
+                                  ].join('，')}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        {serviceContactDisplay.count === 0 &&
+                          serviceContactDisplay.rawNames && (
+                            <p className='mt-1 text-xs text-muted-foreground/80'>
+                              服务负责人：
+                              {serviceContactDisplay.rawNames}
+                              （未在联系人库中找到匹配项，请手动补充或重新选择）
+                            </p>
+                          )}
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -3635,6 +3966,12 @@ export function CasesActionDialog({
         onOpenChange={setSurveyorContactPickerOpen}
         initialSelectedName={form.getValues('case_surveyor') || undefined}
         onSelect={handleSurveyorContactPicked}
+      />
+      <CasesServiceContactMultiPickerDialog
+        open={serviceContactPickerOpen}
+        onOpenChange={setServiceContactPickerOpen}
+        initialSelectedIds={resolveServiceContactInitialIds()}
+        onSelect={handleServiceContactsPicked}
       />
 
       <SupplierPickerDialog
