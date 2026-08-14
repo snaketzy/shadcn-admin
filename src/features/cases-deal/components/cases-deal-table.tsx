@@ -122,6 +122,18 @@ const FIXED_COL_STYLES: Record<
       minWidth: 88,
     },
   },
+  case_progress: {
+    th: {
+      width: 120,
+      minWidth: 120,
+      maxWidth: 120,
+    },
+    td: {
+      width: 120,
+      minWidth: 120,
+      maxWidth: 120,
+    },
+  },
 }
 
 type DataTableProps = Record<string, never>

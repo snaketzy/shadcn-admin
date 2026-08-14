@@ -3,6 +3,12 @@ import { AlertCircle, ListChecks, Handshake } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import { getBadgeColor } from '@/features/cases/data/data'
@@ -324,15 +330,35 @@ export function getCasesDealColumns(params?: {
         if (!value) return <div>-</div>
         const display = resolveProgressRLabel(value)
         return (
-          <Badge variant='outline' className={cn(getBadgeColor(value))}>
-            {display}
-          </Badge>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='w-full overflow-hidden'>
+                  <Badge
+                    variant='outline'
+                    className={cn(
+                      getBadgeColor(value),
+                      'max-w-full whitespace-nowrap px-2'
+                    )}
+                  >
+                    <span className='truncate'>{display}</span>
+                  </Badge>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{display}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
+      size: 120,
+      minSize: 120,
+      maxSize: 120,
       meta: {
         label: '案件进度',
-        className: 'w-[110px] min-w-[110px]',
-        thClassName: 'w-[110px] min-w-[110px]',
+        className: 'w-[120px] min-w-[120px] max-w-[120px]',
+        thClassName: 'w-[120px] min-w-[120px] max-w-[120px]',
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
