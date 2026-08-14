@@ -72,6 +72,7 @@ import {
   deleteCaseListBulk,
   checkDuplicateInquiryKeyword,
   ensureCaseOwnerFollowingIdColumn,
+  ensureCaseDeliveryServiceInchargeIdColumn,
 } from './src/service/connection/case-list-service'
 import {
   createCaseInquiryListBulk,
@@ -983,6 +984,7 @@ async function handleCaseListApi(
 
   try {
     await ensureCaseOwnerFollowingIdColumn()
+    await ensureCaseDeliveryServiceInchargeIdColumn()
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
         const page = Number(searchParams.get('page') ?? 1)
@@ -1047,6 +1049,7 @@ async function handleCaseListApi(
           case_superintendent: toOptStr(body.case_superintendent),
           case_surveyor: toOptStr(body.case_surveyor),
           case_delivery_or_service_incharge: toOptStr(body.case_delivery_or_service_incharge),
+          case_delivery_or_service_incharge_id: toOptStr(body.case_delivery_or_service_incharge_id),
           case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
           case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
           case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),
@@ -1150,6 +1153,7 @@ async function handleCaseListApi(
           case_superintendent: toOptStr(body.case_superintendent),
           case_surveyor: toOptStr(body.case_surveyor),
           case_delivery_or_service_incharge: toOptStr(body.case_delivery_or_service_incharge),
+          case_delivery_or_service_incharge_id: toOptStr(body.case_delivery_or_service_incharge_id),
           case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
           case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
           case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),
