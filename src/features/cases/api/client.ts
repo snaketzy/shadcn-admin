@@ -286,6 +286,43 @@ export async function deleteCaseBulk(caseIds: number[]): Promise<number> {
   return res.data.data.deleted
 }
 
+export interface CaseMemoAttachment {
+  name: string
+  size: number
+  type: string
+  data: string
+}
+
+export interface CaseMemo {
+  memo_id: number
+  case_id: number
+  case_memo_date: string | null
+  case_memo_content: string | null
+  case_memo_remark: string | null
+  case_memo_attachement: string | null
+  case_memo_timestamp: string | null
+}
+
+export async function fetchCaseMemosByCaseId(
+  caseId: number
+): Promise<CaseMemo[]> {
+  const res = await api.get<ApiEnvelope<CaseMemo[]>>(
+    `/case-memo/by-case/${caseId}`
+  )
+  return res.data.data ?? []
+}
+
+export async function createCaseMemo(payload: {
+  case_id: number
+  case_memo_date?: string | null
+  case_memo_content?: string | null
+  case_memo_remark?: string | null
+  case_memo_attachement?: string | null
+}): Promise<CaseMemo> {
+  const res = await api.post<ApiEnvelope<CaseMemo>>('/case-memo/', payload)
+  return res.data.data
+}
+
 export interface CaseInquiry {
   inquiry_id: number
   case_id: number

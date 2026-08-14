@@ -75,6 +75,11 @@ import {
   ensureCaseDeliveryServiceInchargeIdColumn,
 } from './src/service/connection/case-list-service'
 import {
+  ensureCaseMemoTable,
+  createCaseMemo,
+  getCaseMemosByCaseId,
+} from './src/service/connection/case-memo-service'
+import {
   createCaseInquiryListBulk,
   getCaseInquiryListByCaseId,
   replaceCaseInquiryListByCaseId,
@@ -1189,6 +1194,62 @@ async function handleCaseListApi(
   }
 }
 
+async function handleCaseMemoApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/case-memo')) {
+    return false
+  }
+
+  await ensureCaseMemoTable()
+
+  const subPath = pathname.slice('/api/case-memo'.length) || '/'
+
+  try {
+    const byCaseMatch = subPath.match(/^\/by-case\/(\d+)$/)
+    if (byCaseMatch && method === 'GET') {
+      const caseId = Number(byCaseMatch[1])
+      const rows = await getCaseMemosByCaseId(caseId)
+      sendJson(res, 200, { success: true, data: rows })
+      return true
+    }
+
+    if (subPath === '/' || subPath === '') {
+      if (method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown> | undefined
+        const caseId = Number(body?.case_id)
+        if (!caseId || !Number.isFinite(caseId)) {
+          sendJson(res, 400, { success: false, message: 'case_id 非法' })
+          return true
+        }
+        const created = await createCaseMemo({
+          case_id: caseId,
+          case_memo_date: toOptStr(body?.case_memo_date),
+          case_memo_content: toOptStr(body?.case_memo_content),
+          case_memo_remark: toOptStr(body?.case_memo_remark),
+          case_memo_attachement: toOptStr(body?.case_memo_attachement),
+        })
+        sendJson(res, 200, { success: true, data: created })
+        return true
+      }
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[case-memo API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 async function handleCaseInquiryListApi(
   req: IncomingMessage,
   res: ServerResponse
@@ -1350,6 +1411,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/case-inquiry-list')) {
             const handled = await handleCaseInquiryListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/case-memo')) {
+            const handled = await handleCaseMemoApi(req, res)
             if (handled) return
           }
           next()
