@@ -3324,6 +3324,25 @@ export function CasesActionDialog({
                 />
                 <FormField
                   control={form.control}
+                  name='case_delivery_or_service_incharge'
+                  render={({ field }) => (
+                    <FormItem className='col-span-2 grid grid-cols-12 items-center space-y-0 gap-x-4 gap-y-1'>
+                      <FormLabel className='col-span-2 text-end'>
+                        承运人｜服务负责人
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='请输入承运人｜服务负责人'
+                          className='col-span-10'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-10 col-start-3' />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name='case_delivery_or_service_deadline'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
@@ -3436,25 +3455,6 @@ export function CasesActionDialog({
                           className='col-span-4'
                           {...field}
                           value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_delivery_or_service_incharge'
-                  render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        承运人｜服务负责人
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入承运人｜服务负责人'
-                          className='col-span-4'
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage className='col-span-4 col-start-3' />
