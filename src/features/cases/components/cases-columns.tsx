@@ -469,6 +469,9 @@ export function getCasesColumns(params?: {
     },
     {
       accessorKey: 'owner_following',
+      size: 180,
+      minSize: 180,
+      maxSize: 180,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='船东联系人' />
       ),
@@ -488,17 +491,33 @@ export function getCasesColumns(params?: {
           (p) => p && String(p).trim().length > 0
         )
         if (parts.length === 0) return <div>-</div>
-        const text = parts.join(' ')
+        const fullText = parts.join(' ')
+        const emailShort = email ? email.split('@')[0] : ''
+        const shortParts = [name, emailShort].filter(
+          (p) => p && String(p).trim().length > 0
+        )
+        const shortText = shortParts.join(' ')
         return (
-          <LongText className='max-w-[300px]' title={text}>
-            {text}
-          </LongText>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='w-full overflow-hidden'>
+                  <span className='block truncate whitespace-nowrap'>
+                    {shortText}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{fullText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       meta: {
         label: '船东联系人',
-        className: 'w-[300px] min-w-[220px]',
-        thClassName: 'w-[300px] min-w-[220px]',
+        className: 'w-[180px] min-w-[180px] max-w-[180px]',
+        thClassName: 'w-[180px] min-w-[180px] max-w-[180px]',
       },
       enableSorting: false,
     },

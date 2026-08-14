@@ -64,10 +64,7 @@ export function getCasesDealColumns(params?: {
   urgentBMap?: Map<string, string>
   urgentBIsUrgentSet?: Set<string>
   handleTodayBIsYesSet?: Set<string>
-  ownerNameEmailMap?: Map<
-    string,
-    { owner_name: string; owner_email: string }
-  >
+  ownerNameEmailMap?: Map<string, { owner_name: string; owner_email: string }>
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -338,7 +335,7 @@ export function getCasesDealColumns(params?: {
                     variant='outline'
                     className={cn(
                       getBadgeColor(value),
-                      'max-w-full whitespace-nowrap px-2'
+                      'max-w-full px-2 whitespace-nowrap'
                     )}
                   >
                     <span className='truncate'>{display}</span>
@@ -374,8 +371,7 @@ export function getCasesDealColumns(params?: {
         const value = row.getValue('case_inquiry_type') as string | null
         if (!value) return <div>-</div>
         const display = resolveInqTypeALabel(value)
-        const isService =
-          display.trim().toLowerCase() === 'service'
+        const isService = display.trim().toLowerCase() === 'service'
         const badgeClass = isService
           ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200'
           : getBadgeColor(value)
@@ -440,7 +436,9 @@ export function getCasesDealColumns(params?: {
         if (!formatted) return <div>-</div>
         const today = getTodayHyphen()
         const isToday = formatted === today
-        const isHandleToday = isHandleTodayRow(row.original.case_should_handle_today)
+        const isHandleToday = isHandleTodayRow(
+          row.original.case_should_handle_today
+        )
         return (
           <div
             className={cn(
@@ -464,6 +462,9 @@ export function getCasesDealColumns(params?: {
     },
     {
       accessorKey: 'owner_following',
+      size: 180,
+      minSize: 180,
+      maxSize: 180,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='船东联系人' />
       ),
@@ -477,17 +478,33 @@ export function getCasesDealColumns(params?: {
           (p) => p && String(p).trim().length > 0
         )
         if (parts.length === 0) return <div>-</div>
-        const text = parts.join(' ')
+        const fullText = parts.join(' ')
+        const emailShort = email ? email.split('@')[0] : ''
+        const shortParts = [name, emailShort].filter(
+          (p) => p && String(p).trim().length > 0
+        )
+        const shortText = shortParts.join(' ')
         return (
-          <LongText className='max-w-[300px]' title={text}>
-            {text}
-          </LongText>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='w-full overflow-hidden'>
+                  <span className='block truncate whitespace-nowrap'>
+                    {shortText}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{fullText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       meta: {
         label: '船东联系人',
-        className: 'w-[300px] min-w-[220px]',
-        thClassName: 'w-[300px] min-w-[220px]',
+        className: 'w-[180px] min-w-[180px] max-w-[180px]',
+        thClassName: 'w-[180px] min-w-[180px] max-w-[180px]',
       },
       enableSorting: false,
     },
