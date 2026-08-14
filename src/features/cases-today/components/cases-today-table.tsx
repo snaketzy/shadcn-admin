@@ -124,6 +124,9 @@ const FIXED_COL_STYLES: Record<
   },
   case_progress: {
     th: {
+      position: 'sticky',
+      top: 0,
+      zIndex: 50,
       width: 120,
       minWidth: 120,
       maxWidth: 120,
