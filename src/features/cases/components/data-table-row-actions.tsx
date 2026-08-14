@@ -1,5 +1,5 @@
 import { type Row } from '@tanstack/react-table'
-import { Trash2, UserPen } from 'lucide-react'
+import { StickyNotePlus, Trash2, UserPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { type Case } from '../data/schema'
 import { useCases } from './cases-provider'
@@ -33,6 +33,17 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         }}
       >
         <Trash2 size={16} />
+      </Button>
+      <Button
+        variant='ghost'
+        size='icon'
+        className='h-8 w-8'
+        onClick={() => {
+          setCurrentRow(row.original)
+          setOpen('remark')
+        }}
+      >
+        <StickyNotePlus size={16} />
       </Button>
     </div>
   )

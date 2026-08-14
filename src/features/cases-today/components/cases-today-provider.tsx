@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import { type Case } from '@/features/cases/data/schema'
 
-type CasesTodayDialogType = 'add' | 'edit' | 'delete'
+type CasesTodayDialogType = 'add' | 'edit' | 'delete' | 'remark'
 
 type CasesTodayContextType = {
   open: CasesTodayDialogType | null

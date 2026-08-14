@@ -1,5 +1,6 @@
 import { CasesActionDialog } from './cases-action-dialog'
 import { CasesDeleteDialog } from './cases-delete-dialog'
+import { CasesRemarkDialog } from './cases-remark-dialog'
 import { useCases } from './cases-provider'
 
 export function CasesDialogs() {
@@ -31,6 +32,18 @@ export function CasesDialogs() {
             open={open === 'delete'}
             onOpenChange={() => {
               setOpen('delete')
+              setTimeout(() => {
+                setCurrentRow(null)
+              }, 500)
+            }}
+            currentRow={currentRow}
+          />
+
+          <CasesRemarkDialog
+            key={`case-remark-${currentRow.case_id}`}
+            open={open === 'remark'}
+            onOpenChange={() => {
+              setOpen('remark')
               setTimeout(() => {
                 setCurrentRow(null)
               }, 500)
