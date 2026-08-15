@@ -402,6 +402,9 @@ export function getCasesColumns(params?: {
     },
     {
       accessorKey: 'case_inquiry_date',
+      size: 122,
+      minSize: 122,
+      maxSize: 122,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='询价日期' />
       ),
@@ -412,13 +415,16 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '询价日期',
-        className: 'w-[144px] min-w-[144px]',
-        thClassName: 'w-[144px] min-w-[144px]',
+        className: 'w-[122px] min-w-[122px] max-w-[122px]',
+        thClassName: 'w-[122px] min-w-[122px] max-w-[122px]',
       },
       enableSorting: false,
     },
     {
       accessorKey: 'case_follow_date',
+      size: 122,
+      minSize: 122,
+      maxSize: 122,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='开始日期' />
       ),
@@ -429,13 +435,16 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '开始日期',
-        className: 'w-[144px] min-w-[144px]',
-        thClassName: 'w-[144px] min-w-[144px]',
+        className: 'w-[122px] min-w-[122px] max-w-[122px]',
+        thClassName: 'w-[122px] min-w-[122px] max-w-[122px]',
       },
       enableSorting: false,
     },
     {
       accessorKey: 'case_uptodate_date',
+      size: 122,
+      minSize: 122,
+      maxSize: 122,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='跟进日期' />
       ),
@@ -462,8 +471,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '跟进日期',
-        className: 'w-[144px] min-w-[144px]',
-        thClassName: 'w-[144px] min-w-[144px]',
+        className: 'w-[122px] min-w-[122px] max-w-[122px]',
+        thClassName: 'w-[122px] min-w-[122px] max-w-[122px]',
       },
       enableSorting: false,
     },
