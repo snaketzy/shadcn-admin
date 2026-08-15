@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setCasesTodayOpen,
+  setCasesTodayCurrentRow,
+  type CasesTodayDialogType,
+} from '@/store/slices/cases-today-slice'
 import { type Case } from '@/features/cases/data/schema'
-
-type CasesTodayDialogType = 'add' | 'edit' | 'delete' | 'remark'
 
 type CasesTodayContextType = {
   open: CasesTodayDialogType | null
@@ -11,26 +14,32 @@ type CasesTodayContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Case | null>>
 }
 
-const CasesTodayContext = React.createContext<CasesTodayContextType | null>(null)
-
-export function CasesTodayProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<CasesTodayDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Case | null>(null)
-
-  return (
-    <CasesTodayContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </CasesTodayContext>
-  )
+export function CasesTodayProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useCasesToday = () => {
-  const ctx = React.useContext(CasesTodayContext)
+export const useCasesToday = (): CasesTodayContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.casesToday.open)
+  const currentRow = useAppSelector((s) => s.casesToday.currentRow)
 
-  if (!ctx) {
-    throw new Error('useCasesToday has to be used within <CasesTodayContext>')
+  const setOpen = (str: CasesTodayDialogType | null) => {
+    dispatch(setCasesTodayOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Case | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setCasesTodayCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setCasesTodayCurrentRow(v))
+    }
   }
 
-  return ctx
+  return { open, setOpen, currentRow, setCurrentRow }
 }

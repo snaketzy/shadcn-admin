@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setCasesOpen,
+  setCasesCurrentRow,
+  type CasesDialogType,
+} from '@/store/slices/cases-slice'
 import { type Case } from '../data/schema'
-
-type CasesDialogType = 'add' | 'edit' | 'delete' | 'remark'
 
 type CasesContextType = {
   open: CasesDialogType | null
@@ -11,26 +14,28 @@ type CasesContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Case | null>>
 }
 
-const CasesContext = React.createContext<CasesContextType | null>(null)
-
 export function CasesProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<CasesDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Case | null>(null)
-
-  return (
-    <CasesContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </CasesContext>
-  )
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useCases = () => {
-  const casesContext = React.useContext(CasesContext)
+export const useCases = (): CasesContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.cases.open)
+  const currentRow = useAppSelector((s) => s.cases.currentRow)
 
-  if (!casesContext) {
-    throw new Error('useCases has to be used within <CasesContext>')
+  const setOpen = (str: CasesDialogType | null) => {
+    dispatch(setCasesOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Case | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setCasesCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setCasesCurrentRow(v))
+    }
   }
 
-  return casesContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setUsersOpen,
+  setUsersCurrentRow,
+  type UsersDialogType,
+} from '@/store/slices/users-slice'
 import { type Vessel } from '../data/schema'
-
-type UsersDialogType = 'add' | 'edit' | 'delete'
 
 type UsersContextType = {
   open: UsersDialogType | null
@@ -11,26 +14,32 @@ type UsersContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Vessel | null>>
 }
 
-const UsersContext = React.createContext<UsersContextType | null>(null)
-
-export function UsersProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<UsersDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Vessel | null>(null)
-
-  return (
-    <UsersContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </UsersContext>
-  )
+export function UsersProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useUsers = () => {
-  const usersContext = React.useContext(UsersContext)
+export const useUsers = (): UsersContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.users.open)
+  const currentRow = useAppSelector((s) => s.users.currentRow)
 
-  if (!usersContext) {
-    throw new Error('useUsers has to be used within <UsersContext>')
+  const setOpen = (str: UsersDialogType | null) => {
+    dispatch(setUsersOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Vessel | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setUsersCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setUsersCurrentRow(v))
+    }
   }
 
-  return usersContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

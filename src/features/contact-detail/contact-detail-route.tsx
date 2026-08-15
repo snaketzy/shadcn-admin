@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, getRouteApi } from '@tanstack/react-router'
 import { UserRound, AlertCircle } from 'lucide-react'
@@ -14,6 +14,13 @@ import {
   type DivisionCollaborationRow,
 } from '@/features/contacts/api/client'
 import { ContactDetailShell } from './contact-detail-shell'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setContactDetailAll,
+  resetContactDetail,
+  type ContactDetailGroups,
+} from '@/store/slices/contact-detail-slice'
+import type { Contact } from '@/features/contacts/data/schema'
 
 const route = getRouteApi('/_authenticated/contact_detail/$contactId')
 
@@ -33,8 +40,6 @@ export type ContactDetailCtxValue = {
   collaborationRows: DivisionCollaborationRow[]
 }
 
-const ContactDetailCtx = createContext<ContactDetailCtxValue | null>(null)
-
 function useContactDetailQuery(contactId: string) {
   const idNum = Number(contactId)
   const enabled = !isNaN(idNum) && idNum > 0
@@ -53,6 +58,7 @@ function useContactDetailQuery(contactId: string) {
 }
 
 export function ContactDetailRoute() {
+  const dispatch = useAppDispatch()
   const { contactId } = route.useParams()
   const { contact, isLoading, error, isNotFound } =
     useContactDetailQuery(contactId)
@@ -62,7 +68,7 @@ export function ContactDetailRoute() {
     queryFn: fetchContactGroups,
     staleTime: 60 * 1000,
   })
-  const groups = {
+  const groups: ContactDetailGroups = {
     typeDict: groupsData?.typeDict ?? [],
     divisionDict: groupsData?.divisionDict ?? [],
     rankDict: groupsData?.rankDict ?? [],
@@ -81,11 +87,38 @@ export function ContactDetailRoute() {
     staleTime: 60 * 1000,
   })
 
-  const pageTitle = contact?.contact_name || '联系人详情'
+  useEffect(() => {
+    dispatch(
+      setContactDetailAll({
+        contactId,
+        contact: contact as Contact | null,
+        isLoading,
+        error,
+        groups,
+        supplierRows,
+        collaborationRows,
+      })
+    )
+    return () => {
+      dispatch(resetContactDetail())
+    }
+  }, [
+    dispatch,
+    contactId,
+    contact,
+    isLoading,
+    error,
+    groups,
+    supplierRows,
+    collaborationRows,
+  ])
+
+  const pageTitle = (contact as Contact | null)?.contact_name || '联系人详情'
   const divisionDisplay = useMemo(() => {
     if (!contact) return undefined
-    const divisionType = (contact.contact_division_type ?? '').toUpperCase()
-    const divisionId = contact.contact_division_id
+    const c = contact as Contact
+    const divisionType = (c.contact_division_type ?? '').toUpperCase()
+    const divisionId = c.contact_division_id
     if (!divisionType || !divisionId) return undefined
     const idStr = String(divisionId)
     if (divisionType === 'K1') {
@@ -103,12 +136,12 @@ export function ContactDetailRoute() {
       return `供应商 #${idStr}`
     }
     if (divisionType === 'K2') {
-      const c = collaborationRows.find(
+      const co = collaborationRows.find(
         (r) => String(r.collaboration_id) === idStr
       ) as DivisionCollaborationRow | undefined
-      if (c) {
-        const short = c.collaboration_shortname?.trim()
-        const full = c.collaboration_name?.trim()
+      if (co) {
+        const short = co.collaboration_shortname?.trim()
+        const full = co.collaboration_name?.trim()
         const parts: string[] = []
         if (short) parts.push(short)
         if (full && full !== short) parts.push(full)
@@ -127,18 +160,8 @@ export function ContactDetailRoute() {
     },
   ]
 
-  const ctx: ContactDetailCtxValue = {
-    contactId,
-    contact,
-    isLoading,
-    error,
-    groups,
-    supplierRows,
-    collaborationRows,
-  }
-
   return (
-    <ContactDetailCtx.Provider value={ctx}>
+    <>
       <ContactDetailShell
         contactId={contactId}
         title={pageTitle}
@@ -152,18 +175,21 @@ export function ContactDetailRoute() {
         )}
         {!isLoading && !error && !isNotFound && contact && <Outlet />}
       </ContactDetailShell>
-    </ContactDetailCtx.Provider>
+    </>
   )
 }
 
 export function useContactDetail(): ContactDetailCtxValue {
-  const ctx = useContext(ContactDetailCtx)
-  if (!ctx) {
-    throw new Error(
-      'useContactDetail must be used within ContactDetailCtx Provider'
-    )
+  const state = useAppSelector((s) => s.contactDetail)
+  return {
+    contactId: state.contactId,
+    contact: state.contact,
+    isLoading: state.isLoading,
+    error: state.error,
+    groups: state.groups,
+    supplierRows: state.supplierRows,
+    collaborationRows: state.collaborationRows,
   }
-  return ctx
 }
 
 function ContactDetailSkeleton() {

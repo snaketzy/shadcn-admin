@@ -1,17 +1,26 @@
-import { createContext, useContext, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet } from '@tanstack/react-router'
 import { getRouteApi } from '@tanstack/react-router'
 import { UserRound, Briefcase, AlertCircle, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
+import {
+  fetchContactAll,
+  type Contact,
+} from '@/features/contacts/api/client'
 import {
   fetchSupplierDetail,
   fetchSupplierGroups,
   type SupplierDictEntry,
+  type Supplier,
 } from '@/features/suppliers/api/client'
 import { SupplierDetailShell } from './supplier-detail-shell'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setSupplierDetailAll,
+  resetSupplierDetail,
+} from '@/store/slices/supplier-detail-slice'
 
 const route = getRouteApi('/_authenticated/supplier_detail/$supplierId')
 
@@ -24,8 +33,6 @@ export type SupplierDetailCtxValue = {
   contactMap: Map<string, Contact>
   fieldDict: SupplierDictEntry[]
 }
-
-const SupplierDetailCtx = createContext<SupplierDetailCtxValue | null>(null)
 
 function useSupplierDetailQuery(supplierId: string) {
   const idNum = Number(supplierId)
@@ -45,6 +52,7 @@ function useSupplierDetailQuery(supplierId: string) {
 }
 
 export function SupplierDetailRoute() {
+  const dispatch = useAppDispatch()
   const { supplierId } = route.useParams()
   const { supplier, isLoading, error, isNotFound } =
     useSupplierDetailQuery(supplierId)
@@ -62,29 +70,30 @@ export function SupplierDetailRoute() {
     staleTime: 60 * 1000,
   })
 
-  const contactNameMap = useMemo(() => {
-    const out = new Map<string, string>()
-    for (const c of contactRows as Contact[]) {
-      if (!c.contact_name) continue
-      out.set(String(c.contact_id), c.contact_name)
+  useEffect(() => {
+    dispatch(
+      setSupplierDetailAll({
+        supplierId,
+        supplier: supplier as Supplier | null,
+        isLoading,
+        error,
+        contactRows: contactRows as Contact[],
+        fieldDict,
+      })
+    )
+    return () => {
+      dispatch(resetSupplierDetail())
     }
-    return out
-  }, [contactRows])
-
-  const contactMap = useMemo(() => {
-    const out = new Map<string, Contact>()
-    for (const c of contactRows as Contact[]) {
-      out.set(String(c.contact_id), c)
-    }
-    return out
-  }, [contactRows])
+  }, [dispatch, supplierId, supplier, isLoading, error, contactRows, fieldDict])
 
   const pageTitle =
-    supplier?.supplier_shortname || supplier?.supplier_name || '供应商详情'
-  const pageSub = supplier?.supplier_name
-    ? supplier.supplier_advantage
-      ? `${supplier.supplier_name} · ${supplier.supplier_advantage}`
-      : supplier.supplier_name
+    (supplier as Supplier | null)?.supplier_shortname ||
+    (supplier as Supplier | null)?.supplier_name ||
+    '供应商详情'
+  const pageSub = (supplier as Supplier | null)?.supplier_name
+    ? (supplier as Supplier).supplier_advantage
+      ? `${(supplier as Supplier).supplier_name} · ${(supplier as Supplier).supplier_advantage}`
+      : (supplier as Supplier).supplier_name
     : undefined
 
   const sidebarItems = [
@@ -105,18 +114,8 @@ export function SupplierDetailRoute() {
     },
   ]
 
-  const ctx: SupplierDetailCtxValue = {
-    supplierId,
-    supplier,
-    isLoading,
-    error,
-    contactNameMap,
-    contactMap,
-    fieldDict,
-  }
-
   return (
-    <SupplierDetailCtx.Provider value={ctx}>
+    <>
       <SupplierDetailShell
         supplierId={supplierId}
         title={pageTitle}
@@ -130,18 +129,39 @@ export function SupplierDetailRoute() {
         )}
         {!isLoading && !error && !isNotFound && supplier && <Outlet />}
       </SupplierDetailShell>
-    </SupplierDetailCtx.Provider>
+    </>
   )
 }
 
 export function useSupplierDetail(): SupplierDetailCtxValue {
-  const ctx = useContext(SupplierDetailCtx)
-  if (!ctx) {
-    throw new Error(
-      'useSupplierDetail must be used within SupplierDetailCtx Provider'
-    )
+  const state = useAppSelector((s) => s.supplierDetail)
+
+  const contactNameMap = useMemo(() => {
+    const out = new Map<string, string>()
+    for (const c of state.contactRows) {
+      if (!c.contact_name) continue
+      out.set(String(c.contact_id), c.contact_name)
+    }
+    return out
+  }, [state.contactRows])
+
+  const contactMap = useMemo(() => {
+    const out = new Map<string, Contact>()
+    for (const c of state.contactRows) {
+      out.set(String(c.contact_id), c)
+    }
+    return out
+  }, [state.contactRows])
+
+  return {
+    supplierId: state.supplierId,
+    supplier: state.supplier,
+    isLoading: state.isLoading,
+    error: state.error,
+    contactNameMap,
+    contactMap,
+    fieldDict: state.fieldDict,
   }
-  return ctx
 }
 
 function SupplierDetailSkeleton() {

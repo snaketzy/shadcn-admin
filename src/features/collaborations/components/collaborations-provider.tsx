@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setCollaborationsOpen,
+  setCollaborationsCurrentRow,
+  type CollaborationsDialogType,
+} from '@/store/slices/collaborations-slice'
 import { type Collaboration } from '../data/schema'
-
-type CollaborationsDialogType = 'add' | 'edit' | 'delete'
 
 type CollaborationsContextType = {
   open: CollaborationsDialogType | null
@@ -11,26 +14,32 @@ type CollaborationsContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Collaboration | null>>
 }
 
-const CollaborationsContext = React.createContext<CollaborationsContextType | null>(null)
-
-export function CollaborationsProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<CollaborationsDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Collaboration | null>(null)
-
-  return (
-    <CollaborationsContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </CollaborationsContext>
-  )
+export function CollaborationsProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useCollaborations = () => {
-  const collaborationsContext = React.useContext(CollaborationsContext)
+export const useCollaborations = (): CollaborationsContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.collaborations.open)
+  const currentRow = useAppSelector((s) => s.collaborations.currentRow)
 
-  if (!collaborationsContext) {
-    throw new Error('useCollaborations has to be used within <CollaborationsContext>')
+  const setOpen = (str: CollaborationsDialogType | null) => {
+    dispatch(setCollaborationsOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<
+    React.SetStateAction<Collaboration | null>
+  > = (v) => {
+    if (typeof v === 'function') {
+      dispatch(setCollaborationsCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setCollaborationsCurrentRow(v))
+    }
   }
 
-  return collaborationsContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

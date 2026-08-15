@@ -1,58 +1,48 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  FONT_CONSTANTS,
+  resetFont,
+  setFont as setFontAction,
+  type Font,
+} from '@/store/slices/font-slice'
 import { fonts } from '@/config/fonts'
-import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
+import { setCookie, removeCookie } from '@/lib/cookies'
 
-type Font = (typeof fonts)[number]
-
-const FONT_COOKIE_NAME = 'font'
-const FONT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
-
-type FontContextType = {
-  font: Font
-  setFont: (font: Font) => void
-  resetFont: () => void
-}
-
-const FontContext = createContext<FontContextType | null>(null)
+const FONT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 export function FontProvider({ children }: { children: React.ReactNode }) {
-  const [font, _setFont] = useState<Font>(() => {
-    const savedFont = getCookie(FONT_COOKIE_NAME)
-    return fonts.includes(savedFont as Font) ? (savedFont as Font) : fonts[0]
-  })
+  const font = useAppSelector((s) => s.font.font)
 
   useEffect(() => {
-    const applyFont = (font: string) => {
+    const applyFont = (f: string) => {
       const root = document.documentElement
       root.classList.forEach((cls) => {
         if (cls.startsWith('font-')) root.classList.remove(cls)
       })
-      root.classList.add(`font-${font}`)
+      root.classList.add(`font-${f}`)
     }
-
     applyFont(font)
   }, [font])
 
-  const setFont = (font: Font) => {
-    setCookie(FONT_COOKIE_NAME, font, FONT_COOKIE_MAX_AGE)
-    _setFont(font)
-  }
-
-  const resetFont = () => {
-    removeCookie(FONT_COOKIE_NAME)
-    _setFont(fonts[0])
-  }
-
-  return (
-    <FontContext value={{ font, setFont, resetFont }}>{children}</FontContext>
-  )
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useFont = () => {
-  const context = useContext(FontContext)
-  if (!context) {
-    throw new Error('useFont must be used within a FontProvider')
+  const dispatch = useAppDispatch()
+  const font = useAppSelector((s) => s.font.font)
+
+  const setFont = (f: Font) => {
+    dispatch(setFontAction(f))
+    setCookie(FONT_CONSTANTS.FONT_COOKIE_NAME, f, FONT_COOKIE_MAX_AGE)
   }
-  return context
+  const reset = () => {
+    dispatch(resetFont())
+    removeCookie(FONT_CONSTANTS.FONT_COOKIE_NAME)
+  }
+
+  return { font, setFont, resetFont: reset }
 }
+
+void fonts

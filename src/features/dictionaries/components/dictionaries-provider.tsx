@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setDictionariesOpen,
+  setDictionariesCurrentRow,
+  type DictionariesDialogType,
+} from '@/store/slices/dictionaries-slice'
 import { type CaseDictType } from '../data/schema'
-
-type DictionariesDialogType = 'add' | 'edit' | 'delete'
 
 type DictionariesContextType = {
   open: DictionariesDialogType | null
@@ -11,25 +14,31 @@ type DictionariesContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<CaseDictType | null>>
 }
 
-const DictionariesContext = React.createContext<DictionariesContextType | null>(null)
-
-export function DictionariesProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<DictionariesDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<CaseDictType | null>(null)
-
-  return (
-    <DictionariesContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </DictionariesContext>
-  )
+export function DictionariesProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
-export const useDictionaries = () => {
-  const dictionariesContext = React.useContext(DictionariesContext)
+export const useDictionaries = (): DictionariesContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.dictionaries.open)
+  const currentRow = useAppSelector((s) => s.dictionaries.currentRow)
 
-  if (!dictionariesContext) {
-    throw new Error('useDictionaries has to be used within <DictionariesContext>')
+  const setOpen = (str: DictionariesDialogType | null) => {
+    dispatch(setDictionariesOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<
+    React.SetStateAction<CaseDictType | null>
+  > = (v) => {
+    if (typeof v === 'function') {
+      dispatch(setDictionariesCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setDictionariesCurrentRow(v))
+    }
   }
 
-  return dictionariesContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

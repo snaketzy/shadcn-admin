@@ -1,46 +1,47 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { CommandMenu } from '@/components/command-menu'
-
-type SearchContextType = {
-  open: boolean
-  setOpen: React.Dispatch<React.SetStateAction<boolean>>
-}
-
-const SearchContext = createContext<SearchContextType | null>(null)
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setSearchOpen,
+  toggleSearchOpen,
+} from '@/store/slices/search-slice'
 
 type SearchProviderProps = {
   children: React.ReactNode
 }
 
 export function SearchProvider({ children }: SearchProviderProps) {
-  const [open, setOpen] = useState(false)
+  const dispatch = useAppDispatch()
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setOpen((open) => !open)
+        dispatch(toggleSearchOpen())
       }
     }
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
-  }, [])
+  }, [dispatch])
 
   return (
-    <SearchContext value={{ open, setOpen }}>
+    <>
       {children}
       <CommandMenu />
-    </SearchContext>
+    </>
   )
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useSearch = () => {
-  const searchContext = useContext(SearchContext)
-
-  if (!searchContext) {
-    throw new Error('useSearch has to be used within SearchProvider')
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.search.open)
+  const setOpen: React.Dispatch<React.SetStateAction<boolean>> = (v) => {
+    if (typeof v === 'function') {
+      dispatch(setSearchOpen(v(open)))
+    } else {
+      dispatch(setSearchOpen(v))
+    }
   }
-
-  return searchContext
+  return { open, setOpen }
 }

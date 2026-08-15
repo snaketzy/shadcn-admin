@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setTasksOpen,
+  setTasksCurrentRow,
+  type TasksDialogType,
+} from '@/store/slices/tasks-slice'
 import { type Task } from '../data/schema'
-
-type TasksDialogType = 'create' | 'update' | 'delete' | 'import'
 
 type TasksContextType = {
   open: TasksDialogType | null
@@ -11,26 +14,32 @@ type TasksContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Task | null>>
 }
 
-const TasksContext = React.createContext<TasksContextType | null>(null)
-
-export function TasksProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<TasksDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Task | null>(null)
-
-  return (
-    <TasksContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </TasksContext>
-  )
+export function TasksProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useTasks = () => {
-  const tasksContext = React.useContext(TasksContext)
+export const useTasks = (): TasksContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.tasks.open)
+  const currentRow = useAppSelector((s) => s.tasks.currentRow)
 
-  if (!tasksContext) {
-    throw new Error('useTasks has to be used within <TasksContext>')
+  const setOpen = (str: TasksDialogType | null) => {
+    dispatch(setTasksOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Task | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setTasksCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setTasksCurrentRow(v))
+    }
   }
 
-  return tasksContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

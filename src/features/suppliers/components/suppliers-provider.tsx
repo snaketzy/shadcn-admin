@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setSuppliersOpen,
+  setSuppliersCurrentRow,
+  type SuppliersDialogType,
+} from '@/store/slices/suppliers-slice'
 import { type Supplier } from '../data/schema'
-
-type SuppliersDialogType = 'add' | 'edit' | 'delete'
 
 type SuppliersContextType = {
   open: SuppliersDialogType | null
@@ -11,26 +14,32 @@ type SuppliersContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Supplier | null>>
 }
 
-const SuppliersContext = React.createContext<SuppliersContextType | null>(null)
-
-export function SuppliersProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<SuppliersDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Supplier | null>(null)
-
-  return (
-    <SuppliersContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </SuppliersContext>
-  )
+export function SuppliersProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useSuppliers = () => {
-  const suppliersContext = React.useContext(SuppliersContext)
+export const useSuppliers = (): SuppliersContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.suppliers.open)
+  const currentRow = useAppSelector((s) => s.suppliers.currentRow)
 
-  if (!suppliersContext) {
-    throw new Error('useSuppliers has to be used within <SuppliersContext>')
+  const setOpen = (str: SuppliersDialogType | null) => {
+    dispatch(setSuppliersOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Supplier | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setSuppliersCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setSuppliersCurrentRow(v))
+    }
   }
 
-  return suppliersContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

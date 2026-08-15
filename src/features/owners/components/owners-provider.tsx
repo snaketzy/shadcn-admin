@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setOwnersOpen,
+  setOwnersCurrentRow,
+  type OwnersDialogType,
+} from '@/store/slices/owners-slice'
 import { type Owner } from '../data/schema'
-
-type OwnersDialogType = 'add' | 'edit' | 'delete'
 
 type OwnersContextType = {
   open: OwnersDialogType | null
@@ -11,26 +14,32 @@ type OwnersContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Owner | null>>
 }
 
-const OwnersContext = React.createContext<OwnersContextType | null>(null)
-
-export function OwnersProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<OwnersDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Owner | null>(null)
-
-  return (
-    <OwnersContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </OwnersContext>
-  )
+export function OwnersProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useOwners = () => {
-  const ownersContext = React.useContext(OwnersContext)
+export const useOwners = (): OwnersContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.owners.open)
+  const currentRow = useAppSelector((s) => s.owners.currentRow)
 
-  if (!ownersContext) {
-    throw new Error('useOwners has to be used within <OwnersContext>')
+  const setOpen = (str: OwnersDialogType | null) => {
+    dispatch(setOwnersOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Owner | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setOwnersCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setOwnersCurrentRow(v))
+    }
   }
 
-  return ownersContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }

@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
+import React from 'react'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  setContactsOpen,
+  setContactsCurrentRow,
+  type ContactsDialogType,
+} from '@/store/slices/contacts-slice'
 import { type Contact } from '../data/schema'
-
-type ContactsDialogType = 'add' | 'edit' | 'delete'
 
 type ContactsContextType = {
   open: ContactsDialogType | null
@@ -11,26 +14,32 @@ type ContactsContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Contact | null>>
 }
 
-const ContactsContext = React.createContext<ContactsContextType | null>(null)
-
-export function ContactsProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<ContactsDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Contact | null>(null)
-
-  return (
-    <ContactsContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </ContactsContext>
-  )
+export function ContactsProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <>{children}</>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useContacts = () => {
-  const contactsContext = React.useContext(ContactsContext)
+export const useContacts = (): ContactsContextType => {
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((s) => s.contacts.open)
+  const currentRow = useAppSelector((s) => s.contacts.currentRow)
 
-  if (!contactsContext) {
-    throw new Error('useContacts has to be used within <ContactsContext>')
+  const setOpen = (str: ContactsDialogType | null) => {
+    dispatch(setContactsOpen(str))
+  }
+  const setCurrentRow: React.Dispatch<React.SetStateAction<Contact | null>> = (
+    v
+  ) => {
+    if (typeof v === 'function') {
+      dispatch(setContactsCurrentRow(v(currentRow)))
+    } else {
+      dispatch(setContactsCurrentRow(v))
+    }
   }
 
-  return contactsContext
+  return { open, setOpen, currentRow, setCurrentRow }
 }
