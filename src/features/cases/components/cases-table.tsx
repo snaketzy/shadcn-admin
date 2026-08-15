@@ -499,11 +499,12 @@ export function CasesTable(_: DataTableProps) {
   }, [urlInqDateTo])
 
   const scheduleVesselNameCommit = useCallback(
-    (value: string) => {
+    (valueRaw: string) => {
       if (vesselNameDebounceRef.current)
         clearTimeout(vesselNameDebounceRef.current)
       vesselNameDebounceRef.current = setTimeout(() => {
         if (vesselNameComposingRef.current) return
+        const value = valueRaw.trim()
         navigate({
           search: (prev: any) => ({
             ...(prev ?? {}),
@@ -517,10 +518,11 @@ export function CasesTable(_: DataTableProps) {
   )
 
   const scheduleKeywordCommit = useCallback(
-    (value: string) => {
+    (valueRaw: string) => {
       if (keywordDebounceRef.current) clearTimeout(keywordDebounceRef.current)
       keywordDebounceRef.current = setTimeout(() => {
         if (keywordComposingRef.current) return
+        const value = valueRaw.trim()
         navigate({
           search: (prev: any) => ({
             ...(prev ?? {}),
@@ -544,8 +546,9 @@ export function CasesTable(_: DataTableProps) {
 
   const onVesselNameCompositionEnd = (value: string) => {
     vesselNameComposingRef.current = false
-    setEditingVesselName(value)
-    scheduleVesselNameCommit(value)
+    const trimmed = value.trim()
+    setEditingVesselName(trimmed)
+    scheduleVesselNameCommit(trimmed)
   }
 
   const onKeywordChange = (value: string) => {
@@ -559,8 +562,9 @@ export function CasesTable(_: DataTableProps) {
 
   const onKeywordCompositionEnd = (value: string) => {
     keywordComposingRef.current = false
-    setEditingKeyword(value)
-    scheduleKeywordCommit(value)
+    const trimmed = value.trim()
+    setEditingKeyword(trimmed)
+    scheduleKeywordCommit(trimmed)
   }
 
   const pad2Inq = (n: number): string => (n < 10 ? `0${n}` : `${n}`)
