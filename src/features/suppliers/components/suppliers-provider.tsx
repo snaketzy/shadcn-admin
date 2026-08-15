@@ -1,36 +1,8 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
-import { type Supplier } from '../data/schema'
+import type React from 'react'
 
-type SuppliersDialogType = 'add' | 'edit' | 'delete'
-
-type SuppliersContextType = {
-  open: SuppliersDialogType | null
-  setOpen: (str: SuppliersDialogType | null) => void
-  currentRow: Supplier | null
-  setCurrentRow: React.Dispatch<React.SetStateAction<Supplier | null>>
-}
-
-const SuppliersContext = React.createContext<SuppliersContextType | null>(null)
+export { useSuppliers } from '@/store/slices/suppliers-slice'
+export type { SuppliersDialogType } from '@/store/slices/suppliers-slice'
 
 export function SuppliersProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<SuppliersDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Supplier | null>(null)
-
-  return (
-    <SuppliersContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </SuppliersContext>
-  )
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useSuppliers = () => {
-  const suppliersContext = React.useContext(SuppliersContext)
-
-  if (!suppliersContext) {
-    throw new Error('useSuppliers has to be used within <SuppliersContext>')
-  }
-
-  return suppliersContext
+  return <>{children}</>
 }

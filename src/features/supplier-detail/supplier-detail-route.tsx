@@ -1,7 +1,6 @@
-import { createContext, useContext, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Outlet } from '@tanstack/react-router'
-import { getRouteApi } from '@tanstack/react-router'
+import { Outlet, getRouteApi } from '@tanstack/react-router'
 import { UserRound, Briefcase, AlertCircle, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,18 +13,6 @@ import {
 import { SupplierDetailShell } from './supplier-detail-shell'
 
 const route = getRouteApi('/_authenticated/supplier_detail/$supplierId')
-
-export type SupplierDetailCtxValue = {
-  supplierId: string
-  supplier: ReturnType<typeof useSupplierDetailQuery>['supplier']
-  isLoading: boolean
-  error: Error | null
-  contactNameMap: Map<string, string>
-  contactMap: Map<string, Contact>
-  fieldDict: SupplierDictEntry[]
-}
-
-const SupplierDetailCtx = createContext<SupplierDetailCtxValue | null>(null)
 
 function useSupplierDetailQuery(supplierId: string) {
   const idNum = Number(supplierId)
@@ -44,7 +31,17 @@ function useSupplierDetailQuery(supplierId: string) {
   }
 }
 
-export function SupplierDetailRoute() {
+export type SupplierDetailCtxValue = {
+  supplierId: string
+  supplier: ReturnType<typeof useSupplierDetailQuery>['supplier']
+  isLoading: boolean
+  error: Error | null
+  contactNameMap: Map<string, string>
+  contactMap: Map<string, Contact>
+  fieldDict: SupplierDictEntry[]
+}
+
+export function useSupplierDetail() {
   const { supplierId } = route.useParams()
   const { supplier, isLoading, error, isNotFound } =
     useSupplierDetailQuery(supplierId)
@@ -79,6 +76,27 @@ export function SupplierDetailRoute() {
     return out
   }, [contactRows])
 
+  return {
+    supplierId,
+    supplier,
+    isLoading,
+    error,
+    contactNameMap,
+    contactMap,
+    fieldDict,
+    isNotFound,
+  }
+}
+
+export function SupplierDetailRoute() {
+  const {
+    supplierId,
+    supplier,
+    isLoading,
+    error,
+    isNotFound,
+  } = useSupplierDetail()
+
   const pageTitle =
     supplier?.supplier_shortname || supplier?.supplier_name || '供应商详情'
   const pageSub = supplier?.supplier_name
@@ -105,43 +123,21 @@ export function SupplierDetailRoute() {
     },
   ]
 
-  const ctx: SupplierDetailCtxValue = {
-    supplierId,
-    supplier,
-    isLoading,
-    error,
-    contactNameMap,
-    contactMap,
-    fieldDict,
-  }
-
   return (
-    <SupplierDetailCtx.Provider value={ctx}>
-      <SupplierDetailShell
-        supplierId={supplierId}
-        title={pageTitle}
-        subTitle={pageSub}
-        sidebarItems={sidebarItems}
-      >
-        {isLoading && <SupplierDetailSkeleton />}
-        {!isLoading && error && <SupplierDetailError error={error} />}
-        {!isLoading && !error && isNotFound && (
-          <SupplierDetailNotFound supplierId={supplierId} />
-        )}
-        {!isLoading && !error && !isNotFound && supplier && <Outlet />}
-      </SupplierDetailShell>
-    </SupplierDetailCtx.Provider>
+    <SupplierDetailShell
+      supplierId={supplierId}
+      title={pageTitle}
+      subTitle={pageSub}
+      sidebarItems={sidebarItems}
+    >
+      {isLoading && <SupplierDetailSkeleton />}
+      {!isLoading && error && <SupplierDetailError error={error} />}
+      {!isLoading && !error && isNotFound && (
+        <SupplierDetailNotFound supplierId={supplierId} />
+      )}
+      {!isLoading && !error && !isNotFound && supplier && <Outlet />}
+    </SupplierDetailShell>
   )
-}
-
-export function useSupplierDetail(): SupplierDetailCtxValue {
-  const ctx = useContext(SupplierDetailCtx)
-  if (!ctx) {
-    throw new Error(
-      'useSupplierDetail must be used within SupplierDetailCtx Provider'
-    )
-  }
-  return ctx
 }
 
 function SupplierDetailSkeleton() {

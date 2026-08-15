@@ -2,6 +2,8 @@ import { clearCookies } from '@/test-utils/cookies'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { userEvent } from 'vitest/browser'
+import { Provider as ReduxProvider } from 'react-redux'
+import { store } from '@/store'
 import { getCookie, setCookie } from '@/lib/cookies'
 import { DirectionProvider } from '@/context/direction-provider'
 import { LayoutProvider } from '@/context/layout-provider'
@@ -15,15 +17,17 @@ async function renderConfigDrawer({
   sidebarDefaultOpen?: boolean
 } = {}) {
   return await render(
-    <DirectionProvider>
-      <ThemeProvider>
-        <LayoutProvider>
-          <SidebarProvider defaultOpen={sidebarDefaultOpen}>
-            <ConfigDrawer />
-          </SidebarProvider>
-        </LayoutProvider>
-      </ThemeProvider>
-    </DirectionProvider>
+    <ReduxProvider store={store}>
+      <DirectionProvider>
+        <ThemeProvider>
+          <LayoutProvider>
+            <SidebarProvider defaultOpen={sidebarDefaultOpen}>
+              <ConfigDrawer />
+            </SidebarProvider>
+          </LayoutProvider>
+        </ThemeProvider>
+      </DirectionProvider>
+    </ReduxProvider>
   )
 }
 

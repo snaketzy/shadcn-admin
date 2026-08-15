@@ -1,35 +1,8 @@
-import React, { useState } from 'react'
-import useDialogState from '@/hooks/use-dialog-state'
-import { type CaseDictType } from '../data/schema'
+import type React from 'react'
 
-type DictionariesDialogType = 'add' | 'edit' | 'delete'
-
-type DictionariesContextType = {
-  open: DictionariesDialogType | null
-  setOpen: (str: DictionariesDialogType | null) => void
-  currentRow: CaseDictType | null
-  setCurrentRow: React.Dispatch<React.SetStateAction<CaseDictType | null>>
-}
-
-const DictionariesContext = React.createContext<DictionariesContextType | null>(null)
+export { useDictionaries } from '@/store/slices/dictionaries-slice'
+export type { DictionariesDialogType } from '@/store/slices/dictionaries-slice'
 
 export function DictionariesProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useDialogState<DictionariesDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<CaseDictType | null>(null)
-
-  return (
-    <DictionariesContext value={{ open, setOpen, currentRow, setCurrentRow }}>
-      {children}
-    </DictionariesContext>
-  )
-}
-
-export const useDictionaries = () => {
-  const dictionariesContext = React.useContext(DictionariesContext)
-
-  if (!dictionariesContext) {
-    throw new Error('useDictionaries has to be used within <DictionariesContext>')
-  }
-
-  return dictionariesContext
+  return <>{children}</>
 }

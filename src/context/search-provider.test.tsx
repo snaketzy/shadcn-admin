@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, type RenderResult } from 'vitest-browser-react'
 import { userEvent } from 'vitest/browser'
+import { Provider as ReduxProvider } from 'react-redux'
+import { store } from '@/store'
 import { SearchProvider } from '@/context/search-provider'
 
 const COMMAND_MENU_PLACEHOLDER = 'Type a command or search...'
@@ -25,7 +27,11 @@ vi.mock('@/context/theme-provider', () => ({
 type ShortcutModifier = 'Control' | 'Meta'
 
 async function renderWithSearchProvider() {
-  return await render(<SearchProvider>{null}</SearchProvider>)
+  return await render(
+    <ReduxProvider store={store}>
+      <SearchProvider>{null}</SearchProvider>
+    </ReduxProvider>
+  )
 }
 
 /**
