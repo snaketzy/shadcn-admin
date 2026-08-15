@@ -311,6 +311,9 @@ export function getCasesColumns(params?: {
     },
     {
       accessorKey: 'case_inquiry_keyword',
+      size: 185,
+      minSize: 185,
+      maxSize: 185,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='需求编号/名称' />
       ),
@@ -321,6 +324,8 @@ export function getCasesColumns(params?: {
       },
       meta: {
         label: '需求编号/名称',
+        className: 'w-[185px] min-w-[185px] max-w-[185px]',
+        thClassName: 'w-[185px] min-w-[185px] max-w-[185px]',
       },
       enableHiding: false,
       enableSorting: false,
