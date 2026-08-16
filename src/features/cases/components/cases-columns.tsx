@@ -1,8 +1,10 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertCircle, ListChecks, Handshake } from 'lucide-react'
+import { AlertCircle, ListChecks, Handshake, StickyNote } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +13,7 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
+import { parseAttachments, type CaseMemo } from '../api/client'
 import { getBadgeColor } from '../data/data'
 import { type Case } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
@@ -64,19 +67,14 @@ export function getCasesColumns(params?: {
   urgentBMap?: Map<string, string>
   urgentBIsUrgentSet?: Set<string>
   handleTodayBIsYesSet?: Set<string>
-  ownerNameEmailMap?: Map<
-    string,
-    { owner_name: string; owner_email: string }
-  >
-  ownerIdEmailMap?: Map<
-    string,
-    { owner_name: string; owner_email: string }
-  >
+  ownerNameEmailMap?: Map<string, { owner_name: string; owner_email: string }>
+  ownerIdEmailMap?: Map<string, { owner_name: string; owner_email: string }>
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
   vesselPositionCMap?: Map<string, string>
   progressRMap?: Map<string, string>
+  getCaseIdMemosMap?: () => Map<number, CaseMemo[]> | undefined
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
@@ -88,6 +86,7 @@ export function getCasesColumns(params?: {
   const rankDMap = params?.rankDMap
   const vesselPositionCMap = params?.vesselPositionCMap
   const progressRMap = params?.progressRMap
+  const getCaseIdMemosMap = params?.getCaseIdMemosMap
   const isUrgentRow = (raw: unknown): boolean => {
     if (!urgentBIsUrgentSet) return false
     if (raw === null || raw === undefined || raw === '') return false
@@ -202,16 +201,23 @@ export function getCasesColumns(params?: {
         const hasOrderNumber = Boolean(
           String(row.original.order_number ?? '').trim()
         )
-        if (!urgent && !handleToday && !hasOrderNumber)
+        const caseId = Number((row.original as any)?.case_id)
+        const memos: CaseMemo[] =
+          (Number.isFinite(caseId)
+            ? getCaseIdMemosMap?.()?.get(caseId)
+            : undefined) ?? []
+        const hasMemo = memos.length > 0
+        if (!urgent && !handleToday && !hasOrderNumber && !hasMemo)
           return <div className='h-full w-full' aria-hidden />
-        const tooltip: string[] = []
-        if (urgent) tooltip.push('紧急案件')
-        if (handleToday) tooltip.push('当日需处理')
-        if (hasOrderNumber) tooltip.push('已成交')
-        return (
+        const basicTooltip: string[] = []
+        if (urgent) basicTooltip.push('紧急案件')
+        if (handleToday) basicTooltip.push('当日需处理')
+        if (hasOrderNumber) basicTooltip.push('已成交')
+        if (hasMemo) basicTooltip.push(`含 ${memos.length} 条案件备忘`)
+        const trigger = (
           <div
             className='flex w-full items-center justify-center gap-1'
-            title={tooltip.join(' / ')}
+            title={basicTooltip.join(' / ')}
           >
             {urgent && (
               <AlertCircle
@@ -231,17 +237,135 @@ export function getCasesColumns(params?: {
                 aria-hidden
               />
             )}
+            {hasMemo && (
+              <StickyNote
+                className='size-4 shrink-0 fill-amber-100 text-amber-600'
+                aria-hidden
+              />
+            )}
           </div>
+        )
+        if (!hasMemo) return trigger
+        return (
+          <TooltipProvider delayDuration={120}>
+            <Tooltip>
+              <TooltipTrigger asChild tabIndex={-1}>
+                <span className='inline-flex cursor-default'>{trigger}</span>
+              </TooltipTrigger>
+              <TooltipContent
+                side='right'
+                align='start'
+                sideOffset={6}
+                className='w-[520px] max-w-[90vw] border border-amber-200/80 bg-amber-50/95 p-0 shadow-lg shadow-amber-500/10 backdrop-blur'
+              >
+                <div className='flex items-center gap-2 border-b border-amber-200/80 bg-amber-100/70 px-3 py-2'>
+                  <StickyNote className='size-4 shrink-0 text-amber-700' />
+                  <span className='text-sm font-semibold text-amber-900'>
+                    案件备忘（共 {memos.length} 条）
+                  </span>
+                </div>
+                <ScrollArea className='max-h-[60vh]'>
+                  <div className='flex flex-col gap-0 p-2'>
+                    {memos.map((memo, idx) => {
+                      const attach = parseAttachments(
+                        (memo as any).case_memo_attachment ?? null
+                      )
+                      const sep = idx > 0
+                      return (
+                        <div key={memo.case_memo_id ?? idx} className='py-2'>
+                          {sep && (
+                            <Separator className='mb-2 border-amber-200/70' />
+                          )}
+                          <div className='flex flex-wrap items-center gap-2 px-1'>
+                            {(memo as any).case_memo_date && (
+                              <Badge
+                                variant='secondary'
+                                className='bg-amber-200/70 text-amber-900 hover:bg-amber-200'
+                              >
+                                日期：
+                                {String((memo as any).case_memo_date ?? '')}
+                              </Badge>
+                            )}
+                            {memo.created_at && (
+                              <span className='text-xs text-amber-900/70'>
+                                保存：{String(memo.created_at)}
+                              </span>
+                            )}
+                            {attach.length > 0 && (
+                              <span className='text-xs text-amber-900/80'>
+                                附件：{attach.length} 个
+                              </span>
+                            )}
+                          </div>
+                          {(
+                            (memo as any).case_memo_content ??
+                            (memo as any).case_memo_remark ??
+                            ''
+                          ).trim() && (
+                            <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
+                              {(memo as any).case_memo_content && (
+                                <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
+                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    内容
+                                  </div>
+                                  <LongText className='max-w-none'>
+                                    {String(
+                                      (memo as any).case_memo_content ?? ''
+                                    )}
+                                  </LongText>
+                                </div>
+                              )}
+                              {(memo as any).case_memo_remark && (
+                                <div className='rounded-md bg-white/60 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/40'>
+                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    备注
+                                  </div>
+                                  <LongText className='max-w-none'>
+                                    {String(
+                                      (memo as any).case_memo_remark ?? ''
+                                    )}
+                                  </LongText>
+                                </div>
+                              )}
+                              {attach.length > 0 && (
+                                <div className='rounded-md bg-white/50 p-2 ring-1 ring-amber-200/40'>
+                                  <div className='mb-1 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    附件（{attach.length}）
+                                  </div>
+                                  <ul className='list-inside list-disc space-y-0.5 text-[12px] text-amber-900/90'>
+                                    {attach.map((a, ai) => (
+                                      <li key={ai} className='truncate'>
+                                        <LongText className='max-w-[420px] truncate'>
+                                          {String(a.name ?? '未命名文件')}
+                                        </LongText>
+                                        {typeof a.size === 'number'
+                                          ? ` · ${a.size} B`
+                                          : ''}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       meta: {
         label: '',
         className: cn(
-          'sticky left-12 z-20 w-11 min-w-11 bg-background',
+          'sticky left-12 z-20 w-[60px] max-w-[60px] min-w-[60px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
         thClassName: cn(
-          'sticky top-0 left-12 z-40 w-11 min-w-11 bg-background',
+          'sticky top-0 left-12 z-40 w-[60px] max-w-[60px] min-w-[60px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
       },
@@ -267,11 +391,11 @@ export function getCasesColumns(params?: {
       meta: {
         label: '船名',
         className: cn(
-          'sticky left-[92px] z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
+          'sticky left-[108px] z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
         thClassName: cn(
-          'sticky top-0 left-[92px] z-40 w-[200px] min-w-[200px] bg-background ps-0.5',
+          'sticky top-0 left-[108px] z-40 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
       },
@@ -348,7 +472,7 @@ export function getCasesColumns(params?: {
                     variant='outline'
                     className={cn(
                       getBadgeColor(value),
-                      'max-w-full whitespace-nowrap px-2'
+                      'max-w-full px-2 whitespace-nowrap'
                     )}
                   >
                     <span className='truncate'>{display}</span>
@@ -384,8 +508,7 @@ export function getCasesColumns(params?: {
         const value = row.getValue('case_inquiry_type') as string | null
         if (!value) return <div>-</div>
         const display = resolveInqTypeALabel(value)
-        const isService =
-          display.trim().toLowerCase() === 'service'
+        const isService = display.trim().toLowerCase() === 'service'
         const badgeClass = isService
           ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200'
           : getBadgeColor(value)
@@ -459,7 +582,9 @@ export function getCasesColumns(params?: {
         if (!formatted) return <div>-</div>
         const today = getTodayHyphen()
         const isToday = formatted === today
-        const isHandleToday = isHandleTodayRow(row.original.case_should_handle_today)
+        const isHandleToday = isHandleTodayRow(
+          row.original.case_should_handle_today
+        )
         return (
           <div
             className={cn(
@@ -493,7 +618,9 @@ export function getCasesColumns(params?: {
         const value = row.getValue('owner_following') as string | null
         const ownerIdRaw = (row.original as any)?.owner_following_id
         const ownerIdStr =
-          ownerIdRaw != null && ownerIdRaw !== '' && !Number.isNaN(Number(ownerIdRaw))
+          ownerIdRaw != null &&
+          ownerIdRaw !== '' &&
+          !Number.isNaN(Number(ownerIdRaw))
             ? String(ownerIdRaw)
             : ''
         let info: { owner_name: string; owner_email: string } | undefined

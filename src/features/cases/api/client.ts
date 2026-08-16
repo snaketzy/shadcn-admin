@@ -426,6 +426,29 @@ export async function fetchCaseMemoListByCaseId(
   }
 }
 
+export async function fetchCaseMemoListByCaseIds(
+  caseIds: number[]
+): Promise<CaseMemo[]> {
+  if (!caseIds || caseIds.length === 0) return []
+  const ids = Array.from(
+    new Set(
+      caseIds
+        .map((n) => (Number.isFinite(Number(n)) ? Number(n) : 0))
+        .filter((n): n is number => n > 0)
+    )
+  )
+  if (ids.length === 0) return []
+  try {
+    const res = await api.get<ApiEnvelope<CaseMemo[]>>(
+      `/case-memo-list/by-case-ids?ids=${ids.join(',')}`
+    )
+    return res.data.data ?? []
+  } catch (e: any) {
+    if (e?.response?.status === 404) return []
+    return []
+  }
+}
+
 export async function createCaseMemo(payload: {
   case_id: number
   case_memo_date?: string | null

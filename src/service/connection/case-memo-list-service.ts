@@ -295,6 +295,29 @@ export async function getCaseMemoListByCaseId(
   return rows.map(normalizeMemoRow)
 }
 
+export async function getCaseMemoListByCaseIds(
+  caseIds: number[]
+): Promise<CaseMemoListRow[]> {
+  if (!caseIds || caseIds.length === 0) return []
+  await ensureCaseMemoTable()
+  const ids = Array.from(
+    new Set(
+      caseIds
+        .map((n) => (n == null || Number.isNaN(Number(n)) ? null : Number(n)))
+        .filter((n): n is number => n != null && n > 0)
+    )
+  )
+  if (ids.length === 0) return []
+  const placeholders = ids.map(() => '?').join(', ')
+  const rows = await query<any[]>(
+    `SELECT ${MEMO_SELECT_COLS} FROM \`${TABLE_NAME}\`
+     WHERE case_id IN (${placeholders})
+     ORDER BY case_id ASC, case_memo_date DESC, case_memo_id DESC`,
+    ids as ExecuteValues[]
+  )
+  return rows.map(normalizeMemoRow)
+}
+
 export async function createCaseMemo(data: {
   case_id: number
   case_memo_date?: string | null

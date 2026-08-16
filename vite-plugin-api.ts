@@ -83,6 +83,7 @@ import {
 import {
   ensureCaseMemoTable,
   getCaseMemoListByCaseId,
+  getCaseMemoListByCaseIds,
   createCaseMemo,
   updateCaseMemo,
   deleteCaseMemo,
@@ -1325,7 +1326,7 @@ async function handleCaseMemoListApi(
   res: ServerResponse
 ): Promise<boolean> {
   const method = req.method ?? 'GET'
-  const { pathname } = parseUrl(req)
+  const { pathname, searchParams } = parseUrl(req)
 
   if (!pathname.startsWith('/api/case-memo-list')) {
     return false
@@ -1351,6 +1352,19 @@ async function handleCaseMemoListApi(
         sendJson(res, 200, { success: true, data: { deleted: n } })
         return true
       }
+    }
+
+    if (subPath === '/by-case-ids' && method === 'GET') {
+      const raw = searchParams.get('ids') ?? ''
+      const ids = String(raw)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => Number(s))
+        .filter((n) => Number.isFinite(n) && n > 0)
+      const rows = await getCaseMemoListByCaseIds(ids)
+      sendJson(res, 200, { success: true, data: rows })
+      return true
     }
 
     const byIdMatch = subPath.match(/^\/(\d+)$/)

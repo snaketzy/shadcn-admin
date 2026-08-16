@@ -168,6 +168,11 @@ export function CasesMemoDialog({
       if (row) {
         void refetch()
         queryClient.invalidateQueries({ queryKey: ['case-memo-list', caseNo] })
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            Array.isArray(q.queryKey) &&
+            q.queryKey[0] === 'case-memo-list-by-page-case-ids',
+        })
         const mode = saveModeRef.current
         saveModeRef.current = null
         if (mode === 'close') {
@@ -216,6 +221,11 @@ export function CasesMemoDialog({
         toast.success('备忘已删除')
         void refetch()
         queryClient.invalidateQueries({ queryKey: ['case-memo-list', caseNo] })
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            Array.isArray(q.queryKey) &&
+            q.queryKey[0] === 'case-memo-list-by-page-case-ids',
+        })
       } else {
         toast.error('删除失败，请稍后重试')
       }
