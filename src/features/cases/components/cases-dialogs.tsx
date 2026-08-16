@@ -1,5 +1,6 @@
 import { CasesActionDialog } from './cases-action-dialog'
 import { CasesDeleteDialog } from './cases-delete-dialog'
+import { CasesMemoDialog } from './cases-memo-dialog'
 import { useCases } from './cases-provider'
 
 export function CasesDialogs() {
@@ -22,6 +23,22 @@ export function CasesDialogs() {
               setTimeout(() => {
                 setCurrentRow(null)
               }, 500)
+            }}
+            currentRow={currentRow}
+          />
+
+          <CasesMemoDialog
+            key={`case-memo-${currentRow.case_id}`}
+            open={open === 'memo'}
+            onOpenChange={(o) => {
+              if (!o) {
+                setOpen(null)
+                setTimeout(() => {
+                  setCurrentRow(null)
+                }, 500)
+              } else {
+                setOpen('memo')
+              }
             }}
             currentRow={currentRow}
           />

@@ -40,7 +40,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         className='h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-600'
         onClick={() => {
           setCurrentRow(row.original)
-          setOpen('edit')
+          setOpen('memo')
         }}
       >
         <StickyNotePlus size={16} />

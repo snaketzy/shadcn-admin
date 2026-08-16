@@ -370,3 +370,108 @@ export async function replaceCaseInquiryByCaseId(args: {
     inserted: res.data.data?.inserted ?? 0,
   }
 }
+
+export interface CaseMemo {
+  case_memo_id: number
+  case_id: number
+  memo_date: string | null
+  memo_content: string | null
+  memo_remark: string | null
+  memo_attachments: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface CaseMemoAttachment {
+  name: string
+  size?: number
+  type?: string
+}
+
+export function parseAttachments(
+  raw: string | null | undefined
+): CaseMemoAttachment[] {
+  if (!raw) return []
+  try {
+    const arr = JSON.parse(raw)
+    if (!Array.isArray(arr)) return []
+    return arr
+  } catch {
+    return []
+  }
+}
+
+function stringifyAttachments(
+  arr: CaseMemoAttachment[] | undefined | null
+): string | null {
+  if (!arr || arr.length === 0) return null
+  try {
+    return JSON.stringify(arr)
+  } catch {
+    return null
+  }
+}
+
+export async function fetchCaseMemoListByCaseId(
+  caseId: number
+): Promise<CaseMemo[]> {
+  try {
+    const res = await api.get<ApiEnvelope<CaseMemo[]>>(
+      `/case-memo-list/by-case/${caseId}`
+    )
+    return res.data.data ?? []
+  } catch (e: any) {
+    if (e?.response?.status === 404) return []
+    return []
+  }
+}
+
+export async function createCaseMemo(payload: {
+  case_id: number
+  memo_date?: string | null
+  memo_content?: string | null
+  memo_remark?: string | null
+  memo_attachments?: CaseMemoAttachment[] | null
+}): Promise<CaseMemo> {
+  const res = await api.post<ApiEnvelope<CaseMemo>>('/case-memo-list/', {
+    case_id: payload.case_id,
+    memo_date: payload.memo_date ?? null,
+    memo_content: payload.memo_content ?? null,
+    memo_remark: payload.memo_remark ?? null,
+    memo_attachments: stringifyAttachments(payload.memo_attachments),
+  })
+  return res.data.data
+}
+
+export async function updateCaseMemo(
+  memoId: number,
+  payload: {
+    memo_date?: string | null
+    memo_content?: string | null
+    memo_remark?: string | null
+    memo_attachments?: CaseMemoAttachment[] | null
+  }
+): Promise<CaseMemo | null> {
+  try {
+    const res = await api.put<ApiEnvelope<CaseMemo>>(`/case-memo-list/${memoId}`, {
+      memo_date: payload.memo_date,
+      memo_content: payload.memo_content,
+      memo_remark: payload.memo_remark,
+      memo_attachments:
+        'memo_attachments' in payload
+          ? stringifyAttachments(payload.memo_attachments)
+          : undefined,
+    })
+    return res.data.data ?? null
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
+}
+
+export async function deleteCaseMemo(memoId: number): Promise<boolean> {
+  const res = await api.delete<ApiEnvelope<{ deleted: number }>>(
+    `/case-memo-list/${memoId}`
+  )
+  return res.data.success && (res.data.data?.deleted ?? 0) > 0
+}
