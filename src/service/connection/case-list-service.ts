@@ -1,4 +1,4 @@
-import { query, execute, type ExecuteValues, describeTable } from './db'
+import { query, execute, type ExecuteValues, describeTable, listTables } from './db'
 import {
   auditInsert,
   auditUpdate,
@@ -380,7 +380,7 @@ export async function createCaseList(data: {
        case_incharge, case_memo_name, case_memo_address, case_rank)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name ?? null,
       data.invoice_number ?? null,
@@ -672,4 +672,109 @@ export async function ensureCaseDeliveryServiceInchargeIdColumn(): Promise<void>
     }
   })()
   return _ensureCaseDeliveryServiceInchargeIdPromise
+}
+
+let _ensureCaseListSchemaPromise: Promise<void> | null = null
+
+export async function ensureCaseListSchema(): Promise<void> {
+  if (_ensureCaseListSchemaPromise) return _ensureCaseListSchemaPromise
+  _ensureCaseListSchemaPromise = (async () => {
+    const TABLE_NAME = 'case_list'
+    try {
+      const tables = await listTables()
+      if (!tables.includes(TABLE_NAME)) {
+        await execute(`
+          CREATE TABLE \`${TABLE_NAME}\` (
+            \`case_id\` INT NOT NULL AUTO_INCREMENT COMMENT '案件ID',
+            \`vessel_name\` VARCHAR(128) NULL COMMENT '船名',
+            \`invoice_number\` VARCHAR(64) NULL COMMENT '发票号',
+            \`order_number\` VARCHAR(64) NULL COMMENT '订单编号',
+            \`case_inquiry_keyword\` VARCHAR(512) NULL COMMENT '需求编号/名称',
+            \`case_progress\` VARCHAR(16) NULL COMMENT '案件进度',
+            \`case_urgent\` VARCHAR(16) NULL COMMENT '紧急程度',
+            \`case_inquiry_type\` VARCHAR(16) NULL COMMENT '询价类型',
+            \`case_inquiry_date\` DATE NULL COMMENT '询价日期',
+            \`case_follow_date\` DATE NULL COMMENT '开始日期',
+            \`case_uptodate_date\` DATE NULL COMMENT '跟进日期',
+            \`case_should_handle_today\` VARCHAR(16) NULL COMMENT '今日是否应处理',
+            \`owner_following\` VARCHAR(128) NULL COMMENT '船东联系人',
+            \`owner_following_id\` INT NULL COMMENT '船东联系人ID（对应 owner_list.owner_id）',
+            \`shipyard_business\` VARCHAR(128) NULL COMMENT '船厂经营',
+            \`case_agent\` VARCHAR(128) NULL COMMENT '代理',
+            \`case_superintendent\` VARCHAR(128) NULL COMMENT '机务主管',
+            \`case_surveyor\` VARCHAR(128) NULL COMMENT '验船师',
+            \`case_delivery_or_service_incharge\` VARCHAR(512) NULL COMMENT '服务负责人（姓名多选逗号分隔）',
+            \`case_delivery_or_service_incharge_id\` VARCHAR(512) NULL COMMENT '服务负责人多选ID列表（对应 contact_list.contact_id）',
+            \`case_delivery_or_service_deadline\` DATE NULL COMMENT '交付/服务截止日期',
+            \`case_eta_cargo_ready_date\` DATE NULL COMMENT 'ETA货物准备日期',
+            \`case_etb_cargo_departure_date\` DATE NULL COMMENT 'ETB货物离港日期',
+            \`case_etd_cargo_delivery_date\` DATE NULL COMMENT 'ETD货物交付日期',
+            \`vessel_position\` VARCHAR(16) NULL COMMENT '船舶位置',
+            \`case_settlement_done\` VARCHAR(16) NULL COMMENT '结算是否完成',
+            \`case_epd\` VARCHAR(32) NULL COMMENT 'EPD',
+            \`case_spd\` VARCHAR(32) NULL COMMENT 'SPD',
+            \`case_incharge\` VARCHAR(16) NULL COMMENT '案件负责人代码',
+            \`case_memo_name\` VARCHAR(1024) NULL COMMENT '案件备忘名称',
+            \`case_memo_address\` VARCHAR(1024) NULL COMMENT '案件备忘地址',
+            \`case_rank\` VARCHAR(16) NULL COMMENT '案件等级',
+            PRIMARY KEY (\`case_id\`),
+            KEY \`idx_case_inquiry_date\` (\`case_inquiry_date\`),
+            KEY \`idx_vessel_name\` (\`vessel_name\`)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='案件列表'
+        `)
+        return
+      }
+      const info = await describeTable(TABLE_NAME)
+      const byName = new Map(info.columns.map((c) => [c.field, c]))
+      const spec: Array<{ col: string; def: string; after: string }> = [
+        { col: 'case_id', def: 'INT NOT NULL AUTO_INCREMENT COMMENT \'案件ID\'', after: 'FIRST' },
+        { col: 'vessel_name', def: 'VARCHAR(128) NULL COMMENT \'船名\'', after: 'AFTER case_id' },
+        { col: 'invoice_number', def: 'VARCHAR(64) NULL COMMENT \'发票号\'', after: 'AFTER vessel_name' },
+        { col: 'order_number', def: 'VARCHAR(64) NULL COMMENT \'订单编号\'', after: 'AFTER invoice_number' },
+        { col: 'case_inquiry_keyword', def: 'VARCHAR(512) NULL COMMENT \'需求编号/名称\'', after: 'AFTER order_number' },
+        { col: 'case_progress', def: 'VARCHAR(16) NULL COMMENT \'案件进度\'', after: 'AFTER case_inquiry_keyword' },
+        { col: 'case_urgent', def: 'VARCHAR(16) NULL COMMENT \'紧急程度\'', after: 'AFTER case_progress' },
+        { col: 'case_inquiry_type', def: 'VARCHAR(16) NULL COMMENT \'询价类型\'', after: 'AFTER case_urgent' },
+        { col: 'case_inquiry_date', def: 'DATE NULL COMMENT \'询价日期\'', after: 'AFTER case_inquiry_type' },
+        { col: 'case_follow_date', def: 'DATE NULL COMMENT \'开始日期\'', after: 'AFTER case_inquiry_date' },
+        { col: 'case_uptodate_date', def: 'DATE NULL COMMENT \'跟进日期\'', after: 'AFTER case_follow_date' },
+        { col: 'case_should_handle_today', def: 'VARCHAR(16) NULL COMMENT \'今日是否应处理\'', after: 'AFTER case_uptodate_date' },
+        { col: 'owner_following', def: 'VARCHAR(128) NULL COMMENT \'船东联系人\'', after: 'AFTER case_should_handle_today' },
+        { col: 'owner_following_id', def: 'INT NULL COMMENT \'船东联系人ID（对应 owner_list.owner_id）\'', after: 'AFTER owner_following' },
+        { col: 'shipyard_business', def: 'VARCHAR(128) NULL COMMENT \'船厂经营\'', after: 'AFTER owner_following_id' },
+        { col: 'case_agent', def: 'VARCHAR(128) NULL COMMENT \'代理\'', after: 'AFTER shipyard_business' },
+        { col: 'case_superintendent', def: 'VARCHAR(128) NULL COMMENT \'机务主管\'', after: 'AFTER case_agent' },
+        { col: 'case_surveyor', def: 'VARCHAR(128) NULL COMMENT \'验船师\'', after: 'AFTER case_superintendent' },
+        { col: 'case_delivery_or_service_incharge', def: 'VARCHAR(512) NULL COMMENT \'服务负责人（姓名多选逗号分隔）\'', after: 'AFTER case_surveyor' },
+        { col: 'case_delivery_or_service_incharge_id', def: 'VARCHAR(512) NULL COMMENT \'服务负责人多选ID列表（对应 contact_list.contact_id）\'', after: 'AFTER case_delivery_or_service_incharge' },
+        { col: 'case_delivery_or_service_deadline', def: 'DATE NULL COMMENT \'交付/服务截止日期\'', after: 'AFTER case_delivery_or_service_incharge_id' },
+        { col: 'case_eta_cargo_ready_date', def: 'DATE NULL COMMENT \'ETA货物准备日期\'', after: 'AFTER case_delivery_or_service_deadline' },
+        { col: 'case_etb_cargo_departure_date', def: 'DATE NULL COMMENT \'ETB货物离港日期\'', after: 'AFTER case_eta_cargo_ready_date' },
+        { col: 'case_etd_cargo_delivery_date', def: 'DATE NULL COMMENT \'ETD货物交付日期\'', after: 'AFTER case_etb_cargo_departure_date' },
+        { col: 'vessel_position', def: 'VARCHAR(16) NULL COMMENT \'船舶位置\'', after: 'AFTER case_etd_cargo_delivery_date' },
+        { col: 'case_settlement_done', def: 'VARCHAR(16) NULL COMMENT \'结算是否完成\'', after: 'AFTER vessel_position' },
+        { col: 'case_epd', def: 'VARCHAR(32) NULL COMMENT \'EPD\'', after: 'AFTER case_settlement_done' },
+        { col: 'case_spd', def: 'VARCHAR(32) NULL COMMENT \'SPD\'', after: 'AFTER case_epd' },
+        { col: 'case_incharge', def: 'VARCHAR(16) NULL COMMENT \'案件负责人代码\'', after: 'AFTER case_spd' },
+        { col: 'case_memo_name', def: 'VARCHAR(1024) NULL COMMENT \'案件备忘名称\'', after: 'AFTER case_incharge' },
+        { col: 'case_memo_address', def: 'VARCHAR(1024) NULL COMMENT \'案件备忘地址\'', after: 'AFTER case_memo_name' },
+        { col: 'case_rank', def: 'VARCHAR(16) NULL COMMENT \'案件等级\'', after: 'AFTER case_memo_address' },
+      ]
+      for (const { col, def, after } of spec) {
+        const existing = byName.get(col)
+        if (!existing) {
+          try {
+            await execute(`ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${col}\` ${def} ${after}`)
+          } catch (err) {
+            if (col === 'case_id') continue
+            throw err
+          }
+        }
+      }
+    } catch (e) {
+      _ensureCaseListSchemaPromise = null
+      throw e
+    }
+  })()
+  return _ensureCaseListSchemaPromise
 }

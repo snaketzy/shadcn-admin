@@ -73,12 +73,21 @@ import {
   checkDuplicateInquiryKeyword,
   ensureCaseOwnerFollowingIdColumn,
   ensureCaseDeliveryServiceInchargeIdColumn,
+  ensureCaseListSchema,
 } from './src/service/connection/case-list-service'
 import {
   createCaseInquiryListBulk,
   getCaseInquiryListByCaseId,
   replaceCaseInquiryListByCaseId,
 } from './src/service/connection/case-inquiry-list-service'
+import {
+  ensureCaseMemoTable,
+  getCaseMemoListByCaseId,
+  createCaseMemo,
+  updateCaseMemo,
+  deleteCaseMemo,
+  deleteCaseMemoByCaseId,
+} from './src/service/connection/case-memo-list-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
@@ -983,8 +992,10 @@ async function handleCaseListApi(
   }
 
   try {
+    await ensureCaseListSchema()
     await ensureCaseOwnerFollowingIdColumn()
     await ensureCaseDeliveryServiceInchargeIdColumn()
+    await ensureCaseMemoTable()
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
         const page = Number(searchParams.get('page') ?? 1)
@@ -1309,6 +1320,126 @@ async function handleCaseInquiryListApi(
   }
 }
 
+async function handleCaseMemoListApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/case-memo-list')) {
+    return false
+  }
+
+  const subPath =
+    pathname.slice('/api/case-memo-list'.length) || '/'
+
+  try {
+    await ensureCaseMemoTable()
+
+    const byCaseMatch = subPath.match(/^\/by-case\/(\d+)$/)
+    if (byCaseMatch) {
+      if (method === 'GET') {
+        const caseId = Number(byCaseMatch[1])
+        const rows = await getCaseMemoListByCaseId(caseId)
+        sendJson(res, 200, { success: true, data: rows })
+        return true
+      }
+      if (method === 'DELETE') {
+        const caseId = Number(byCaseMatch[1])
+        const n = await deleteCaseMemoByCaseId(caseId)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const byIdMatch = subPath.match(/^\/(\d+)$/)
+    if (byIdMatch) {
+      const memoId = Number(byIdMatch[1])
+      if (method === 'PUT') {
+        const body = (await readBody(req)) as
+          | Record<string, unknown>
+          | undefined
+        const updated = await updateCaseMemo(memoId, {
+          case_memo_date:
+            body?.case_memo_date == null || body.case_memo_date === ''
+              ? null
+              : String(body.case_memo_date),
+          case_memo_content:
+            body?.case_memo_content == null || body.case_memo_content === ''
+              ? null
+              : String(body.case_memo_content),
+          case_memo_remark:
+            body?.case_memo_remark == null || body.case_memo_remark === ''
+              ? null
+              : String(body.case_memo_remark),
+          case_memo_attachment:
+            body?.case_memo_attachment == null ||
+            body.case_memo_attachment === ''
+              ? null
+              : String(body.case_memo_attachment),
+        })
+        if (updated) {
+          sendJson(res, 200, { success: true, data: updated })
+        } else {
+          sendJson(res, 404, { success: false, message: '未找到该备忘' })
+        }
+        return true
+      }
+      if (method === 'DELETE') {
+        const n = await deleteCaseMemo(memoId)
+        sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    if ((subPath === '/' || subPath === '') && method === 'POST') {
+      const body = (await readBody(req)) as
+        | Record<string, unknown>
+        | undefined
+      if (!body || !Number.isFinite(Number(body.case_id))) {
+        sendJson(res, 400, {
+          success: false,
+          message: '参数非法，需要 case_id',
+        })
+        return true
+      }
+      const created = await createCaseMemo({
+        case_id: Number(body.case_id),
+        case_memo_date:
+          body.case_memo_date == null || body.case_memo_date === ''
+            ? null
+            : String(body.case_memo_date),
+        case_memo_content:
+          body.case_memo_content == null || body.case_memo_content === ''
+            ? null
+            : String(body.case_memo_content),
+        case_memo_remark:
+          body.case_memo_remark == null || body.case_memo_remark === ''
+            ? null
+            : String(body.case_memo_remark),
+        case_memo_attachment:
+          body.case_memo_attachment == null ||
+          body.case_memo_attachment === ''
+            ? null
+            : String(body.case_memo_attachment),
+      })
+      sendJson(res, 200, { success: true, data: created })
+      return true
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[case-memo-list API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -1350,6 +1481,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/case-inquiry-list')) {
             const handled = await handleCaseInquiryListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/case-memo-list')) {
+            const handled = await handleCaseMemoListApi(req, res)
             if (handled) return
           }
           next()

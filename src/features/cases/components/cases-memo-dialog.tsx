@@ -159,10 +159,10 @@ export function CasesMemoDialog({
     mutationFn: () =>
       createCaseMemo({
         case_id: caseNo,
-        memo_date: memoDate ? memoDate.replace('T', ' ') : null,
-        memo_content: memoContent.trim() || null,
-        memo_remark: memoRemark.trim() || null,
-        memo_attachments: attachments.length > 0 ? attachments : null,
+        case_memo_date: memoDate ? memoDate.replace('T', ' ') : null,
+        case_memo_content: memoContent.trim() || null,
+        case_memo_remark: memoRemark.trim() || null,
+        case_memo_attachment: attachments.length > 0 ? attachments : null,
       }),
     onSuccess: (row) => {
       if (row) {
@@ -504,12 +504,12 @@ function MemoHistoryItem({
   onDelete: () => void
 }) {
   const atts = useMemo(
-    () => parseAttachments(memo.memo_attachments),
-    [memo.memo_attachments]
+    () => parseAttachments(memo.case_memo_attachment),
+    [memo.case_memo_attachment]
   )
   const hasAttachments = atts.length > 0
-  const hasContent = (memo.memo_content ?? '').trim().length > 0
-  const hasRemark = (memo.memo_remark ?? '').trim().length > 0
+  const hasContent = (memo.case_memo_content ?? '').trim().length > 0
+  const hasRemark = (memo.case_memo_remark ?? '').trim().length > 0
 
   return (
     <Card className='overflow-hidden border-border/80 shadow-none'>
@@ -524,7 +524,7 @@ function MemoHistoryItem({
               {memo.case_memo_id}
             </Badge>
             <span className='tabular-nums'>
-              {formatDisplayDate(memo.memo_date)}
+              {formatDisplayDate(memo.case_memo_date)}
             </span>
           </CardTitle>
           <CardDescription className='text-xs'>
@@ -549,7 +549,7 @@ function MemoHistoryItem({
         <CardContent className='space-y-3 pt-0'>
           {hasContent && (
             <div className='text-sm leading-7 break-words whitespace-pre-wrap text-foreground/90'>
-              {memo.memo_content}
+              {memo.case_memo_content}
             </div>
           )}
           {hasRemark && (
@@ -557,7 +557,7 @@ function MemoHistoryItem({
               <span className='me-2 font-medium text-foreground/80'>
                 备注：
               </span>
-              {memo.memo_remark}
+              {memo.case_memo_remark}
             </div>
           )}
           {hasAttachments && (

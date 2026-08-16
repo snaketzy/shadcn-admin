@@ -374,10 +374,10 @@ export async function replaceCaseInquiryByCaseId(args: {
 export interface CaseMemo {
   case_memo_id: number
   case_id: number
-  memo_date: string | null
-  memo_content: string | null
-  memo_remark: string | null
-  memo_attachments: string | null
+  case_memo_date: string | null
+  case_memo_content: string | null
+  case_memo_remark: string | null
+  case_memo_attachment: string | null
   created_at: string | null
   updated_at: string | null
 }
@@ -428,17 +428,17 @@ export async function fetchCaseMemoListByCaseId(
 
 export async function createCaseMemo(payload: {
   case_id: number
-  memo_date?: string | null
-  memo_content?: string | null
-  memo_remark?: string | null
-  memo_attachments?: CaseMemoAttachment[] | null
+  case_memo_date?: string | null
+  case_memo_content?: string | null
+  case_memo_remark?: string | null
+  case_memo_attachment?: CaseMemoAttachment[] | null
 }): Promise<CaseMemo> {
   const res = await api.post<ApiEnvelope<CaseMemo>>('/case-memo-list/', {
     case_id: payload.case_id,
-    memo_date: payload.memo_date ?? null,
-    memo_content: payload.memo_content ?? null,
-    memo_remark: payload.memo_remark ?? null,
-    memo_attachments: stringifyAttachments(payload.memo_attachments),
+    case_memo_date: payload.case_memo_date ?? null,
+    case_memo_content: payload.case_memo_content ?? null,
+    case_memo_remark: payload.case_memo_remark ?? null,
+    case_memo_attachment: stringifyAttachments(payload.case_memo_attachment),
   })
   return res.data.data
 }
@@ -446,20 +446,20 @@ export async function createCaseMemo(payload: {
 export async function updateCaseMemo(
   memoId: number,
   payload: {
-    memo_date?: string | null
-    memo_content?: string | null
-    memo_remark?: string | null
-    memo_attachments?: CaseMemoAttachment[] | null
+    case_memo_date?: string | null
+    case_memo_content?: string | null
+    case_memo_remark?: string | null
+    case_memo_attachment?: CaseMemoAttachment[] | null
   }
 ): Promise<CaseMemo | null> {
   try {
     const res = await api.put<ApiEnvelope<CaseMemo>>(`/case-memo-list/${memoId}`, {
-      memo_date: payload.memo_date,
-      memo_content: payload.memo_content,
-      memo_remark: payload.memo_remark,
-      memo_attachments:
-        'memo_attachments' in payload
-          ? stringifyAttachments(payload.memo_attachments)
+      case_memo_date: payload.case_memo_date,
+      case_memo_content: payload.case_memo_content,
+      case_memo_remark: payload.case_memo_remark,
+      case_memo_attachment:
+        'case_memo_attachment' in payload
+          ? stringifyAttachments(payload.case_memo_attachment)
           : undefined,
     })
     return res.data.data ?? null
