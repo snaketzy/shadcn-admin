@@ -68,6 +68,10 @@ export function getCasesTodayColumns(params?: {
     string,
     { owner_name: string; owner_email: string }
   >
+  ownerIdEmailMap?: Map<
+    string,
+    { owner_name: string; owner_email: string }
+  >
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -78,6 +82,7 @@ export function getCasesTodayColumns(params?: {
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
   const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
   const ownerNameEmailMap = params?.ownerNameEmailMap
+  const ownerIdEmailMap = params?.ownerIdEmailMap
   const inqTypeAMap = params?.inqTypeAMap
   const inchargeEMap = params?.inchargeEMap
   const rankDMap = params?.rankDMap
@@ -546,8 +551,23 @@ export function getCasesTodayColumns(params?: {
         <DataTableColumnHeader column={column} title='案件机务' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_superintendent') as string | null
-        return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+        const superintendentId = (row.original as any).case_superintendent_id
+        let displayName: string | null = null
+        if (
+          superintendentId != null &&
+          superintendentId !== '' &&
+          ownerIdEmailMap
+        ) {
+          const found = ownerIdEmailMap.get(String(superintendentId))
+          if (found?.owner_name) {
+            displayName = found.owner_name
+          }
+        }
+        if (!displayName) {
+          const value = row.getValue('case_superintendent') as string | null
+          displayName = value
+        }
+        return <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
       },
       meta: {
         label: '案件机务',

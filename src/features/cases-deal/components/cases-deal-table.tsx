@@ -195,6 +195,22 @@ export function CasesDealTable(_: DataTableProps) {
     return m
   }, [ownerAllRows])
 
+  const ownerIdEmailMap = useMemo<
+    Map<string, { owner_name: string; owner_email: string }>
+  >(() => {
+    const m = new Map<string, { owner_name: string; owner_email: string }>()
+    const list = (ownerAllRows as Owner[]) ?? []
+    for (const o of list) {
+      if (o.owner_id != null && o.owner_id !== '') {
+        m.set(String(o.owner_id), {
+          owner_name: o.owner_name ? String(o.owner_name) : '',
+          owner_email: o.owner_email ? String(o.owner_email) : '',
+        })
+      }
+    }
+    return m
+  }, [ownerAllRows])
+
   const { data: urgentBRowsData = [] } = useQuery({
     queryKey: ['case-dict-prefix-B-table'],
     queryFn: () => fetchCaseDictByKeyPrefix('B'),
@@ -380,6 +396,7 @@ export function CasesDealTable(_: DataTableProps) {
         urgentBIsUrgentSet,
         handleTodayBIsYesSet,
         ownerNameEmailMap,
+        ownerIdEmailMap,
         inqTypeAMap,
         inchargeEMap,
         rankDMap,
@@ -391,6 +408,7 @@ export function CasesDealTable(_: DataTableProps) {
       urgentBIsUrgentSet,
       handleTodayBIsYesSet,
       ownerNameEmailMap,
+      ownerIdEmailMap,
       inqTypeAMap,
       inchargeEMap,
       rankDMap,

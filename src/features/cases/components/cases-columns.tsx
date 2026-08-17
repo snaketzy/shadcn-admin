@@ -698,8 +698,23 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='案件机务' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_superintendent') as string | null
-        return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+        const superintendentId = (row.original as any).case_superintendent_id
+        let displayName: string | null = null
+        if (
+          superintendentId != null &&
+          superintendentId !== '' &&
+          ownerIdEmailMap
+        ) {
+          const found = ownerIdEmailMap.get(String(superintendentId))
+          if (found?.owner_name) {
+            displayName = found.owner_name
+          }
+        }
+        if (!displayName) {
+          const value = row.getValue('case_superintendent') as string | null
+          displayName = value
+        }
+        return <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
       },
       meta: {
         label: '案件机务',
