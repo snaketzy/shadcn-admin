@@ -760,9 +760,11 @@ export function getCasesDealColumns(params?: {
                       )}
                       {kvRow(
                         '案件负责人',
-                        s(rowData.case_incharge) && (
+                        (resolveDict(inchargeEMap, rowData.case_incharge) ||
+                          s(rowData.case_incharge)) && (
                           <LongText className='max-w-[480px] truncate'>
-                            {s(rowData.case_incharge)}
+                            {resolveDict(inchargeEMap, rowData.case_incharge) ||
+                              s(rowData.case_incharge)}
                           </LongText>
                         )
                       )}
