@@ -42,7 +42,12 @@ import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
 } from '@/features/dictionaries/api/client'
-import { fetchCaseGroups, fetchCasePaginated } from '@/features/cases/api/client'
+import {
+  fetchCaseGroups,
+  fetchCasePaginated,
+  fetchCaseMemoListByCaseIds,
+  type CaseMemo,
+} from '@/features/cases/api/client'
 import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import { type Case } from '@/features/cases/data/schema'
 import { getCasesTodayColumns } from './cases-today-columns'
@@ -77,29 +82,29 @@ const FIXED_COL_STYLES: Record<
       top: 0,
       left: 48,
       zIndex: 50,
-      width: 44,
-      minWidth: 44,
+      width: 60,
+      minWidth: 60,
     },
     td: {
       position: 'sticky',
       left: 48,
       zIndex: 30,
-      width: 44,
-      minWidth: 44,
+      width: 60,
+      minWidth: 60,
     },
   },
   vessel_name: {
     th: {
       position: 'sticky',
       top: 0,
-      left: 92,
+      left: 108,
       zIndex: 50,
       width: 200,
       minWidth: 200,
     },
     td: {
       position: 'sticky',
-      left: 92,
+      left: 108,
       zIndex: 20,
       width: 200,
       minWidth: 200,
@@ -359,6 +364,10 @@ export function CasesTodayTable(_: DataTableProps) {
     return m
   }, [progressROptions])
 
+  const memoRowsRef = useRef<CaseMemo[]>([])
+  const caseIdMemosMapRef = useRef<Map<number, CaseMemo[]>>(new Map())
+  const [memoTick, setMemoTick] = useState(0)
+
   const columns = useMemo(
     () =>
       getCasesTodayColumns({
@@ -372,6 +381,7 @@ export function CasesTodayTable(_: DataTableProps) {
         rankDMap,
         vesselPositionCMap,
         progressRMap,
+        getCaseIdMemosMap: () => caseIdMemosMapRef.current,
       }),
     [
       urgentBMap,
@@ -384,6 +394,7 @@ export function CasesTodayTable(_: DataTableProps) {
       rankDMap,
       vesselPositionCMap,
       progressRMap,
+      memoTick,
     ]
   )
 
@@ -723,6 +734,51 @@ export function CasesTodayTable(_: DataTableProps) {
   const pagedRows: Case[] = (pageData?.rows as Case[]) ?? []
   const totalRows: number = pageData?.total ?? 0
   const rowCount = totalRows
+
+  const currentPageCaseIds = useMemo<number[]>(() => {
+    return pagedRows
+      .map((r) => {
+        const raw = (r as any)?.case_id
+        if (raw == null || raw === '') return NaN
+        const n = Number(raw)
+        return Number.isFinite(n) && n > 0 ? n : NaN
+      })
+      .filter((n) => Number.isFinite(n)) as number[]
+  }, [pagedRows])
+
+  const memoQuery = useQuery({
+    queryKey: [
+      'case-today-memo-list-by-page-case-ids',
+      currentPageCaseIds
+        .slice()
+        .sort((a, b) => a - b)
+        .join(','),
+    ],
+    queryFn: () => fetchCaseMemoListByCaseIds(currentPageCaseIds),
+    enabled: currentPageCaseIds.length > 0,
+    staleTime: 0,
+  })
+
+  useEffect(() => {
+    const data = memoQuery.data
+    const rows = Array.isArray(data) ? (data as CaseMemo[]) : []
+    memoRowsRef.current = rows
+    const m = new Map<number, CaseMemo[]>()
+    for (const memo of rows) {
+      const rawId = (memo as any).case_id
+      const cid =
+        typeof rawId === 'number'
+          ? rawId
+          : typeof rawId === 'string' && rawId.trim() !== ''
+            ? Number(rawId)
+            : Number.NaN
+      if (!Number.isFinite(cid)) continue
+      if (!m.has(cid)) m.set(cid, [])
+      m.get(cid)!.push(memo)
+    }
+    caseIdMemosMapRef.current = m
+    setMemoTick((t) => (t + 1) & 0x3fffffff)
+  }, [memoQuery.data])
 
   const pageCount = Math.max(
     1,

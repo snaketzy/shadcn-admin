@@ -1,8 +1,17 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertCircle, ListChecks, Handshake } from 'lucide-react'
+import {
+  AlertCircle,
+  ListChecks,
+  Handshake,
+  StickyNote,
+  Pencil,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
@@ -11,8 +20,10 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
+import { parseAttachments, type CaseMemo } from '@/features/cases/api/client'
 import { getBadgeColor } from '@/features/cases/data/data'
 import { type Case } from '@/features/cases/data/schema'
+import { useCasesToday } from './cases-today-provider'
 import { DataTableRowActionsToday } from './data-table-row-actions-today'
 
 function pad2(n: number): string {
@@ -60,6 +71,42 @@ function formatDateAsHyphen(raw: unknown): string {
   return str
 }
 
+function safeMemoStr(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  const s = String(v).trim()
+  if (s === 'null' || s === 'undefined') return ''
+  return s
+}
+
+function CaseMemoEditButton({
+  rowData,
+  memo,
+}: {
+  rowData: Case
+  memo: CaseMemo
+}) {
+  const { setCurrentRow, setEditingMemo, setOpen } = useCasesToday()
+  return (
+    <Button
+      type='button'
+      variant='ghost'
+      size='icon'
+      className='h-7 w-7 shrink-0 text-amber-800/70 hover:bg-amber-200/80 hover:text-amber-900'
+      onClick={(e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        setCurrentRow(rowData)
+        setEditingMemo(memo)
+        setOpen('memo')
+      }}
+      aria-label='编辑该备忘'
+      title='编辑该备忘'
+    >
+      <Pencil size={14} />
+    </Button>
+  )
+}
+
 export function getCasesTodayColumns(params?: {
   urgentBMap?: Map<string, string>
   urgentBIsUrgentSet?: Set<string>
@@ -76,6 +123,7 @@ export function getCasesTodayColumns(params?: {
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
   vesselPositionCMap?: Map<string, string>
+  getCaseIdMemosMap?: () => Map<number, CaseMemo[]> | undefined
   progressRMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
@@ -88,6 +136,7 @@ export function getCasesTodayColumns(params?: {
   const rankDMap = params?.rankDMap
   const vesselPositionCMap = params?.vesselPositionCMap
   const progressRMap = params?.progressRMap
+  const getCaseIdMemosMap = params?.getCaseIdMemosMap
   const isUrgentRow = (raw: unknown): boolean => {
     if (!urgentBIsUrgentSet) return false
     if (raw === null || raw === undefined || raw === '') return false
@@ -202,16 +251,23 @@ export function getCasesTodayColumns(params?: {
         const hasOrderNumber = Boolean(
           String(row.original.order_number ?? '').trim()
         )
-        if (!urgent && !handleToday && !hasOrderNumber)
+        const caseId = Number((row.original as any)?.case_id)
+        const memos: CaseMemo[] =
+          (Number.isFinite(caseId)
+            ? getCaseIdMemosMap?.()?.get(caseId)
+            : undefined) ?? []
+        const hasMemo = memos.length > 0
+        if (!urgent && !handleToday && !hasOrderNumber && !hasMemo)
           return <div className='h-full w-full' aria-hidden />
-        const tooltip: string[] = []
-        if (urgent) tooltip.push('紧急案件')
-        if (handleToday) tooltip.push('当日需处理')
-        if (hasOrderNumber) tooltip.push('已成交')
-        return (
+        const basicTooltip: string[] = []
+        if (urgent) basicTooltip.push('紧急案件')
+        if (handleToday) basicTooltip.push('当日需处理')
+        if (hasOrderNumber) basicTooltip.push('已成交')
+        if (hasMemo) basicTooltip.push(`含 ${memos.length} 条案件备忘`)
+        const trigger = (
           <div
             className='flex w-full items-center justify-center gap-1'
-            title={tooltip.join(' / ')}
+            title={basicTooltip.join(' / ')}
           >
             {urgent && (
               <AlertCircle
@@ -231,17 +287,140 @@ export function getCasesTodayColumns(params?: {
                 aria-hidden
               />
             )}
+            {hasMemo && (
+              <StickyNote
+                className='size-4 shrink-0 fill-amber-100 text-amber-600'
+                aria-hidden
+              />
+            )}
           </div>
+        )
+        if (!hasMemo) return trigger
+        return (
+          <TooltipProvider delayDuration={120}>
+            <Tooltip>
+              <TooltipTrigger asChild tabIndex={-1}>
+                <span className='inline-flex cursor-default'>{trigger}</span>
+              </TooltipTrigger>
+              <TooltipContent
+                side='right'
+                align='start'
+                sideOffset={6}
+                collisionPadding={16}
+                avoidCollisions
+                className='z-[100] flex max-h-[90vh] w-[520px] max-w-[90vw] flex-col overflow-hidden border border-amber-200/80 bg-amber-50/95 p-0 shadow-lg shadow-amber-500/10 backdrop-blur'
+              >
+                <div className='flex shrink-0 items-center gap-2 border-b border-amber-200/80 bg-amber-100/70 px-3 py-2'>
+                  <StickyNote className='size-4 shrink-0 text-amber-700' />
+                  <span className='text-sm font-semibold text-amber-900'>
+                    案件备忘（共 {memos.length} 条）
+                  </span>
+                </div>
+                <ScrollArea className='min-h-0 flex-1'>
+                  <div className='flex flex-col gap-0 p-2'>
+                    {memos.map((memo, idx) => {
+                      const attach = parseAttachments(
+                        (memo as any).case_memo_attachment ?? null
+                      )
+                      const sep = idx > 0
+                      return (
+                        <div key={memo.case_memo_id ?? idx} className='py-2'>
+                          {sep && (
+                            <Separator className='mb-2 border-amber-200/70' />
+                          )}
+                          <div className='flex items-center gap-2 px-1'>
+                            <div className='flex min-w-0 flex-1 flex-wrap items-center gap-2'>
+                              {(memo as any).case_memo_date && (
+                                <Badge
+                                  variant='secondary'
+                                  className='bg-amber-200/70 text-amber-900 hover:bg-amber-200'
+                                >
+                                  日期：
+                                  {String((memo as any).case_memo_date ?? '')}
+                                </Badge>
+                              )}
+                              {memo.created_at && (
+                                <span className='text-xs text-amber-900/70'>
+                                  保存：{String(memo.created_at)}
+                                </span>
+                              )}
+                              {attach.length > 0 && (
+                                <span className='text-xs text-amber-900/80'>
+                                  附件：{attach.length} 个
+                                </span>
+                              )}
+                            </div>
+                            <CaseMemoEditButton
+                              rowData={row.original}
+                              memo={memo as CaseMemo}
+                            />
+                          </div>
+                          {safeMemoStr((memo as any).case_memo_content) +
+                            safeMemoStr((memo as any).case_memo_remark) && (
+                            <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
+                              {safeMemoStr((memo as any).case_memo_content) && (
+                                <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
+                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    内容
+                                  </div>
+                                  <LongText className='max-w-none'>
+                                    {safeMemoStr(
+                                      (memo as any).case_memo_content
+                                    )}
+                                  </LongText>
+                                </div>
+                              )}
+                              {safeMemoStr((memo as any).case_memo_remark) && (
+                                <div className='rounded-md bg-white/60 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/40'>
+                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    备注
+                                  </div>
+                                  <LongText className='max-w-none'>
+                                    {safeMemoStr(
+                                      (memo as any).case_memo_remark
+                                    )}
+                                  </LongText>
+                                </div>
+                              )}
+                              {attach.length > 0 && (
+                                <div className='rounded-md bg-white/50 p-2 ring-1 ring-amber-200/40'>
+                                  <div className='mb-1 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    附件（{attach.length}）
+                                  </div>
+                                  <ul className='list-inside list-disc space-y-0.5 text-[12px] text-amber-900/90'>
+                                    {attach.map((a, ai) => (
+                                      <li key={ai} className='truncate'>
+                                        <LongText className='max-w-[420px] truncate'>
+                                          {String(a.name ?? '未命名文件')}
+                                        </LongText>
+                                        {typeof a.size === 'number'
+                                          ? ` · ${a.size} B`
+                                          : ''}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       meta: {
         label: '',
         className: cn(
-          'sticky left-12 z-20 w-11 min-w-11 bg-background',
+          'sticky left-12 z-20 w-[60px] max-w-[60px] min-w-[60px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
         thClassName: cn(
-          'sticky top-0 left-12 z-40 w-11 min-w-11 bg-background',
+          'sticky top-0 left-12 z-40 w-[60px] max-w-[60px] min-w-[60px] bg-background',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
       },
@@ -267,11 +446,11 @@ export function getCasesTodayColumns(params?: {
       meta: {
         label: '船名',
         className: cn(
-          'sticky left-[92px] z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
+          'sticky left-[108px] z-20 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
         thClassName: cn(
-          'sticky top-0 left-[92px] z-40 w-[200px] min-w-[200px] bg-background ps-0.5',
+          'sticky top-0 left-[108px] z-40 w-[200px] min-w-[200px] bg-background ps-0.5',
           'shadow-[inset_-1px_0_0_hsl(var(--border))]'
         ),
       },
