@@ -509,9 +509,11 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='案件进度' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_progress') as string | null
+        const rawValue = row.getValue('case_progress') as string | null
+        const value = rawValue ? rawValue.toUpperCase() : null
         if (!value) return <div>-</div>
         const display = resolveProgressRLabel(value)
+        const isR91 = value === 'R91'
         return (
           <TooltipProvider delayDuration={0}>
             <Tooltip>
@@ -520,7 +522,9 @@ export function getCasesColumns(params?: {
                   <Badge
                     variant='outline'
                     className={cn(
-                      getBadgeColor(value),
+                      isR91
+                        ? 'border-border bg-transparent text-foreground hover:bg-transparent'
+                        : getBadgeColor(value),
                       'max-w-full px-2 whitespace-nowrap'
                     )}
                   >
