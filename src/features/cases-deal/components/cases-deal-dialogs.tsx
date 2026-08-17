@@ -1,9 +1,17 @@
 import { CasesActionDialog } from '@/features/cases/components/cases-action-dialog'
 import { CasesDeleteDialog } from '@/features/cases/components/cases-delete-dialog'
+import { CasesMemoDialog } from '@/features/cases/components/cases-memo-dialog'
 import { useCasesDeal } from './cases-deal-provider'
 
 export function CasesDealDialogs() {
-  const { open, setOpen, currentRow, setCurrentRow } = useCasesDeal()
+  const {
+    open,
+    setOpen,
+    currentRow,
+    setCurrentRow,
+    editingMemo,
+    setEditingMemo,
+  } = useCasesDeal()
   return (
     <>
       <CasesActionDialog
@@ -24,6 +32,23 @@ export function CasesDealDialogs() {
               }, 500)
             }}
             currentRow={currentRow}
+          />
+
+          <CasesMemoDialog
+            key={`case-deal-memo-${currentRow.case_id}`}
+            open={open === 'memo'}
+            onOpenChange={(o) => {
+              if (!o) {
+                setEditingMemo(null)
+                setTimeout(() => {
+                  setCurrentRow(null)
+                }, 500)
+              }
+              setOpen('memo')
+            }}
+            currentRow={currentRow}
+            editingMemo={editingMemo}
+            onEditingMemoChange={setEditingMemo}
           />
 
           <CasesDeleteDialog
