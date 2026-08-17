@@ -65,6 +65,10 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  CasesServiceContactMultiPickerDialog,
+  type CasesServiceContactMultiPickerResult,
+} from '@/features/cases/components/cases-service-contact-multi-picker-dialog'
+import {
   fetchContactAll,
   fetchContactGroups,
   type Contact,
@@ -82,10 +86,6 @@ import {
   SurveyorContactPickerDialog,
   type SurveyorContactPickerResult,
 } from '@/features/contacts/components/surveyor-contact-picker-dialog'
-import {
-  CasesServiceContactMultiPickerDialog,
-  type CasesServiceContactMultiPickerResult,
-} from '@/features/cases/components/cases-service-contact-multi-picker-dialog'
 import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
@@ -289,9 +289,21 @@ const formSchema = z.object({
   shipyard_business: z.string().optional().catch(''),
   case_agent: z.string().optional().catch(''),
   case_superintendent: z.string().optional().catch(''),
+  case_superintendent_id: z
+    .preprocess((v) => {
+      if (v === null || v === undefined || v === '') return ''
+      const n = Number(v)
+      return Number.isNaN(n) ? '' : String(n)
+    }, z.string().optional().catch(''))
+    .optional()
+    .catch(''),
   case_surveyor: z.string().optional().catch(''),
   case_delivery_or_service_incharge: z.string().optional().catch(''),
-  case_delivery_or_service_incharge_id: z.string().nullable().optional().catch(null),
+  case_delivery_or_service_incharge_id: z
+    .string()
+    .nullable()
+    .optional()
+    .catch(null),
   case_delivery_or_service_deadline: z
     .preprocess(
       (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
@@ -942,9 +954,10 @@ export function CasesActionDialog({
   )
 
   const superintendentRows = useMemo<Owner[]>(() => {
-    return (ownerRows as Owner[]).filter(
-      (o) => String(o.owner_department ?? '').toUpperCase() === 'F1'
-    )
+    return (ownerRows as Owner[]).filter((o) => {
+      const dept = String(o.owner_department ?? '').toUpperCase()
+      return dept === 'F1' || dept === 'F4'
+    })
   }, [ownerRows])
 
   const superintendentNameMap = useMemo(() => {
@@ -955,9 +968,20 @@ export function CasesActionDialog({
     return m
   }, [superintendentRows])
 
+  const superintendentIdMap = useMemo(() => {
+    const m = new Map<string, Owner>()
+    for (const o of superintendentRows) {
+      if (o.owner_id != null && o.owner_id !== '') {
+        m.set(String(o.owner_id), o)
+      }
+    }
+    return m
+  }, [superintendentRows])
+
   const resolveSuperintendentDisplay = useCallback(
     (
-      name: string | null | undefined
+      name: string | null | undefined,
+      ownerId?: string | number | null | undefined
     ): {
       name: string
       email: string
@@ -966,6 +990,23 @@ export function CasesActionDialog({
       department: string
       rank: string
     } => {
+      const idStr =
+        ownerId != null && ownerId !== '' && !Number.isNaN(Number(ownerId))
+          ? String(ownerId)
+          : ''
+      if (idStr) {
+        const o = superintendentIdMap.get(idStr)
+        if (o) {
+          return {
+            name: o.owner_name ?? '',
+            email: o.owner_email ?? '',
+            phone: o.owner_phone ?? '',
+            team: resolveOwnerTeamLabel(o.owner_team),
+            department: resolveOwnerDeptLabel(o.owner_department),
+            rank: resolveOwnerRankLabel(o.owner_rank),
+          }
+        }
+      }
       const n = name ?? ''
       if (!n)
         return {
@@ -998,6 +1039,7 @@ export function CasesActionDialog({
     },
     [
       superintendentNameMap,
+      superintendentIdMap,
       resolveOwnerTeamLabel,
       resolveOwnerDeptLabel,
       resolveOwnerRankLabel,
@@ -1005,7 +1047,9 @@ export function CasesActionDialog({
   )
 
   const superintendentDeptLabel = useMemo(() => {
-    return ownerDeptKeyMap.get('F1') || 'F1'
+    const f1 = ownerDeptKeyMap.get('F1') || 'F1'
+    const f4 = ownerDeptKeyMap.get('F4') || 'F4'
+    return `${f1}/${f4}`
   }, [ownerDeptKeyMap])
 
   const { data: agentContactAll = [] } = useQuery({
@@ -1442,6 +1486,12 @@ export function CasesActionDialog({
             shipyard_business: currentRow.shipyard_business ?? '',
             case_agent: currentRow.case_agent ?? '',
             case_superintendent: currentRow.case_superintendent ?? '',
+            case_superintendent_id:
+              (currentRow as any).case_superintendent_id != null &&
+              (currentRow as any).case_superintendent_id !== 0 &&
+              !Number.isNaN(Number((currentRow as any).case_superintendent_id))
+                ? String((currentRow as any).case_superintendent_id)
+                : '',
             case_surveyor: currentRow.case_surveyor ?? '',
             case_delivery_or_service_incharge:
               currentRow.case_delivery_or_service_incharge ?? '',
@@ -1483,9 +1533,11 @@ export function CasesActionDialog({
             case_uptodate_date: '',
             case_should_handle_today: defaultUrgentBNoKey,
             owner_following: '',
+            owner_following_id: '',
             shipyard_business: '',
             case_agent: '',
             case_superintendent: '',
+            case_superintendent_id: '',
             case_surveyor: '',
             case_delivery_or_service_incharge: '',
             case_delivery_or_service_incharge_id: null,
@@ -1517,6 +1569,7 @@ export function CasesActionDialog({
   const formOwnerFollowingId = form.watch('owner_following_id')
   const formCaseAgent = form.watch('case_agent')
   const formCaseSuperintendent = form.watch('case_superintendent')
+  const formCaseSuperintendentId = form.watch('case_superintendent_id')
   const formShipyardBusiness = form.watch('shipyard_business')
   const formCaseSurveyor = form.watch('case_surveyor')
 
@@ -1536,8 +1589,15 @@ export function CasesActionDialog({
   }, [formCaseAgent, resolveAgentContactDisplay])
 
   const superintendentDisplay = useMemo(() => {
-    return resolveSuperintendentDisplay(formCaseSuperintendent ?? '')
-  }, [formCaseSuperintendent, resolveSuperintendentDisplay])
+    return resolveSuperintendentDisplay(
+      formCaseSuperintendent ?? '',
+      formCaseSuperintendentId ?? ''
+    )
+  }, [
+    formCaseSuperintendent,
+    formCaseSuperintendentId,
+    resolveSuperintendentDisplay,
+  ])
 
   const shipyardContactDisplay = useMemo(() => {
     return resolveShipyardContactDisplay(formShipyardBusiness ?? '')
@@ -1583,9 +1643,8 @@ export function CasesActionDialog({
   const serviceContactRankKeyMap = useMemo(() => {
     const m = new Map<string, string>()
     const list =
-      (serviceContactGroups as
-        | { rankDict?: ContactDictEntry[] }
-        | undefined)?.rankDict ?? []
+      (serviceContactGroups as { rankDict?: ContactDictEntry[] } | undefined)
+        ?.rankDict ?? []
     for (const d of list) {
       m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
@@ -1595,9 +1654,8 @@ export function CasesActionDialog({
   const serviceContactTypeKeyMap = useMemo(() => {
     const m = new Map<string, string>()
     const list =
-      (serviceContactGroups as
-        | { typeDict?: ContactDictEntry[] }
-        | undefined)?.typeDict ?? []
+      (serviceContactGroups as { typeDict?: ContactDictEntry[] } | undefined)
+        ?.typeDict ?? []
     for (const d of list) {
       m.set(String(d.dict_key).toUpperCase(), d.dict_value)
     }
@@ -1628,8 +1686,12 @@ export function CasesActionDialog({
     [serviceContactTypeKeyMap]
   )
 
-  const formCaseServiceIncharge = form.watch('case_delivery_or_service_incharge')
-  const formCaseServiceInchargeId = form.watch('case_delivery_or_service_incharge_id')
+  const formCaseServiceIncharge = form.watch(
+    'case_delivery_or_service_incharge'
+  )
+  const formCaseServiceInchargeId = form.watch(
+    'case_delivery_or_service_incharge_id'
+  )
 
   const resolveServiceContactInitialIds = useCallback((): string[] => {
     const idRaw = form.getValues('case_delivery_or_service_incharge_id')
@@ -1719,7 +1781,7 @@ export function CasesActionDialog({
       emails,
       ranks,
       divisions,
-      rawNames: names.length > 0 ? names.join('，') : nameRaw ?? '',
+      rawNames: names.length > 0 ? names.join('，') : (nameRaw ?? ''),
     }
   }, [
     formCaseServiceIncharge,
@@ -1948,12 +2010,24 @@ export function CasesActionDialog({
         shouldDirty: true,
         shouldValidate: false,
       })
+      form.setValue(
+        'case_superintendent_id',
+        r.owner_id != null && r.owner_id !== '' ? String(r.owner_id) : '',
+        {
+          shouldDirty: true,
+          shouldValidate: false,
+        }
+      )
     },
     [form]
   )
 
   const handleClearSuperintendent = useCallback(() => {
     form.setValue('case_superintendent', '', {
+      shouldDirty: true,
+      shouldValidate: false,
+    })
+    form.setValue('case_superintendent_id', '', {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -2284,6 +2358,12 @@ export function CasesActionDialog({
         shipyard_business: toOptStr(values.shipyard_business),
         case_agent: toOptStr(values.case_agent),
         case_superintendent: toOptStr(values.case_superintendent),
+        case_superintendent_id:
+          values.case_superintendent_id != null &&
+          values.case_superintendent_id !== '' &&
+          !Number.isNaN(Number(values.case_superintendent_id))
+            ? Number(values.case_superintendent_id)
+            : null,
         case_surveyor: toOptStr(values.case_surveyor),
         case_delivery_or_service_incharge: toOptStr(
           values.case_delivery_or_service_incharge
@@ -3573,9 +3653,7 @@ export function CasesActionDialog({
                               className='cursor-pointer pe-20 pr-20'
                               readOnly
                               value={serviceContactDisplay.rawNames || ''}
-                              onClick={() =>
-                                setServiceContactPickerOpen(true)
-                              }
+                              onClick={() => setServiceContactPickerOpen(true)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault()
@@ -3624,9 +3702,7 @@ export function CasesActionDialog({
                             serviceContactDisplay.ranks.length > 0 ||
                             serviceContactDisplay.divisions.length > 0) && (
                             <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                              <div>
-                                共 {serviceContactDisplay.count} 位
-                              </div>
+                              <div>共 {serviceContactDisplay.count} 位</div>
                               {serviceContactDisplay.mobiles.length > 0 && (
                                 <div>
                                   手机：
@@ -3642,18 +3718,16 @@ export function CasesActionDialog({
                               {serviceContactDisplay.ranks.length > 0 && (
                                 <div>
                                   职级：
-                                  {[...new Set(serviceContactDisplay.ranks)].join(
-                                    '，'
-                                  )}
+                                  {[
+                                    ...new Set(serviceContactDisplay.ranks),
+                                  ].join('，')}
                                 </div>
                               )}
                               {serviceContactDisplay.divisions.length > 0 && (
                                 <div>
                                   类型：
                                   {[
-                                    ...new Set(
-                                      serviceContactDisplay.divisions
-                                    ),
+                                    ...new Set(serviceContactDisplay.divisions),
                                   ].join('，')}
                                 </div>
                               )}
@@ -3943,6 +4017,7 @@ export function CasesActionDialog({
       <SuperintendentPickerDialog
         open={superintendentPickerOpen}
         onOpenChange={setSuperintendentPickerOpen}
+        initialSelectedId={form.getValues('case_superintendent_id') || null}
         initialSelectedName={form.getValues('case_superintendent') || undefined}
         departmentLabel={superintendentDeptLabel}
         onSelect={handleSuperintendentPicked}

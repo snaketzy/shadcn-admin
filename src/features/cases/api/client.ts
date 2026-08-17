@@ -53,6 +53,7 @@ export interface Case {
   shipyard_business: string | null
   case_agent: string | null
   case_superintendent: string | null
+  case_superintendent_id?: number | null
   case_surveyor: string | null
   case_delivery_or_service_incharge: string | null
   case_delivery_or_service_deadline: string | null
@@ -214,6 +215,7 @@ export async function createCase(payload: {
   shipyard_business?: string | null
   case_agent?: string | null
   case_superintendent?: string | null
+  case_superintendent_id?: number | string | null
   case_surveyor?: string | null
   case_delivery_or_service_incharge?: string | null
   case_delivery_or_service_deadline?: string | null

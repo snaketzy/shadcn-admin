@@ -25,6 +25,7 @@ export interface CaseListRow {
   shipyard_business: string | null
   case_agent: string | null
   case_superintendent: string | null
+  case_superintendent_id: number | null
   case_surveyor: string | null
   case_delivery_or_service_incharge: string | null
   case_delivery_or_service_incharge_id: string | null
@@ -46,7 +47,7 @@ const SELECT_COLS = `
   case_id, vessel_name, invoice_number, order_number,
   case_inquiry_keyword, case_progress, case_urgent, case_inquiry_type,
   case_inquiry_date, case_follow_date, case_uptodate_date, case_should_handle_today,
-  owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent,
+  owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent, case_superintendent_id,
   case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_incharge_id, case_delivery_or_service_deadline,
   case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
   vessel_position, case_settlement_done, case_epd, case_spd,
@@ -352,6 +353,7 @@ export async function createCaseList(data: {
   shipyard_business?: string | null
   case_agent?: string | null
   case_superintendent?: string | null
+  case_superintendent_id?: number | string | null
   case_surveyor?: string | null
   case_delivery_or_service_incharge?: string | null
   case_delivery_or_service_incharge_id?: string | null
@@ -373,14 +375,14 @@ export async function createCaseList(data: {
       (vessel_name, invoice_number, order_number, case_inquiry_keyword,
        case_progress, case_urgent, case_inquiry_type, case_inquiry_date,
        case_follow_date, case_uptodate_date, case_should_handle_today,
-       owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent,
+       owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent, case_superintendent_id,
        case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_incharge_id, case_delivery_or_service_deadline,
        case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
        vessel_position, case_settlement_done, case_epd, case_spd,
        case_incharge, case_memo_name, case_memo_address, case_rank)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name ?? null,
       data.invoice_number ?? null,
@@ -400,6 +402,9 @@ export async function createCaseList(data: {
       data.shipyard_business ?? null,
       data.case_agent ?? null,
       data.case_superintendent ?? null,
+      data.case_superintendent_id != null && data.case_superintendent_id !== '' && !Number.isNaN(Number(data.case_superintendent_id))
+        ? Number(data.case_superintendent_id)
+        : null,
       data.case_surveyor ?? null,
       data.case_delivery_or_service_incharge ?? null,
       data.case_delivery_or_service_incharge_id != null && String(data.case_delivery_or_service_incharge_id).trim().length > 0
@@ -486,6 +491,7 @@ export async function updateCaseList(
     'shipyard_business',
     'case_agent',
     'case_superintendent',
+    'case_superintendent_id',
     'case_surveyor',
     'case_delivery_or_service_incharge',
     'case_delivery_or_service_incharge_id',
@@ -506,7 +512,7 @@ export async function updateCaseList(
     if (key in data) {
       sets.push(`\`${key}\` = ?`)
       const v = (data as any)[key]
-      if (key === 'owner_following_id') {
+      if (key === 'owner_following_id' || key === 'case_superintendent_id') {
         if (v == null || v === '' || Number.isNaN(Number(v))) {
           params.push(null)
         } else {
@@ -600,6 +606,10 @@ function normalizeRow(row: any): CaseListRow {
     shipyard_business: row.shipyard_business ? String(row.shipyard_business) : null,
     case_agent: row.case_agent ? String(row.case_agent) : null,
     case_superintendent: row.case_superintendent ? String(row.case_superintendent) : null,
+    case_superintendent_id:
+      row.case_superintendent_id != null && row.case_superintendent_id !== '' && !Number.isNaN(Number(row.case_superintendent_id))
+        ? Number(row.case_superintendent_id)
+        : null,
     case_surveyor: row.case_surveyor ? String(row.case_surveyor) : null,
     case_delivery_or_service_incharge: row.case_delivery_or_service_incharge ? String(row.case_delivery_or_service_incharge) : null,
     case_delivery_or_service_incharge_id: row.case_delivery_or_service_incharge_id ? String(row.case_delivery_or_service_incharge_id) : null,
@@ -702,6 +712,7 @@ export async function ensureCaseListSchema(): Promise<void> {
             \`shipyard_business\` VARCHAR(128) NULL COMMENT '船厂经营',
             \`case_agent\` VARCHAR(128) NULL COMMENT '代理',
             \`case_superintendent\` VARCHAR(128) NULL COMMENT '机务主管',
+            \`case_superintendent_id\` INT NULL COMMENT '机务主管ID（对应 owner_list.owner_id）',
             \`case_surveyor\` VARCHAR(128) NULL COMMENT '验船师',
             \`case_delivery_or_service_incharge\` VARCHAR(512) NULL COMMENT '服务负责人（姓名多选逗号分隔）',
             \`case_delivery_or_service_incharge_id\` VARCHAR(512) NULL COMMENT '服务负责人多选ID列表（对应 contact_list.contact_id）',
@@ -744,7 +755,8 @@ export async function ensureCaseListSchema(): Promise<void> {
         { col: 'shipyard_business', def: 'VARCHAR(128) NULL COMMENT \'船厂经营\'', after: 'AFTER owner_following_id' },
         { col: 'case_agent', def: 'VARCHAR(128) NULL COMMENT \'代理\'', after: 'AFTER shipyard_business' },
         { col: 'case_superintendent', def: 'VARCHAR(128) NULL COMMENT \'机务主管\'', after: 'AFTER case_agent' },
-        { col: 'case_surveyor', def: 'VARCHAR(128) NULL COMMENT \'验船师\'', after: 'AFTER case_superintendent' },
+        { col: 'case_superintendent_id', def: 'INT NULL COMMENT \'机务主管ID（对应 owner_list.owner_id）\'', after: 'AFTER case_superintendent' },
+        { col: 'case_surveyor', def: 'VARCHAR(128) NULL COMMENT \'验船师\'', after: 'AFTER case_superintendent_id' },
         { col: 'case_delivery_or_service_incharge', def: 'VARCHAR(512) NULL COMMENT \'服务负责人（姓名多选逗号分隔）\'', after: 'AFTER case_surveyor' },
         { col: 'case_delivery_or_service_incharge_id', def: 'VARCHAR(512) NULL COMMENT \'服务负责人多选ID列表（对应 contact_list.contact_id）\'', after: 'AFTER case_delivery_or_service_incharge' },
         { col: 'case_delivery_or_service_deadline', def: 'DATE NULL COMMENT \'交付/服务截止日期\'', after: 'AFTER case_delivery_or_service_incharge_id' },

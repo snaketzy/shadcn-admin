@@ -18,6 +18,7 @@ export const caseSchema = z.object({
   shipyard_business: z.string().nullable(),
   case_agent: z.string().nullable(),
   case_superintendent: z.string().nullable(),
+  case_superintendent_id: z.number().nullable().optional(),
   case_surveyor: z.string().nullable(),
   case_delivery_or_service_incharge: z.string().nullable(),
   case_delivery_or_service_incharge_id: z.string().nullable().optional(),

@@ -105,6 +105,8 @@ export type SuperintendentPickerDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelect: (result: SuperintendentPickerResult) => void
+  initialSelectedId?: string | number | null
+  /** @deprecated 建议用 initialSelectedId；仅作为无 id 时按名称兜底回填 */
   initialSelectedName?: string
   departmentLabel?: string
 }
@@ -121,26 +123,38 @@ function resolveLabel(raw: unknown, { keyMap, valueMap }: DictMap): string {
 }
 
 const F1_DEPT_CODE = 'F1'
+const F4_DEPT_CODE = 'F4'
 
 export function SuperintendentPickerDialog({
   open,
   onOpenChange,
   onSelect,
+  initialSelectedId,
   initialSelectedName,
   departmentLabel,
 }: SuperintendentPickerDialogProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
-  const [selectedName, setSelectedName] = useState<string | null>(
-    initialSelectedName ?? null
-  )
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setSearchKeyword('')
-    const next = initialSelectedName ?? null
-    setSelectedName((prev) => (prev === next ? prev : next))
-  }, [open, initialSelectedName])
+  const resolveInitialOwnerId = useCallback(
+    (owners: Owner[]): string | null => {
+      if (initialSelectedId != null && initialSelectedId !== '') {
+        const s = String(initialSelectedId)
+        const hit = owners.find((o) => String(o.owner_id ?? '') === s)
+        if (hit) return String(hit.owner_id)
+      }
+      if (initialSelectedName && initialSelectedName.trim()) {
+        const n = initialSelectedName.trim()
+        const hit = owners.find(
+          (o) => String(o.owner_name ?? '').trim() === n
+        )
+        if (hit) return String(hit.owner_id)
+      }
+      return null
+    },
+    [initialSelectedId, initialSelectedName]
+  )
 
   const { data: owners = [], isLoading: ownersLoading } = useQuery({
     queryKey: ['owner-picker-all'],
@@ -170,16 +184,32 @@ export function SuperintendentPickerDialog({
   )
 
   const superintendentRows = useMemo<Owner[]>(() => {
-    return (owners as Owner[]).filter(
-      (o) =>
-        String(o.owner_department ?? '').toUpperCase() === F1_DEPT_CODE
-    )
+    return (owners as Owner[]).filter((o) => {
+      const dept = String(o.owner_department ?? '').toUpperCase()
+      return dept === F1_DEPT_CODE || dept === F4_DEPT_CODE
+    })
   }, [owners])
+
+  useEffect(() => {
+    if (!open) return
+    setSearchKeyword('')
+    const init = resolveInitialOwnerId(superintendentRows)
+    if (init) setSelectedOwnerId(init)
+    else if (!initialSelectedId && !initialSelectedName)
+      setSelectedOwnerId(null)
+  }, [
+    open,
+    initialSelectedId,
+    initialSelectedName,
+    superintendentRows,
+    resolveInitialOwnerId,
+  ])
 
   const f1Label = useMemo(() => {
     if (departmentLabel) return departmentLabel
-    const hit = departmentMap.keyMap.get(F1_DEPT_CODE)
-    return hit || F1_DEPT_CODE
+    const f1 = departmentMap.keyMap.get(F1_DEPT_CODE) || F1_DEPT_CODE
+    const f4 = departmentMap.keyMap.get(F4_DEPT_CODE) || F4_DEPT_CODE
+    return `${f1}/${f4}`
   }, [departmentLabel, departmentMap])
 
   const filteredRows: Owner[] = useMemo(() => {
@@ -318,8 +348,8 @@ export function SuperintendentPickerDialog({
           ),
         },
         cell: ({ row }) => {
-          const name = row.original.owner_name
-          const isSelected = selectedName === name
+          const rowOwnerId = String(row.original.owner_id ?? '')
+          const isSelected = selectedOwnerId != null && selectedOwnerId !== '' && selectedOwnerId === rowOwnerId
           return (
             <div className='flex justify-end'>
               <Button
@@ -329,7 +359,7 @@ export function SuperintendentPickerDialog({
                 onClick={(e) => {
                   e.stopPropagation()
                   const v = row.original
-                  setSelectedName(v.owner_name)
+                  setSelectedOwnerId(String(v.owner_id ?? ''))
                   const result: SuperintendentPickerResult = {
                     owner_id: String(v.owner_id),
                     owner_name: v.owner_name ?? '',
@@ -354,7 +384,7 @@ export function SuperintendentPickerDialog({
         },
       },
     ]
-  }, [selectedName, teamMap, departmentMap, rankMap, onSelect, onOpenChange])
+  }, [selectedOwnerId, teamMap, departmentMap, rankMap, onSelect, onOpenChange])
 
   const table = useReactTable({
     data: filteredRows,
@@ -368,7 +398,7 @@ export function SuperintendentPickerDialog({
   const handleRowClick = useCallback(
     (row: { original: Owner }) => {
       const v = row.original
-      setSelectedName(v.owner_name)
+      setSelectedOwnerId(String(v.owner_id ?? ''))
       const result: SuperintendentPickerResult = {
         owner_id: String(v.owner_id),
         owner_name: v.owner_name ?? '',
@@ -470,8 +500,11 @@ export function SuperintendentPickerDialog({
                     </TableRow>
                   ) : (
                     table.getRowModel().rows.map((row) => {
-                      const rowName = row.original.owner_name
-                      const isSelectedRow = selectedName === rowName
+                      const rowOwnerId = String(row.original.owner_id ?? '')
+                      const isSelectedRow =
+                        selectedOwnerId != null &&
+                        selectedOwnerId !== '' &&
+                        selectedOwnerId === rowOwnerId
                       return (
                         <TableRow
                           key={row.id}
