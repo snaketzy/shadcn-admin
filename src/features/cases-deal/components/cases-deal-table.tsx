@@ -122,36 +122,6 @@ const FIXED_COL_STYLES: Record<
       minWidth: 88,
     },
   },
-  case_progress: {
-    th: {
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      width: 120,
-      minWidth: 120,
-      maxWidth: 120,
-    },
-    td: {
-      width: 120,
-      minWidth: 120,
-      maxWidth: 120,
-    },
-  },
-  owner_following: {
-    th: {
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      width: 180,
-      minWidth: 180,
-      maxWidth: 180,
-    },
-    td: {
-      width: 180,
-      minWidth: 180,
-      maxWidth: 180,
-    },
-  },
 }
 
 type DataTableProps = Record<string, never>
