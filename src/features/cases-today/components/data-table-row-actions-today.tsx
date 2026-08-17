@@ -1,5 +1,5 @@
 import { type Row } from '@tanstack/react-table'
-import { Trash2, UserPen } from 'lucide-react'
+import { StickyNotePlus, Trash2, UserPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { type Case } from '@/features/cases/data/schema'
 import { useCasesToday } from './cases-today-provider'
@@ -35,6 +35,17 @@ export function DataTableRowActionsToday({
         }}
       >
         <Trash2 size={16} />
+      </Button>
+      <Button
+        variant='ghost'
+        size='icon'
+        className='h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-600'
+        onClick={() => {
+          setCurrentRow(row.original)
+          setOpen('memo')
+        }}
+      >
+        <StickyNotePlus size={16} />
       </Button>
     </div>
   )
