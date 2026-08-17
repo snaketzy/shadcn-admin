@@ -4,7 +4,14 @@ import { CasesMemoDialog } from './cases-memo-dialog'
 import { useCases } from './cases-provider'
 
 export function CasesDialogs() {
-  const { open, setOpen, currentRow, setCurrentRow } = useCases()
+  const {
+    open,
+    setOpen,
+    currentRow,
+    setCurrentRow,
+    editingMemo,
+    setEditingMemo,
+  } = useCases()
   return (
     <>
       <CasesActionDialog
@@ -33,6 +40,7 @@ export function CasesDialogs() {
             onOpenChange={(o) => {
               if (!o) {
                 setOpen(null)
+                setEditingMemo(null)
                 setTimeout(() => {
                   setCurrentRow(null)
                 }, 500)
@@ -41,6 +49,8 @@ export function CasesDialogs() {
               }
             }}
             currentRow={currentRow}
+            editingMemo={editingMemo}
+            onEditingMemoChange={(m) => setEditingMemo(m)}
           />
 
           <CasesDeleteDialog

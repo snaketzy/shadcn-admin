@@ -1,7 +1,14 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertCircle, ListChecks, Handshake, StickyNote } from 'lucide-react'
+import {
+  AlertCircle,
+  ListChecks,
+  Handshake,
+  StickyNote,
+  Pencil,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -16,6 +23,7 @@ import { LongText } from '@/components/long-text'
 import { parseAttachments, type CaseMemo } from '../api/client'
 import { getBadgeColor } from '../data/data'
 import { type Case } from '../data/schema'
+import { useCases } from './cases-provider'
 import { DataTableRowActions } from './data-table-row-actions'
 
 function pad2(n: number): string {
@@ -61,6 +69,42 @@ function formatDateAsHyphen(raw: unknown): string {
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
   }
   return str
+}
+
+function safeMemoStr(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  const s = String(v).trim()
+  if (s === 'null' || s === 'undefined') return ''
+  return s
+}
+
+function CaseMemoEditButton({
+  rowData,
+  memo,
+}: {
+  rowData: Case
+  memo: CaseMemo
+}) {
+  const { setCurrentRow, setEditingMemo, setOpen } = useCases()
+  return (
+    <Button
+      type='button'
+      variant='ghost'
+      size='icon'
+      className='h-7 w-7 shrink-0 text-amber-800/70 hover:bg-amber-200/80 hover:text-amber-900'
+      onClick={(e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        setCurrentRow(rowData)
+        setEditingMemo(memo)
+        setOpen('memo')
+      }}
+      aria-label='编辑该备忘'
+      title='编辑该备忘'
+    >
+      <Pencil size={14} />
+    </Button>
+  )
 }
 
 export function getCasesColumns(params?: {
@@ -278,53 +322,56 @@ export function getCasesColumns(params?: {
                           {sep && (
                             <Separator className='mb-2 border-amber-200/70' />
                           )}
-                          <div className='flex flex-wrap items-center gap-2 px-1'>
-                            {(memo as any).case_memo_date && (
-                              <Badge
-                                variant='secondary'
-                                className='bg-amber-200/70 text-amber-900 hover:bg-amber-200'
-                              >
-                                日期：
-                                {String((memo as any).case_memo_date ?? '')}
-                              </Badge>
-                            )}
-                            {memo.created_at && (
-                              <span className='text-xs text-amber-900/70'>
-                                保存：{String(memo.created_at)}
-                              </span>
-                            )}
-                            {attach.length > 0 && (
-                              <span className='text-xs text-amber-900/80'>
-                                附件：{attach.length} 个
-                              </span>
-                            )}
+                          <div className='flex items-center gap-2 px-1'>
+                            <div className='flex min-w-0 flex-1 flex-wrap items-center gap-2'>
+                              {(memo as any).case_memo_date && (
+                                <Badge
+                                  variant='secondary'
+                                  className='bg-amber-200/70 text-amber-900 hover:bg-amber-200'
+                                >
+                                  日期：
+                                  {String((memo as any).case_memo_date ?? '')}
+                                </Badge>
+                              )}
+                              {memo.created_at && (
+                                <span className='text-xs text-amber-900/70'>
+                                  保存：{String(memo.created_at)}
+                                </span>
+                              )}
+                              {attach.length > 0 && (
+                                <span className='text-xs text-amber-900/80'>
+                                  附件：{attach.length} 个
+                                </span>
+                              )}
+                            </div>
+                            <CaseMemoEditButton
+                              rowData={row.original}
+                              memo={memo as CaseMemo}
+                            />
                           </div>
-                          {(
-                            (memo as any).case_memo_content ??
-                            (memo as any).case_memo_remark ??
-                            ''
-                          ).trim() && (
+                          {safeMemoStr((memo as any).case_memo_content) +
+                            safeMemoStr((memo as any).case_memo_remark) && (
                             <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
-                              {(memo as any).case_memo_content && (
+                              {safeMemoStr((memo as any).case_memo_content) && (
                                 <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
                                   <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
                                     内容
                                   </div>
                                   <LongText className='max-w-none'>
-                                    {String(
-                                      (memo as any).case_memo_content ?? ''
+                                    {safeMemoStr(
+                                      (memo as any).case_memo_content
                                     )}
                                   </LongText>
                                 </div>
                               )}
-                              {(memo as any).case_memo_remark && (
+                              {safeMemoStr((memo as any).case_memo_remark) && (
                                 <div className='rounded-md bg-white/60 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/40'>
                                   <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
                                     备注
                                   </div>
                                   <LongText className='max-w-none'>
-                                    {String(
-                                      (memo as any).case_memo_remark ?? ''
+                                    {safeMemoStr(
+                                      (memo as any).case_memo_remark
                                     )}
                                   </LongText>
                                 </div>

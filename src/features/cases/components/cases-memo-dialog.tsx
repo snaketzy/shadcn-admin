@@ -9,6 +9,7 @@ import {
   X as XIcon,
   Trash2 as Trash2Icon,
   StickyNote as StickyNoteIcon,
+  Pencil as PencilIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -38,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   createCaseMemo,
   deleteCaseMemo,
+  updateCaseMemo,
   fetchCaseMemoListByCaseId,
   parseAttachments,
   type CaseMemo,
@@ -49,6 +51,8 @@ type CasesMemoDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow: Case
+  editingMemo?: CaseMemo | null
+  onEditingMemoChange?: (memo: CaseMemo | null) => void
 }
 
 function pad2(n: number) {
@@ -116,6 +120,8 @@ export function CasesMemoDialog({
   open,
   onOpenChange,
   currentRow,
+  editingMemo = null,
+  onEditingMemoChange,
 }: CasesMemoDialogProps) {
   const queryClient = useQueryClient()
   const [memoDate, setMemoDate] = useState<string>('')
@@ -123,6 +129,9 @@ export function CasesMemoDialog({
   const [memoRemark, setMemoRemark] = useState<string>('')
   const [attachments, setAttachments] = useState<CaseMemoAttachment[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const isEditMode = Boolean(editingMemo)
+  const editingMemoId = editingMemo?.case_memo_id ?? null
 
   const caseNo = currentRow?.case_id ?? 0
   const caseNumberText =
@@ -141,19 +150,53 @@ export function CasesMemoDialog({
     staleTime: 60_000,
   })
 
+  const safeStr = (v: unknown): string => {
+    if (v === null || v === undefined) return ''
+    const s = String(v).trim()
+    if (s === 'null' || s === 'undefined') return ''
+    return s
+  }
+
   useEffect(() => {
     if (open) {
-      if (!memoDate) {
-        setMemoDate(formatNowForDatetimeLocal(new Date()))
+      if (editingMemo) {
+        const rawDate = safeStr(editingMemo.case_memo_date).replace(' ', 'T')
+        const d = new Date(rawDate)
+        if (rawDate && !Number.isNaN(d.getTime())) {
+          setMemoDate(formatNowForDatetimeLocal(d))
+        } else {
+          setMemoDate(formatNowForDatetimeLocal(new Date()))
+        }
+        setMemoContent(safeStr(editingMemo.case_memo_content))
+        setMemoRemark(safeStr(editingMemo.case_memo_remark))
+        setAttachments(parseAttachments(editingMemo.case_memo_attachment))
+      } else {
+        if (!memoDate) {
+          setMemoDate(formatNowForDatetimeLocal(new Date()))
+        }
+        setMemoContent('')
+        setMemoRemark('')
+        setAttachments([])
       }
-      setMemoContent('')
-      setMemoRemark('')
-      setAttachments([])
+    } else {
+      if (!editingMemo) {
+        setMemoContent('')
+        setMemoRemark('')
+        setAttachments([])
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, editingMemo])
 
   const saveModeRef = useRef<'close' | 'new' | null>(null)
+
+  const clearForm = () => {
+    setMemoContent('')
+    setMemoRemark('')
+    setAttachments([])
+    setMemoDate(formatNowForDatetimeLocal(new Date()))
+    onEditingMemoChange?.(null)
+  }
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -180,10 +223,7 @@ export function CasesMemoDialog({
           onOpenChange(false)
         } else if (mode === 'new') {
           toast.success('备忘已保存，可继续新增')
-          setMemoContent('')
-          setMemoRemark('')
-          setAttachments([])
-          setMemoDate(formatNowForDatetimeLocal(new Date()))
+          clearForm()
         }
       } else {
         saveModeRef.current = null
@@ -196,20 +236,63 @@ export function CasesMemoDialog({
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      updateCaseMemo(editingMemoId!, {
+        case_memo_date: memoDate ? memoDate.replace('T', ' ') : null,
+        case_memo_content: memoContent.trim() || null,
+        case_memo_remark: memoRemark.trim() || null,
+        case_memo_attachment: attachments.length > 0 ? attachments : null,
+      }),
+    onSuccess: (row) => {
+      if (row) {
+        void refetch()
+        queryClient.invalidateQueries({ queryKey: ['case-memo-list', caseNo] })
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            Array.isArray(q.queryKey) &&
+            q.queryKey[0] === 'case-memo-list-by-page-case-ids',
+        })
+        saveModeRef.current = null
+        toast.success('备忘已更新')
+        clearForm()
+        onOpenChange(false)
+      } else {
+        saveModeRef.current = null
+        toast.error('更新失败，请稍后重试')
+      }
+    },
+    onError: (err: Error) => {
+      saveModeRef.current = null
+      toast.error(`更新失败: ${err.message}`)
+    },
+  })
+
+  const isSaving = createMutation.isPending || updateMutation.isPending
+
   const canSave =
-    !createMutation.isPending &&
+    !isSaving &&
     (memoContent.trim().length > 0 ||
       memoRemark.trim().length > 0 ||
       attachments.length > 0)
 
-  const handleSaveAndClose = () => {
+  const handleSave = () => {
     if (!canSave) return
     saveModeRef.current = 'close'
-    createMutation.mutate()
+    if (isEditMode && editingMemoId) {
+      updateMutation.mutate()
+    } else {
+      createMutation.mutate()
+    }
   }
 
   const handleSaveAndNew = () => {
     if (!canSave) return
+    if (isEditMode) {
+      saveModeRef.current = 'close'
+      updateMutation.mutate()
+      return
+    }
     saveModeRef.current = 'new'
     createMutation.mutate()
   }
@@ -272,8 +355,22 @@ export function CasesMemoDialog({
 
   const caseTitle = (
     <div className='flex flex-wrap items-center gap-3'>
-      <StickyNoteIcon className='me-1 inline h-5 w-5 text-primary' />
-      <span className='font-semibold'>案件备忘</span>
+      {isEditMode ? (
+        <PencilIcon className='me-1 inline h-5 w-5 text-primary' />
+      ) : (
+        <StickyNoteIcon className='me-1 inline h-5 w-5 text-primary' />
+      )}
+      <span className='font-semibold'>
+        {isEditMode ? '编辑案件备忘' : '案件备忘'}
+      </span>
+      {isEditMode && editingMemoId && (
+        <Badge
+          variant='outline'
+          className='rounded-full border-border bg-transparent'
+        >
+          #{editingMemoId}
+        </Badge>
+      )}
       {vesselName && (
         <span className='text-base text-muted-foreground'>
           （船名：
@@ -455,6 +552,10 @@ export function CasesMemoDialog({
                         deleteMutation.isPending &&
                         deleteMutation.variables === m.case_memo_id
                       }
+                      isEditing={isEditMode && editingMemoId === m.case_memo_id}
+                      onEdit={() => {
+                        onEditingMemoChange?.(m)
+                      }}
                       onDelete={() => {
                         if (
                           window.confirm(
@@ -474,29 +575,41 @@ export function CasesMemoDialog({
 
         <Separator className='-mx-6 w-[calc(100%+3rem)] shrink-0' />
         <DialogFooter className='mt-2 shrink-0 pt-4'>
+          {isEditMode && (
+            <Button
+              type='button'
+              variant='ghost'
+              onClick={() => onEditingMemoChange?.(null)}
+              className='h-10 px-5'
+            >
+              取消编辑
+            </Button>
+          )}
           <DialogClose asChild>
             <Button variant='outline' type='button' className='h-10 px-5'>
               关闭
             </Button>
           </DialogClose>
+          {!isEditMode && (
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={handleSaveAndNew}
+              disabled={!canSave || isSaving}
+              className='h-10 gap-2 px-5'
+            >
+              <PlusIcon size={16} />
+              {isSaving ? '保存中...' : '保存并新增备忘'}
+            </Button>
+          )}
           <Button
             type='button'
-            variant='secondary'
-            onClick={handleSaveAndNew}
-            disabled={!canSave || createMutation.isPending}
-            className='h-10 gap-2 px-5'
-          >
-            <PlusIcon size={16} />
-            {createMutation.isPending ? '保存中...' : '保存并新增备忘'}
-          </Button>
-          <Button
-            type='button'
-            onClick={handleSaveAndClose}
-            disabled={!canSave || createMutation.isPending}
+            onClick={handleSave}
+            disabled={!canSave || isSaving}
             className='h-10 gap-2 px-5'
           >
             <SaveIcon size={16} />
-            {createMutation.isPending ? '保存中...' : '保存备忘'}
+            {isSaving ? '保存中...' : isEditMode ? '更新备忘' : '保存备忘'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -507,22 +620,40 @@ export function CasesMemoDialog({
 function MemoHistoryItem({
   memo,
   isDeleting,
+  isEditing,
+  onEdit,
   onDelete,
 }: {
   memo: CaseMemo
   isDeleting: boolean
+  isEditing?: boolean
+  onEdit?: () => void
   onDelete: () => void
 }) {
   const atts = useMemo(
     () => parseAttachments(memo.case_memo_attachment),
     [memo.case_memo_attachment]
   )
+  const safeStr = (v: unknown): string => {
+    if (v === null || v === undefined) return ''
+    const s = String(v).trim()
+    if (s === 'null' || s === 'undefined') return ''
+    return s
+  }
+
+  const contentStr = safeStr(memo.case_memo_content)
+  const remarkStr = safeStr(memo.case_memo_remark)
   const hasAttachments = atts.length > 0
-  const hasContent = (memo.case_memo_content ?? '').trim().length > 0
-  const hasRemark = (memo.case_memo_remark ?? '').trim().length > 0
+  const hasContent = contentStr.length > 0
+  const hasRemark = remarkStr.length > 0
 
   return (
-    <Card className='overflow-hidden border-border/80 shadow-none'>
+    <Card
+      className={cn(
+        'overflow-hidden border-border/80 shadow-none transition-colors',
+        isEditing && 'border-primary ring-2 ring-primary/60'
+      )}
+    >
       <CardHeader className='flex flex-row items-start justify-between gap-2 space-y-0 pb-2'>
         <div className='flex flex-col gap-1'>
           <CardTitle className='flex flex-wrap items-center gap-2 text-sm font-semibold'>
@@ -536,6 +667,14 @@ function MemoHistoryItem({
             <span className='tabular-nums'>
               {formatDisplayDate(memo.case_memo_date)}
             </span>
+            {isEditing && (
+              <Badge
+                variant='secondary'
+                className='rounded-full px-2 py-0 text-[11px] font-medium'
+              >
+                编辑中
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription className='text-xs'>
             创建于 {formatDisplayDate(memo.created_at)}
@@ -544,22 +683,41 @@ function MemoHistoryItem({
             )}
           </CardDescription>
         </div>
-        <Button
-          variant='ghost'
-          size='icon'
-          className='h-8 w-8 text-destructive/80 hover:bg-destructive/10 hover:text-destructive'
-          onClick={onDelete}
-          disabled={isDeleting}
-          aria-label='删除该备忘'
-        >
-          <Trash2Icon size={16} />
-        </Button>
+        <div className='flex items-center gap-0.5'>
+          {onEdit && (
+            <Button
+              variant='ghost'
+              size='icon'
+              className={cn(
+                'h-8 w-8 hover:bg-primary/10',
+                isEditing
+                  ? 'text-primary hover:text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              onClick={onEdit}
+              disabled={isDeleting}
+              aria-label='编辑该备忘'
+            >
+              <PencilIcon size={16} />
+            </Button>
+          )}
+          <Button
+            variant='ghost'
+            size='icon'
+            className='h-8 w-8 text-destructive/80 hover:bg-destructive/10 hover:text-destructive'
+            onClick={onDelete}
+            disabled={isDeleting}
+            aria-label='删除该备忘'
+          >
+            <Trash2Icon size={16} />
+          </Button>
+        </div>
       </CardHeader>
       {(hasContent || hasRemark || hasAttachments) && (
         <CardContent className='space-y-3 pt-0'>
           {hasContent && (
             <div className='text-sm leading-7 break-words whitespace-pre-wrap text-foreground/90'>
-              {memo.case_memo_content}
+              {contentStr}
             </div>
           )}
           {hasRemark && (
@@ -567,7 +725,7 @@ function MemoHistoryItem({
               <span className='me-2 font-medium text-foreground/80'>
                 备注：
               </span>
-              {memo.case_memo_remark}
+              {remarkStr}
             </div>
           )}
           {hasAttachments && (
