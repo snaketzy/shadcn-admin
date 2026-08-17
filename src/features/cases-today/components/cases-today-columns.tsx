@@ -20,7 +20,11 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { parseAttachments, type CaseMemo } from '@/features/cases/api/client'
+import {
+  parseAttachments,
+  type CaseMemo,
+  type CaseInquiry,
+} from '@/features/cases/api/client'
 import { getBadgeColor } from '@/features/cases/data/data'
 import { type Case } from '@/features/cases/data/schema'
 import { useCasesToday } from './cases-today-provider'
@@ -124,7 +128,10 @@ export function getCasesTodayColumns(params?: {
   rankDMap?: Map<string, string>
   vesselPositionCMap?: Map<string, string>
   getCaseIdMemosMap?: () => Map<number, CaseMemo[]> | undefined
+  getCaseIdInquiriesMap?: () => Map<number, CaseInquiry[]> | undefined
   progressRMap?: Map<string, string>
+  supplierIdNameMap?: Map<number, string>
+  inquiryTypeQKeyToLabel?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBMap = params?.urgentBMap
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
@@ -137,6 +144,9 @@ export function getCasesTodayColumns(params?: {
   const vesselPositionCMap = params?.vesselPositionCMap
   const progressRMap = params?.progressRMap
   const getCaseIdMemosMap = params?.getCaseIdMemosMap
+  const getCaseIdInquiriesMap = params?.getCaseIdInquiriesMap
+  const supplierIdNameMap = params?.supplierIdNameMap
+  const inquiryTypeQKeyToLabel = params?.inquiryTypeQKeyToLabel
   const isUrgentRow = (raw: unknown): boolean => {
     if (!urgentBIsUrgentSet) return false
     if (raw === null || raw === undefined || raw === '') return false
@@ -434,13 +444,338 @@ export function getCasesTodayColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('vessel_name') as string | null
-        return (
+        const rowData = row.original
+        const caseId = Number((rowData as any)?.case_id)
+        const resolveDict = (
+          map: Map<string, string> | undefined,
+          raw: unknown
+        ): string => {
+          if (!raw || raw === '' || raw === null || raw === undefined) return ''
+          const key = String(raw).trim().toUpperCase()
+          if (!key) return ''
+          return map?.get(key) ?? String(raw)
+        }
+        const resolveOwner = (
+          raw: unknown,
+          byId: boolean
+        ): { owner_name: string; owner_email: string } | null => {
+          if (!raw || raw === '' || raw === null || raw === undefined)
+            return null
+          const k = byId ? String(raw) : String(raw)
+          if (!k) return null
+          const hit = byId ? ownerIdEmailMap?.get(k) : ownerNameEmailMap?.get(k)
+          if (hit) return hit
+          return { owner_name: k, owner_email: '' }
+        }
+        const s = (v: unknown): string => {
+          if (v === null || v === undefined) return ''
+          const str = String(v).trim()
+          if (str === 'null' || str === 'undefined') return ''
+          return str
+        }
+        const resolveSupplierName = (id: unknown): string => {
+          const n =
+            typeof id === 'number'
+              ? id
+              : typeof id === 'string' && id.trim() !== ''
+                ? Number(id)
+                : Number.NaN
+          if (!Number.isFinite(n) || n <= 0) return ''
+          return (
+            supplierIdNameMap?.get(n) ??
+            (String(id).trim() ? `供应商ID:${n}` : '')
+          )
+        }
+        const resolveInquiryQLabel = (raw: unknown): string => {
+          if (!raw || raw === '' || raw === null || raw === undefined) return ''
+          const k = String(raw).trim().toUpperCase()
+          if (!k) return ''
+          return inquiryTypeQKeyToLabel?.get(k) ?? String(raw)
+        }
+        const inquiries: CaseInquiry[] = Number.isFinite(caseId)
+          ? (getCaseIdInquiriesMap?.()?.get(caseId) ?? [])
+          : []
+        const groupInquirySuppliers = (
+          matcher: (label: string) => boolean
+        ): { supplier: string; date: string; typeLabel: string }[] => {
+          const out: { supplier: string; date: string; typeLabel: string }[] =
+            []
+          for (const r of inquiries) {
+            const typeLabel = resolveInquiryQLabel(r.case_inquiry_type)
+            if (!matcher(typeLabel)) continue
+            const supplier = resolveSupplierName(r.case_inquiry_division_id)
+            out.push({
+              supplier: supplier || '未指定供应商',
+              date: s(r.case_inquired_date),
+              typeLabel,
+            })
+          }
+          return out
+        }
+        const inquiryGroups = {
+          询价: groupInquirySuppliers((l) =>
+            /询价|询盘|inquir|enquir/i.test(l)
+          ),
+          报价: groupInquirySuppliers((l) => /报价|quot/i.test(l)),
+          竞标: groupInquirySuppliers((l) => /竞标|投标|bid/i.test(l)),
+          中标: groupInquirySuppliers((l) => /中标|win|award/i.test(l)),
+        }
+        const ownerInfo = resolveOwner(rowData.owner_following, false)
+        const ownerById =
+          (rowData as any).owner_following_id != null &&
+          (rowData as any).owner_following_id !== ''
+            ? resolveOwner((rowData as any).owner_following_id, true)
+            : null
+        const finalOwner = ownerById ?? ownerInfo
+        const displayValue = value ?? '-'
+        const trigger = (
           <span
-            className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium'
+            className='inline-flex max-w-50 cursor-help items-center truncate ps-3 align-middle font-medium'
             title={String(value ?? '')}
           >
-            <LongText className='max-w-50 truncate'>{value ?? '-'}</LongText>
+            <LongText className='max-w-50 truncate'>{displayValue}</LongText>
           </span>
+        )
+        const kvRow = (label: string, content: React.ReactNode) => {
+          const hasContent =
+            typeof content === 'string' ? content.length > 0 : !!content
+          return (
+            <div className='grid grid-cols-[92px_1fr] items-start gap-2 text-sm'>
+              <div className='ps-1 pt-0.5 text-right text-muted-foreground/80'>
+                {label}
+              </div>
+              <div className='min-w-0 text-foreground'>
+                {hasContent ? (
+                  content
+                ) : (
+                  <span className='text-muted-foreground/50'>-</span>
+                )}
+              </div>
+            </div>
+          )
+        }
+        const buildInquirySection = (
+          title: string,
+          rows: { supplier: string; date: string; typeLabel: string }[],
+          accent: string
+        ) => {
+          if (rows.length === 0) return null
+          return (
+            <div
+              className={cn(
+                'rounded-md p-2.5 ring-1',
+                accent.includes('slate')
+                  ? 'bg-slate-50/80 ring-slate-200'
+                  : '',
+                accent.includes('amber')
+                  ? 'bg-amber-50/70 ring-amber-200'
+                  : '',
+                accent.includes('blue') ? 'bg-blue-50/70 ring-blue-200' : '',
+                accent.includes('emerald')
+                  ? 'bg-emerald-50/70 ring-emerald-200'
+                  : ''
+              )}
+            >
+              <div className='mb-1.5 flex items-center justify-between gap-2'>
+                <Badge
+                  variant='secondary'
+                  className={cn(
+                    'font-medium',
+                    accent.includes('slate')
+                      ? 'bg-slate-100 text-slate-800 hover:bg-slate-100'
+                      : '',
+                    accent.includes('amber')
+                      ? 'bg-amber-100 text-amber-800 hover:bg-amber-100'
+                      : '',
+                    accent.includes('blue')
+                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                      : '',
+                    accent.includes('emerald')
+                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                      : ''
+                  )}
+                >
+                  {title}（{rows.length}）
+                </Badge>
+              </div>
+              <ul className='space-y-0.5'>
+                {rows.map((r, idx) => (
+                  <li
+                    key={idx}
+                    className='grid grid-cols-[1fr_auto] items-start gap-2 text-[13px] text-slate-900'
+                  >
+                    <LongText className='max-w-[420px] truncate font-medium text-slate-900'>
+                      {r.supplier}
+                    </LongText>
+                    <span className='shrink-0 text-xs text-slate-600'>
+                      {r.date}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        return (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild tabIndex={-1}>
+                <span className='inline-flex cursor-help'>{trigger}</span>
+              </TooltipTrigger>
+              <TooltipContent
+                side='right'
+                align='start'
+                sideOffset={8}
+                collisionPadding={16}
+                avoidCollisions
+                className='z-[100] flex h-[90vh] w-[620px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur'
+              >
+                <div className='flex shrink-0 items-center gap-2 border-b border-border/80 bg-muted/40 px-3.5 py-2.5'>
+                  <div className='min-w-0 flex-1'>
+                    <div className='truncate text-sm text-muted-foreground/80'>
+                      案件详情速览
+                    </div>
+                    <div className='truncate text-base font-semibold text-foreground'>
+                      {displayValue}
+                    </div>
+                  </div>
+                  <Badge variant='outline' className='shrink-0'>
+                    案件 #{s((rowData as any).case_id)}
+                  </Badge>
+                </div>
+                <ScrollArea className='min-h-0 flex-1'>
+                  <div className='flex flex-col gap-3.5 p-3.5'>
+                    <div className='grid grid-cols-1 gap-y-2.5'>
+                      {kvRow(
+                        '发票号',
+                        s(rowData.invoice_number) && (
+                          <LongText className='max-w-[480px] break-all'>
+                            {s(rowData.invoice_number)}
+                          </LongText>
+                        )
+                      )}
+                      {kvRow(
+                        '订单编号',
+                        s(rowData.order_number) && (
+                          <LongText className='max-w-[480px] break-all'>
+                            {s(rowData.order_number)}
+                          </LongText>
+                        )
+                      )}
+                      {kvRow(
+                        '需求编号/名称',
+                        s(rowData.case_inquiry_keyword) && (
+                          <LongText className='max-w-[480px] break-all'>
+                            {s(rowData.case_inquiry_keyword)}
+                          </LongText>
+                        )
+                      )}
+                      {kvRow(
+                        '案件进度',
+                        resolveDict(progressRMap, rowData.case_progress) ||
+                          s(rowData.case_progress)
+                      )}
+                      {kvRow(
+                        '需求类型',
+                        resolveDict(inqTypeAMap, rowData.case_inquiry_type) ||
+                          s(rowData.case_inquiry_type)
+                      )}
+                      {kvRow(
+                        '跟进日期',
+                        formatDateAsHyphen(rowData.case_follow_date)
+                      )}
+                      {kvRow(
+                        '船东联系人',
+                        finalOwner?.owner_name ? (
+                          <div className='flex flex-wrap items-center gap-2'>
+                            <LongText className='max-w-[360px] truncate'>
+                              {finalOwner.owner_name}
+                            </LongText>
+                            {s(finalOwner.owner_email) && (
+                              <span className='text-xs text-muted-foreground/80'>
+                                {finalOwner.owner_email}
+                              </span>
+                            )}
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                    {(inquiryGroups.询价.length > 0 ||
+                      inquiryGroups.报价.length > 0 ||
+                      inquiryGroups.竞标.length > 0 ||
+                      inquiryGroups.中标.length > 0) && (
+                      <>
+                        <Separator className='my-0.5' />
+                        <div className='flex flex-col gap-2.5'>
+                          <div className='text-[11px] tracking-wider text-muted-foreground/70 uppercase'>
+                            询价记录
+                          </div>
+                          {buildInquirySection(
+                            '询价单位',
+                            inquiryGroups.询价,
+                            'slate'
+                          )}
+                          {buildInquirySection(
+                            '报价单位',
+                            inquiryGroups.报价,
+                            'amber'
+                          )}
+                          {buildInquirySection(
+                            '竞标单位',
+                            inquiryGroups.竞标,
+                            'blue'
+                          )}
+                          {buildInquirySection(
+                            '中标单位',
+                            inquiryGroups.中标,
+                            'emerald'
+                          )}
+                        </div>
+                      </>
+                    )}
+                    <Separator className='my-0.5' />
+                    <div className='grid grid-cols-1 gap-y-2.5'>
+                      {kvRow(
+                        '案件机务',
+                        resolveDict(
+                          inchargeEMap,
+                          rowData.case_delivery_or_service_incharge
+                        ) || s(rowData.case_delivery_or_service_incharge)
+                      )}
+                      {kvRow(
+                        '运输｜服务截止日',
+                        formatDateAsHyphen(
+                          rowData.case_delivery_or_service_deadline
+                        )
+                      )}
+                      {kvRow(
+                        'ETA',
+                        formatDateAsHyphen(rowData.case_eta_cargo_ready_date)
+                      )}
+                      {kvRow(
+                        'ETB',
+                        formatDateAsHyphen(
+                          rowData.case_etb_cargo_departure_date
+                        )
+                      )}
+                      {kvRow(
+                        'ETD',
+                        formatDateAsHyphen(rowData.case_etd_cargo_delivery_date)
+                      )}
+                      {kvRow(
+                        '案件负责人',
+                        s(rowData.case_incharge) && (
+                          <LongText className='max-w-[480px] truncate'>
+                            {s(rowData.case_incharge)}
+                          </LongText>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </ScrollArea>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       meta: {
