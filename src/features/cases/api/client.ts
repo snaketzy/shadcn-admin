@@ -338,6 +338,27 @@ export async function fetchCaseInquiryListByCaseId(
   }
 }
 
+export async function fetchCaseInquiryListByCaseIds(
+  caseIds: number[]
+): Promise<CaseInquiry[]> {
+  if (caseIds.length === 0) return []
+  try {
+    const ids = caseIds
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .join(',')
+    if (!ids) return []
+    const res = await api.get<ApiEnvelope<any[]>>(
+      `/case-inquiry-list/by-case-ids?ids=${ids}`
+    )
+    const rows = res.data.data ?? []
+    return rows.map(apiRowToCaseInquiry)
+  } catch (e: any) {
+    if (e?.response?.status === 404) return []
+    return []
+  }
+}
+
 export async function createCaseInquiryBulk(rows: Array<{
   case_id: number
   case_inquiry_division_id: number | null

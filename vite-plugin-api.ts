@@ -78,6 +78,7 @@ import {
 import {
   createCaseInquiryListBulk,
   getCaseInquiryListByCaseId,
+  getCaseInquiryListByCaseIds,
   replaceCaseInquiryListByCaseId,
 } from './src/service/connection/case-inquiry-list-service'
 import {
@@ -1208,7 +1209,7 @@ async function handleCaseInquiryListApi(
   res: ServerResponse
 ): Promise<boolean> {
   const method = req.method ?? 'GET'
-  const { pathname } = parseUrl(req)
+  const { pathname, searchParams } = parseUrl(req)
 
   if (!pathname.startsWith('/api/case-inquiry-list')) {
     return false
@@ -1226,6 +1227,20 @@ async function handleCaseInquiryListApi(
         sendJson(res, 200, { success: true, data: rows })
         return true
       }
+    }
+
+    const byCaseIdsMatch = subPath.match(/^\/by-case-ids$/)
+    if (byCaseIdsMatch && method === 'GET') {
+      const rawIds = searchParams?.get('ids') ?? ''
+      const ids = String(rawIds)
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s !== '')
+        .map((s) => Number(s))
+        .filter((n) => Number.isFinite(n) && n > 0)
+      const rows = await getCaseInquiryListByCaseIds(ids)
+      sendJson(res, 200, { success: true, data: rows })
+      return true
     }
 
     if (subPath === '/bulk-insert' && method === 'POST') {

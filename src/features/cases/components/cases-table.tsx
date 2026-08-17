@@ -44,10 +44,16 @@ import {
 } from '@/features/dictionaries/api/client'
 import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import {
+  fetchSupplierAll,
+  type Supplier,
+} from '@/features/suppliers/api/client'
+import {
   fetchCaseGroups,
   fetchCasePaginated,
   fetchCaseMemoListByCaseIds,
+  fetchCaseInquiryListByCaseIds,
   type CaseMemo,
+  type CaseInquiry,
 } from '../api/client'
 import { type Case } from '../data/schema'
 import { getCasesColumns } from './cases-columns'
@@ -185,6 +191,40 @@ export function CasesTable(_: DataTableProps) {
     }
     return m
   }, [ownerAllRows])
+
+  const { data: supplierAllRows = [] } = useQuery({
+    queryKey: ['supplier-picker-all-for-case-list'],
+    queryFn: fetchSupplierAll,
+    staleTime: 60000,
+  })
+  const supplierIdNameMap = useMemo<Map<number, string>>(() => {
+    const m = new Map<number, string>()
+    const list = (supplierAllRows as Supplier[]) ?? []
+    for (const s of list) {
+      const id = Number((s as any).supplier_id)
+      const name =
+        String((s as any).supplier_name ?? '').trim() ||
+        String((s as any).name ?? '').trim()
+      if (Number.isFinite(id) && id > 0 && name) m.set(id, name)
+    }
+    return m
+  }, [supplierAllRows])
+
+  const { data: inquiryTypeQRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-Q-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('Q'),
+    staleTime: 60000,
+  })
+  const inquiryTypeQKeyToLabel = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    const list = (inquiryTypeQRowsData as CaseDict[]) ?? []
+    for (const d of list) {
+      const v = String(d.dict_key ?? '').trim()
+      const l = String(d.dict_value ?? d.dict_key ?? '').trim()
+      if (v && l) m.set(v.toUpperCase(), l)
+    }
+    return m
+  }, [inquiryTypeQRowsData])
 
   const { data: urgentBRowsData = [] } = useQuery({
     queryKey: ['case-dict-prefix-B-table'],
@@ -383,6 +423,10 @@ export function CasesTable(_: DataTableProps) {
   const caseIdMemosMapRef = useRef<Map<number, CaseMemo[]>>(new Map())
   const [memoTick, setMemoTick] = useState(0)
 
+  const inquiryRowsRef = useRef<CaseInquiry[]>([])
+  const caseIdInquiriesMapRef = useRef<Map<number, CaseInquiry[]>>(new Map())
+  const [inquiryTick, setInquiryTick] = useState(0)
+
   const columns = useMemo(
     () =>
       getCasesColumns({
@@ -397,6 +441,9 @@ export function CasesTable(_: DataTableProps) {
         vesselPositionCMap,
         progressRMap,
         getCaseIdMemosMap: () => caseIdMemosMapRef.current,
+        getCaseIdInquiriesMap: () => caseIdInquiriesMapRef.current,
+        supplierIdNameMap,
+        inquiryTypeQKeyToLabel,
       }),
     [
       urgentBMap,
@@ -410,6 +457,9 @@ export function CasesTable(_: DataTableProps) {
       vesselPositionCMap,
       progressRMap,
       memoTick,
+      inquiryTick,
+      supplierIdNameMap,
+      inquiryTypeQKeyToLabel,
     ]
   )
 
@@ -785,6 +835,40 @@ export function CasesTable(_: DataTableProps) {
     caseIdMemosMapRef.current = m
     setMemoTick((t) => (t + 1) & 0x3fffffff)
   }, [memoQuery.data])
+
+  const inquiryQuery = useQuery({
+    queryKey: [
+      'case-inquiry-list-by-page-case-ids',
+      currentPageCaseIds
+        .slice()
+        .sort((a, b) => a - b)
+        .join(','),
+    ],
+    queryFn: () => fetchCaseInquiryListByCaseIds(currentPageCaseIds),
+    enabled: currentPageCaseIds.length > 0,
+    staleTime: 0,
+  })
+
+  useEffect(() => {
+    const data = inquiryQuery.data
+    const rows = Array.isArray(data) ? (data as CaseInquiry[]) : []
+    inquiryRowsRef.current = rows
+    const m = new Map<number, CaseInquiry[]>()
+    for (const inquiry of rows) {
+      const rawId = (inquiry as any).case_id
+      const cid =
+        typeof rawId === 'number'
+          ? rawId
+          : typeof rawId === 'string' && rawId.trim() !== ''
+            ? Number(rawId)
+            : Number.NaN
+      if (!Number.isFinite(cid)) continue
+      if (!m.has(cid)) m.set(cid, [])
+      m.get(cid)!.push(inquiry)
+    }
+    caseIdInquiriesMapRef.current = m
+    setInquiryTick((t) => (t + 1) & 0x3fffffff)
+  }, [inquiryQuery.data])
 
   const caseIdMemosMap = caseIdMemosMapRef.current
 

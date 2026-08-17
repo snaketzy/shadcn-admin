@@ -59,6 +59,19 @@ export async function getCaseInquiryListByCaseId(
   return rows.map(normalizeInquiryRow)
 }
 
+export async function getCaseInquiryListByCaseIds(
+  caseIds: number[]
+): Promise<CaseInquiryListRow[]> {
+  if (caseIds.length === 0) return []
+  const placeholders = caseIds.map(() => '?').join(', ')
+  const rows = await query<any[]>(
+    `SELECT ${INQUIRY_SELECT_COLS} FROM \`case_inquiry_list\`
+     WHERE case_id IN (${placeholders}) ORDER BY case_id, case_inquiry_id`,
+    caseIds.map((n) => Number(n))
+  )
+  return rows.map(normalizeInquiryRow)
+}
+
 export async function createCaseInquiryListBulk(
   rows: Array<{
     case_id: number
