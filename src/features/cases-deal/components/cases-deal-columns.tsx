@@ -18,6 +18,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import {
@@ -613,167 +618,207 @@ export function getCasesDealColumns(params?: {
           )
         }
         return (
-          <TooltipProvider delayDuration={150}>
-            <Tooltip>
-              <TooltipTrigger asChild tabIndex={-1}>
-                <span className='inline-flex cursor-help'>{trigger}</span>
-              </TooltipTrigger>
-              <TooltipContent
-                side='right'
-                align='start'
-                sideOffset={8}
-                collisionPadding={16}
-                avoidCollisions
-                className='z-[100] flex h-[90vh] w-[620px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur'
+          <Popover>
+            <PopoverTrigger asChild tabIndex={-1}>
+              <span
+                role='button'
+                tabIndex={-1}
+                onClick={(e) => e.stopPropagation()}
+                className='inline-flex cursor-pointer select-none'
               >
-                <div className='flex shrink-0 items-center gap-2 border-b border-border/80 bg-muted/40 px-3.5 py-2.5'>
-                  <div className='min-w-0 flex-1'>
-                    <div className='truncate text-sm text-muted-foreground/80'>
-                      案件详情速览
-                    </div>
-                    <div className='truncate text-base font-semibold text-foreground'>
-                      {displayValue}
-                    </div>
+                {trigger}
+              </span>
+            </PopoverTrigger>
+            <PopoverContent
+              side='right'
+              align='start'
+              sideOffset={8}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+              className='z-[100] flex h-[90vh] w-[620px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95'
+            >
+              <div className='flex shrink-0 items-center gap-2 border-b border-border/80 bg-muted/40 px-3.5 py-2.5'>
+                <div className='min-w-0 flex-1'>
+                  <div className='truncate text-sm text-muted-foreground/80'>
+                    案件详情速览
                   </div>
-                  <Badge variant='outline' className='shrink-0'>
-                    案件 #{s((rowData as any).case_id)}
-                  </Badge>
+                  <div className='truncate text-base font-semibold text-foreground'>
+                    {displayValue}
+                  </div>
                 </div>
-                <ScrollArea className='min-h-0 flex-1'>
-                  <div className='flex flex-col gap-3.5 p-3.5'>
-                    <div className='grid grid-cols-1 gap-y-2.5'>
-                      {kvRow(
-                        '发票号',
-                        s(rowData.invoice_number) && (
-                          <LongText className='max-w-[480px] break-all'>
-                            {s(rowData.invoice_number)}
+                <Badge variant='outline' className='shrink-0'>
+                  案件 #{s((rowData as any).case_id)}
+                </Badge>
+              </div>
+              <ScrollArea className='min-h-0 flex-1'>
+                <div className='flex flex-col gap-3.5 p-3.5'>
+                  <div className='grid grid-cols-1 gap-y-2.5'>
+                    {kvRow(
+                      '发票号',
+                      s(rowData.invoice_number) && (
+                        <LongText className='max-w-[480px] break-all'>
+                          {s(rowData.invoice_number)}
+                        </LongText>
+                      )
+                    )}
+                    {kvRow(
+                      '订单编号',
+                      s(rowData.order_number) && (
+                        <LongText className='max-w-[480px] break-all'>
+                          {s(rowData.order_number)}
+                        </LongText>
+                      )
+                    )}
+                    {kvRow(
+                      '需求编号/名称',
+                      s(rowData.case_inquiry_keyword) && (
+                        <LongText className='max-w-[480px] break-all'>
+                          {s(rowData.case_inquiry_keyword)}
+                        </LongText>
+                      )
+                    )}
+                    {kvRow(
+                      '案件进度',
+                      resolveDict(progressRMap, rowData.case_progress) ||
+                        s(rowData.case_progress)
+                    )}
+                    {kvRow(
+                      '需求类型',
+                      resolveDict(inqTypeAMap, rowData.case_inquiry_type) ||
+                        s(rowData.case_inquiry_type)
+                    )}
+                    {kvRow(
+                      '跟进日期',
+                      formatDateAsHyphen(rowData.case_follow_date)
+                    )}
+                    {kvRow(
+                      '船东联系人',
+                      finalOwner?.owner_name ? (
+                        <div className='flex flex-wrap items-center gap-2'>
+                          <LongText className='max-w-[360px] truncate'>
+                            {finalOwner.owner_name}
                           </LongText>
-                        )
-                      )}
-                      {kvRow(
-                        '订单编号',
-                        s(rowData.order_number) && (
-                          <LongText className='max-w-[480px] break-all'>
-                            {s(rowData.order_number)}
-                          </LongText>
-                        )
-                      )}
-                      {kvRow(
-                        '需求编号/名称',
-                        s(rowData.case_inquiry_keyword) && (
-                          <LongText className='max-w-[480px] break-all'>
-                            {s(rowData.case_inquiry_keyword)}
-                          </LongText>
-                        )
-                      )}
-                      {kvRow(
-                        '案件进度',
-                        resolveDict(progressRMap, rowData.case_progress) ||
-                          s(rowData.case_progress)
-                      )}
-                      {kvRow(
-                        '需求类型',
-                        resolveDict(inqTypeAMap, rowData.case_inquiry_type) ||
-                          s(rowData.case_inquiry_type)
-                      )}
-                      {kvRow(
-                        '跟进日期',
-                        formatDateAsHyphen(rowData.case_follow_date)
-                      )}
-                      {kvRow(
-                        '船东联系人',
-                        finalOwner?.owner_name ? (
-                          <div className='flex flex-wrap items-center gap-2'>
-                            <LongText className='max-w-[360px] truncate'>
-                              {finalOwner.owner_name}
-                            </LongText>
-                            {s(finalOwner.owner_email) && (
-                              <span className='text-xs text-muted-foreground/80'>
-                                {finalOwner.owner_email}
-                              </span>
-                            )}
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-                    {(inquiryGroups.询价.length > 0 ||
-                      inquiryGroups.报价.length > 0 ||
-                      inquiryGroups.竞标.length > 0 ||
-                      inquiryGroups.中标.length > 0) && (
-                      <>
-                        <Separator className='my-0.5' />
-                        <div className='flex flex-col gap-2.5'>
-                          <div className='text-[11px] tracking-wider text-muted-foreground/70 uppercase'>
-                            询价记录
-                          </div>
-                          {buildInquirySection(
-                            '询价单位',
-                            inquiryGroups.询价,
-                            'slate'
-                          )}
-                          {buildInquirySection(
-                            '报价单位',
-                            inquiryGroups.报价,
-                            'amber'
-                          )}
-                          {buildInquirySection(
-                            '竞标单位',
-                            inquiryGroups.竞标,
-                            'blue'
-                          )}
-                          {buildInquirySection(
-                            '中标单位',
-                            inquiryGroups.中标,
-                            'emerald'
+                          {s(finalOwner.owner_email) && (
+                            <span className='text-xs text-muted-foreground/80'>
+                              {finalOwner.owner_email}
+                            </span>
                           )}
                         </div>
-                      </>
+                      ) : null
                     )}
-                    <Separator className='my-0.5' />
-                    <div className='grid grid-cols-1 gap-y-2.5'>
-                      {kvRow(
-                        '案件机务',
-                        resolveDict(
-                          inchargeEMap,
-                          rowData.case_delivery_or_service_incharge
-                        ) || s(rowData.case_delivery_or_service_incharge)
-                      )}
-                      {kvRow(
-                        '运输｜服务截止日',
-                        formatDateAsHyphen(
-                          rowData.case_delivery_or_service_deadline
-                        )
-                      )}
-                      {kvRow(
-                        'ETA',
-                        formatDateAsHyphen(rowData.case_eta_cargo_ready_date)
-                      )}
-                      {kvRow(
-                        'ETB',
-                        formatDateAsHyphen(
-                          rowData.case_etb_cargo_departure_date
-                        )
-                      )}
-                      {kvRow(
-                        'ETD',
-                        formatDateAsHyphen(rowData.case_etd_cargo_delivery_date)
-                      )}
-                      {kvRow(
-                        '案件负责人',
-                        (resolveDict(inchargeEMap, rowData.case_incharge) ||
-                          s(rowData.case_incharge)) && (
-                          <LongText className='max-w-[480px] truncate'>
-                            {resolveDict(inchargeEMap, rowData.case_incharge) ||
-                              s(rowData.case_incharge)}
-                          </LongText>
-                        )
-                      )}
-                    </div>
                   </div>
-                </ScrollArea>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                  {(inquiryGroups.询价.length > 0 ||
+                    inquiryGroups.报价.length > 0 ||
+                    inquiryGroups.竞标.length > 0 ||
+                    inquiryGroups.中标.length > 0) && (
+                    <>
+                      <Separator className='my-0.5' />
+                      <div className='flex flex-col gap-2.5'>
+                        <div className='text-[11px] tracking-wider text-muted-foreground/70 uppercase'>
+                          询价记录
+                        </div>
+                        {buildInquirySection(
+                          '询价单位',
+                          inquiryGroups.询价,
+                          'slate'
+                        )}
+                        {buildInquirySection(
+                          '报价单位',
+                          inquiryGroups.报价,
+                          'amber'
+                        )}
+                        {buildInquirySection(
+                          '竞标单位',
+                          inquiryGroups.竞标,
+                          'blue'
+                        )}
+                        {buildInquirySection(
+                          '中标单位',
+                          inquiryGroups.中标,
+                          'emerald'
+                        )}
+                      </div>
+                    </>
+                  )}
+                  <Separator className='my-0.5' />
+                  <div className='grid grid-cols-1 gap-y-2.5'>
+                    {kvRow(
+                      '案件机务',
+                      (() => {
+                        const rawId = (rowData as any)?.case_superintendent_id
+                        let name: string | null = null
+                        const n =
+                          typeof rawId === 'number'
+                            ? rawId
+                            : typeof rawId === 'string' && rawId.trim() !== ''
+                              ? Number(rawId)
+                              : Number.NaN
+                        if (Number.isFinite(n) && n > 0) {
+                          const hit = ownerIdEmailMap?.get(String(n))
+                          if (hit?.owner_name) name = hit.owner_name
+                        }
+                        if (!name) {
+                          const t = s(rowData.case_superintendent)
+                          if (t) name = t
+                        }
+                        return name ? (
+                          <LongText className='max-w-[480px] truncate'>
+                            {name}
+                          </LongText>
+                        ) : null
+                      })()
+                    )}
+                    {kvRow(
+                      '承运人｜服务负责人',
+                      (resolveDict(
+                        inchargeEMap,
+                        rowData.case_delivery_or_service_incharge
+                      ) ||
+                        s(rowData.case_delivery_or_service_incharge)) && (
+                        <LongText className='max-w-[480px] truncate'>
+                          {resolveDict(
+                            inchargeEMap,
+                            rowData.case_delivery_or_service_incharge
+                          ) ||
+                            s(rowData.case_delivery_or_service_incharge)}
+                        </LongText>
+                      )
+                    )}
+                    {kvRow(
+                      '运输｜服务截止日',
+                      formatDateAsHyphen(
+                        rowData.case_delivery_or_service_deadline
+                      )
+                    )}
+                    {kvRow(
+                      'ETA',
+                      formatDateAsHyphen(rowData.case_eta_cargo_ready_date)
+                    )}
+                    {kvRow(
+                      'ETB',
+                      formatDateAsHyphen(
+                        rowData.case_etb_cargo_departure_date
+                      )
+                    )}
+                    {kvRow(
+                      'ETD',
+                      formatDateAsHyphen(rowData.case_etd_cargo_delivery_date)
+                    )}
+                    {kvRow(
+                      '案件负责人',
+                      (resolveDict(inchargeEMap, rowData.case_incharge) ||
+                        s(rowData.case_incharge)) && (
+                        <LongText className='max-w-[480px] truncate'>
+                          {resolveDict(inchargeEMap, rowData.case_incharge) ||
+                            s(rowData.case_incharge)}
+                        </LongText>
+                      )
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
         )
       },
       meta: {
