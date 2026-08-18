@@ -11,6 +11,8 @@ import {
   StickyNote as StickyNoteIcon,
   Pencil as PencilIcon,
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -435,13 +437,21 @@ export function CasesMemoDialog({
             <Label className='pt-2 text-sm font-semibold text-foreground/90'>
               备忘内容
             </Label>
-            <Textarea
-              value={memoContent}
-              onChange={(e) => setMemoContent(e.target.value)}
-              placeholder='请输入备忘内容...'
-              rows={4}
-              className='min-h-[110px] resize-y'
-            />
+            <div className='flex flex-col gap-1.5'>
+              <p className='text-xs text-muted-foreground/80'>
+                支持 Markdown
+                格式：**加粗**、*斜体*、[链接](url)、列表、表格、代码块等
+              </p>
+              <Textarea
+                value={memoContent}
+                onChange={(e) => setMemoContent(e.target.value)}
+                placeholder={
+                  '## 标题\n\n- **要点1**：说明\n- *要点2*：说明\n\n`行内代码` 或 ``` 代码块'
+                }
+                rows={6}
+                className='min-h-[160px] resize-y font-mono text-[13px] leading-6'
+              />
+            </div>
 
             <Label className='pt-2 text-sm font-semibold text-foreground/90'>
               备忘备注
@@ -647,6 +657,17 @@ function MemoHistoryItem({
   const hasContent = contentStr.length > 0
   const hasRemark = remarkStr.length > 0
 
+  const mdWithSoftBreaks = useMemo(() => {
+    if (!hasContent) return ''
+    const parts = contentStr.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g)
+    return parts
+      .map((part) => {
+        if (/^```/.test(part) || /^~~~/.test(part)) return part
+        return part.replace(/(?<=\S)[ \t]*\n(?!\s*\n|$)/g, '  \n')
+      })
+      .join('')
+  }, [contentStr, hasContent])
+
   return (
     <Card
       className={cn(
@@ -716,8 +737,10 @@ function MemoHistoryItem({
       {(hasContent || hasRemark || hasAttachments) && (
         <CardContent className='space-y-3 pt-0'>
           {hasContent && (
-            <div className='text-sm leading-7 break-words whitespace-pre-wrap text-foreground/90'>
-              {contentStr}
+            <div className='markdown-prose text-sm text-foreground/90 [&_a]:text-primary [&_a]:underline [&_a]:decoration-current/40 [&_a]:underline-offset-2 [&_a:hover]:decoration-current [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_blockquote]:italic [&_code]:rounded-sm [&_code]:bg-muted/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] [&_h1]:mt-4 [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-base [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:mb-1 [&_h4]:font-semibold [&_hr]:my-4 [&_hr]:border-border [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-md [&_li]:my-0.5 [&_li]:marker:text-muted-foreground [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_p]:leading-7 [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted/50 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-3 [&_th]:py-1.5 [&_th]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6'>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {mdWithSoftBreaks}
+              </ReactMarkdown>
             </div>
           )}
           {hasRemark && (

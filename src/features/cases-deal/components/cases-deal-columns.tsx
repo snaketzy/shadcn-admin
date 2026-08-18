@@ -375,11 +375,11 @@ export function getCasesDealColumns(params?: {
                                   <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
                                     内容
                                   </div>
-                                  <LongText className='max-w-none'>
+                                  <div className='max-w-none text-[13px] leading-7'>
                                     {safeMemoStr(
                                       (memo as any).case_memo_content
                                     )}
-                                  </LongText>
+                                  </div>
                                 </div>
                               )}
                               {safeMemoStr((memo as any).case_memo_remark) && (
@@ -387,11 +387,11 @@ export function getCasesDealColumns(params?: {
                                   <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
                                     备注
                                   </div>
-                                  <LongText className='max-w-none'>
+                                  <div className='max-w-none text-[13px] leading-7'>
                                     {safeMemoStr(
                                       (memo as any).case_memo_remark
                                     )}
-                                  </LongText>
+                                  </div>
                                 </div>
                               )}
                               {attach.length > 0 && (
