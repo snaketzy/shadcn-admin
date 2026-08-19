@@ -424,14 +424,20 @@ const DEFAULT_INQUIRY_FORM_VALUES: InquiryFormValues = {
 
 type CasesActionDialogProps = {
   currentRow?: Case
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  mode?: 'dialog' | 'page'
+  onCancel?: () => void
+  onSuccess?: () => void
 }
 
 export function CasesActionDialog({
   currentRow,
-  open,
+  open = true,
   onOpenChange,
+  mode = 'dialog',
+  onCancel,
+  onSuccess,
 }: CasesActionDialogProps) {
   const queryClient = useQueryClient()
   const isEdit = !!currentRow
@@ -441,21 +447,21 @@ export function CasesActionDialog({
   const { data: vesselRows = [] } = useQuery({
     queryKey: ['vessel-picker-all'],
     queryFn: fetchVesselAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
   const { data: vesselGroupsData } = useQuery({
     queryKey: ['vessel-picker-groups'],
     queryFn: fetchVesselGroups,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
   const { data: urgentBRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-B'],
     queryFn: () => fetchCaseDictByKeyPrefix('B'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -503,7 +509,7 @@ export function CasesActionDialog({
   const { data: vesselPositionCRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-C'],
     queryFn: () => fetchCaseDictByKeyPrefix('C'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -540,7 +546,7 @@ export function CasesActionDialog({
   const { data: inqTypeARows = [] } = useQuery({
     queryKey: ['case-dict-prefix-A'],
     queryFn: () => fetchCaseDictByKeyPrefix('A'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -575,7 +581,7 @@ export function CasesActionDialog({
   const { data: inchargeERows = [] } = useQuery({
     queryKey: ['case-dict-prefix-E'],
     queryFn: () => fetchCaseDictByKeyPrefix('E'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -610,7 +616,7 @@ export function CasesActionDialog({
   const { data: rankDRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-D'],
     queryFn: () => fetchCaseDictByKeyPrefix('D'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -645,7 +651,7 @@ export function CasesActionDialog({
   const { data: progressRRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-R'],
     queryFn: () => fetchCaseDictByKeyPrefix('R'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -680,7 +686,7 @@ export function CasesActionDialog({
   const { data: inquiryTypeQRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-Q'],
     queryFn: () => fetchCaseDictByKeyPrefix('Q'),
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -730,7 +736,7 @@ export function CasesActionDialog({
   const { data: supplierRows = [] } = useQuery({
     queryKey: ['supplier-picker-all'],
     queryFn: fetchSupplierAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -787,14 +793,14 @@ export function CasesActionDialog({
   const { data: ownerRows = [] } = useQuery({
     queryKey: ['owner-picker-all'],
     queryFn: fetchOwnerAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
   const { data: ownerGroupsData } = useQuery({
     queryKey: ['owner-picker-groups'],
     queryFn: fetchOwnerGroups,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -1055,14 +1061,14 @@ export function CasesActionDialog({
   const { data: agentContactAll = [] } = useQuery({
     queryKey: ['agent-contact-picker-all'],
     queryFn: fetchContactAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
   const { data: agentContactGroups } = useQuery({
     queryKey: ['agent-contact-picker-groups'],
     queryFn: fetchContactGroups,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -1175,14 +1181,14 @@ export function CasesActionDialog({
   const { data: shipyardContactAll = [] } = useQuery({
     queryKey: ['shipyard-contact-picker-all'],
     queryFn: fetchContactAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
   const { data: shipyardContactGroups } = useQuery({
     queryKey: ['shipyard-contact-picker-groups'],
     queryFn: fetchContactGroups,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -1284,14 +1290,14 @@ export function CasesActionDialog({
   const { data: surveyorContactAll = [] } = useQuery({
     queryKey: ['surveyor-contact-picker-all'],
     queryFn: fetchContactAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
   const { data: surveyorContactGroups } = useQuery({
     queryKey: ['surveyor-contact-picker-groups'],
     queryFn: fetchContactGroups,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -1610,7 +1616,7 @@ export function CasesActionDialog({
   const { data: serviceContactAll = [] } = useQuery({
     queryKey: ['contact-picker-all'],
     queryFn: fetchContactAll,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -1636,7 +1642,7 @@ export function CasesActionDialog({
   const { data: serviceContactGroups } = useQuery({
     queryKey: ['service-contact-picker-groups'],
     queryFn: fetchContactGroups,
-    enabled: open,
+    enabled: mode === 'page' || open,
     staleTime: 60000,
   })
 
@@ -2257,7 +2263,11 @@ export function CasesActionDialog({
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
       form.reset()
-      onOpenChange(false)
+      if (mode === 'page') {
+        onSuccess?.()
+      } else {
+        onOpenChange?.(false)
+      }
     },
     onError: (err: Error) => {
       toast.error(`创建失败: ${err.message || String(err)}`)
@@ -2300,7 +2310,11 @@ export function CasesActionDialog({
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
       form.reset()
-      onOpenChange(false)
+      if (mode === 'page') {
+        onSuccess?.()
+      } else {
+        onOpenChange?.(false)
+      }
     },
     onError: (err: Error) => {
       toast.error(`更新失败: ${err.message || String(err)}`)
@@ -2410,1594 +2424,1591 @@ export function CasesActionDialog({
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
-  return (
+  const handleCancel = () => {
+    form.reset()
+    if (mode === 'page') {
+      onCancel?.()
+    } else {
+      onOpenChange?.(false)
+    }
+  }
+
+  const renderBody = () => (
     <>
-      <Dialog
-        open={open}
-        onOpenChange={(state) => {
-          if (!state) {
-            form.reset()
-          }
-          onOpenChange(state)
-        }}
-      >
-        <DialogContent className='flex h-[90vh] max-h-[90vh] flex-col overflow-hidden p-6 sm:max-w-5xl'>
-          <DialogHeader className='shrink-0 text-start'>
-            <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
-            <DialogDescription>
-              {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
-              完成后点击保存。
-            </DialogDescription>
-          </DialogHeader>
-          <div className='min-h-0 w-[calc(100%+0.75rem)] flex-1 overflow-y-auto py-1 pe-3'>
-            <Form {...form}>
-              <form
-                id='cases-form'
-                onSubmit={form.handleSubmit(onSubmit)}
-                className='grid grid-cols-2 gap-4 px-0.5'
-              >
-                <FormField
-                  control={form.control}
-                  name='vessel_name'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        船名
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder='点击输入框从船队列表中选择...'
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setVesselPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setVesselPickerOpen(true)
-                                }
+      <div className='min-h-0 w-[calc(100%+0.75rem)] flex-1 overflow-y-auto py-1 pe-3'>
+        <Form {...form}>
+          <form
+            id='cases-form'
+            onSubmit={form.handleSubmit(onSubmit)}
+            className='grid grid-cols-2 gap-4 px-0.5'
+          >
+            <FormField
+              control={form.control}
+              name='vessel_name'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    船名
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          placeholder='点击输入框从船队列表中选择...'
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={field.value || ''}
+                          onClick={() => setVesselPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setVesselPickerOpen(true)
+                            }
+                          }}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                          {field.value ? (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearVessel()
                               }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
-                              {field.value ? (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearVessel()
-                                  }}
-                                  aria-label='清空船名'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              ) : null}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                aria-label='选择船只'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <Ship className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(vesselDisplay.flag ||
-                          vesselDisplay.vesselClass ||
-                          vesselDisplay.team ||
-                          vesselDisplay.incharge) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {vesselDisplay.flag && (
-                              <div>船旗：{vesselDisplay.flag}</div>
-                            )}
-                            {vesselDisplay.vesselClass && (
-                              <div>船级：{vesselDisplay.vesselClass}</div>
-                            )}
-                            {vesselDisplay.team && (
-                              <div>Team：{vesselDisplay.team}</div>
-                            )}
-                            {vesselDisplay.incharge && (
-                              <div>负责人：{vesselDisplay.incharge}</div>
-                            )}
-                          </div>
-                        )}
-                        {field.value && !vesselDisplay.name && (
-                          <p className='mt-1 text-xs text-muted-foreground/80'>
-                            船名：{field.value}（未找到对应船只详情）
-                          </p>
-                        )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='invoice_number'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        发票号
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入发票号'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_inquiry_keyword'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        需求编号/名称
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入需求编号/名称'
-                          className='col-span-4'
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e)
-                            form.clearErrors('case_inquiry_keyword')
-                            keywordDuplicateCheckRef.current.lastCheckedNormalized =
-                              ''
-                          }}
-                          onBlur={async (e) => {
-                            field.onBlur?.(e)
-                            await setKeywordErrorIfDuplicate(
-                              e.currentTarget.value ?? ''
-                            )
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='order_number'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        订单编号
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入订单编号'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_progress'
-                  render={({ field }) => {
-                    const rawVal = field.value ?? ''
-                    const displayLabel =
-                      rawVal && rawVal.trim() !== ''
-                        ? resolveProgressRLabel(rawVal)
-                        : ''
-                    return (
-                      <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                        <FormLabel className='col-span-2 pt-1 text-end'>
-                          案件进度
-                        </FormLabel>
-                        <div className='col-span-4'>
-                          <Popover
-                            open={progressPopoverOpen}
-                            onOpenChange={setProgressPopoverOpen}
+                              aria-label='清空船名'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          ) : null}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            aria-label='选择船只'
                           >
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant='outline'
-                                  role='combobox'
-                                  aria-expanded={progressPopoverOpen}
-                                  className='w-full justify-between'
-                                >
-                                  {displayLabel ? (
-                                    <span className='truncate'>
-                                      {displayLabel}
-                                    </span>
-                                  ) : (
-                                    <span className='text-muted-foreground'>
-                                      请选择案件进度
-                                    </span>
-                                  )}
-                                  <div className='flex items-center gap-1'>
-                                    {displayLabel ? (
-                                      <X
-                                        className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          field.onChange('')
-                                        }}
-                                      />
-                                    ) : null}
-                                    <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
-                                  </div>
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
-                              <Command>
-                                <CommandInput placeholder='搜索案件进度...' />
-                                <CommandList>
-                                  <CommandEmpty>未找到匹配项</CommandEmpty>
-                                  <CommandGroup>
-                                    {progressROptions.map((o) => {
-                                      const selected =
-                                        rawVal &&
-                                        rawVal.trim().toUpperCase() ===
-                                          String(o.value).toUpperCase()
-                                      return (
-                                        <CommandItem
-                                          key={o.value}
-                                          value={`${o.label} ${o.value}`}
-                                          onSelect={() => {
-                                            field.onChange(o.value)
-                                            queueMicrotask(() =>
-                                              setProgressPopoverOpen(false)
-                                            )
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              'mr-2 h-4 w-4',
-                                              selected
-                                                ? 'opacity-100'
-                                                : 'opacity-0'
-                                            )}
-                                          />
-                                          <span>{o.label}</span>
-                                        </CommandItem>
-                                      )
-                                    })}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <Ship className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
                         </div>
-                        <FormMessage className='col-span-4 col-start-3' />
-                      </FormItem>
-                    )
-                  }}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_urgent'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-1 text-end'>
-                        紧急案件
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value ?? ''}
-                            className='flex flex-wrap items-center gap-4'
-                          >
-                            {urgentBOptions.length === 0 ? (
-                              <div className='text-sm text-muted-foreground'>
-                                -
-                              </div>
-                            ) : (
-                              urgentBOptions.map((o) => (
-                                <div
-                                  key={o.value}
-                                  className='flex items-center gap-2'
-                                >
-                                  <RadioGroupItem
-                                    value={o.value}
-                                    id={`case_urgent_${o.value}`}
-                                  />
-                                  <Label
-                                    htmlFor={`case_urgent_${o.value}`}
-                                    className='cursor-pointer font-normal select-none'
-                                  >
-                                    {o.label}
-                                  </Label>
-                                </div>
-                              ))
-                            )}
-                          </RadioGroup>
-                        </FormControl>
                       </div>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_inquiry_type'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-1 text-end'>
-                        需求类型
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value ?? ''}
-                            className='flex flex-wrap items-center gap-4'
-                          >
-                            {inqTypeAOptions.length === 0 ? (
-                              <div className='text-sm text-muted-foreground'>
-                                -
-                              </div>
-                            ) : (
-                              inqTypeAOptions.map((o) => (
-                                <div
-                                  key={o.value}
-                                  className='flex items-center gap-2'
-                                >
-                                  <RadioGroupItem
-                                    value={o.value}
-                                    id={`case_inquiry_type_${o.value}`}
-                                  />
-                                  <Label
-                                    htmlFor={`case_inquiry_type_${o.value}`}
-                                    className='cursor-pointer font-normal select-none'
-                                  >
-                                    {o.label}
-                                  </Label>
-                                </div>
-                              ))
-                            )}
-                          </RadioGroup>
-                        </FormControl>
+                    </FormControl>
+                    {(vesselDisplay.flag ||
+                      vesselDisplay.vesselClass ||
+                      vesselDisplay.team ||
+                      vesselDisplay.incharge) && (
+                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {vesselDisplay.flag && (
+                          <div>船旗：{vesselDisplay.flag}</div>
+                        )}
+                        {vesselDisplay.vesselClass && (
+                          <div>船级：{vesselDisplay.vesselClass}</div>
+                        )}
+                        {vesselDisplay.team && (
+                          <div>Team：{vesselDisplay.team}</div>
+                        )}
+                        {vesselDisplay.incharge && (
+                          <div>负责人：{vesselDisplay.incharge}</div>
+                        )}
                       </div>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_incharge'
-                  render={({ field }) => {
-                    const checkedArr: string[] = splitCsvKeys(field.value)
-                    return (
-                      <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                        <FormLabel className='col-span-2 pt-1 text-end'>
-                          案件负责人
-                        </FormLabel>
-                        <div className='col-span-4'>
+                    )}
+                    {field.value && !vesselDisplay.name && (
+                      <p className='mt-1 text-xs text-muted-foreground/80'>
+                        船名：{field.value}（未找到对应船只详情）
+                      </p>
+                    )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='invoice_number'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>发票号</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='请输入发票号'
+                      className='col-span-4'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_inquiry_keyword'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    需求编号/名称
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='请输入需求编号/名称'
+                      className='col-span-4'
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e)
+                        form.clearErrors('case_inquiry_keyword')
+                        keywordDuplicateCheckRef.current.lastCheckedNormalized =
+                          ''
+                      }}
+                      onBlur={async (e) => {
+                        field.onBlur?.(e)
+                        await setKeywordErrorIfDuplicate(
+                          e.currentTarget.value ?? ''
+                        )
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='order_number'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    订单编号
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='请输入订单编号'
+                      className='col-span-4'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_progress'
+              render={({ field }) => {
+                const rawVal = field.value ?? ''
+                const displayLabel =
+                  rawVal && rawVal.trim() !== ''
+                    ? resolveProgressRLabel(rawVal)
+                    : ''
+                return (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-1 text-end'>
+                      案件进度
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <Popover
+                        open={progressPopoverOpen}
+                        onOpenChange={setProgressPopoverOpen}
+                      >
+                        <PopoverTrigger asChild>
                           <FormControl>
-                            <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
-                              {inchargeEOptions.length === 0 ? (
-                                <div className='text-sm text-muted-foreground'>
-                                  -
-                                </div>
+                            <Button
+                              variant='outline'
+                              role='combobox'
+                              aria-expanded={progressPopoverOpen}
+                              className='w-full justify-between'
+                            >
+                              {displayLabel ? (
+                                <span className='truncate'>{displayLabel}</span>
                               ) : (
-                                inchargeEOptions.map((o) => (
-                                  <div
-                                    key={o.value}
-                                    className='flex items-center gap-2'
-                                  >
-                                    <Checkbox
-                                      id={`case_incharge_${o.value}`}
-                                      checked={checkedArr.some(
-                                        (k) =>
-                                          k.toUpperCase() ===
-                                          String(o.value).toUpperCase()
+                                <span className='text-muted-foreground'>
+                                  请选择案件进度
+                                </span>
+                              )}
+                              <div className='flex items-center gap-1'>
+                                {displayLabel ? (
+                                  <X
+                                    className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      field.onChange('')
+                                    }}
+                                  />
+                                ) : null}
+                                <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                              </div>
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+                          <Command>
+                            <CommandInput placeholder='搜索案件进度...' />
+                            <CommandList>
+                              <CommandEmpty>未找到匹配项</CommandEmpty>
+                              <CommandGroup>
+                                {progressROptions.map((o) => {
+                                  const selected =
+                                    rawVal &&
+                                    rawVal.trim().toUpperCase() ===
+                                      String(o.value).toUpperCase()
+                                  return (
+                                    <CommandItem
+                                      key={o.value}
+                                      value={`${o.label} ${o.value}`}
+                                      onSelect={() => {
+                                        field.onChange(o.value)
+                                        queueMicrotask(() =>
+                                          setProgressPopoverOpen(false)
+                                        )
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          selected ? 'opacity-100' : 'opacity-0'
+                                        )}
+                                      />
+                                      <span>{o.label}</span>
+                                    </CommandItem>
+                                  )
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )
+              }}
+            />
+            <FormField
+              control={form.control}
+              name='case_urgent'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    紧急案件
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {urgentBOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          urgentBOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_urgent_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_urgent_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_inquiry_type'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    需求类型
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {inqTypeAOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          inqTypeAOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_inquiry_type_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_inquiry_type_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_incharge'
+              render={({ field }) => {
+                const checkedArr: string[] = splitCsvKeys(field.value)
+                return (
+                  <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-1 text-end'>
+                      案件负责人
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <FormControl>
+                        <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
+                          {inchargeEOptions.length === 0 ? (
+                            <div className='text-sm text-muted-foreground'>
+                              -
+                            </div>
+                          ) : (
+                            inchargeEOptions.map((o) => (
+                              <div
+                                key={o.value}
+                                className='flex items-center gap-2'
+                              >
+                                <Checkbox
+                                  id={`case_incharge_${o.value}`}
+                                  checked={checkedArr.some(
+                                    (k) =>
+                                      k.toUpperCase() ===
+                                      String(o.value).toUpperCase()
+                                  )}
+                                  onCheckedChange={(v) => {
+                                    const next = new Set(
+                                      checkedArr.map((s) =>
+                                        String(s).toUpperCase()
+                                      )
+                                    )
+                                    const keyU = String(o.value).toUpperCase()
+                                    if (v) next.add(keyU)
+                                    else next.delete(keyU)
+                                    const nextStr = joinCsvKeys(
+                                      Array.from(next)
+                                    )
+                                    field.onChange(nextStr)
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`case_incharge_${o.value}`}
+                                  className='cursor-pointer font-normal select-none'
+                                >
+                                  {o.label}
+                                </Label>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </FormControl>
+                    </div>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )
+              }}
+            />
+            <FormField
+              control={form.control}
+              name='case_rank'
+              render={({ field }) => {
+                const rawVal = field.value ?? ''
+                const displayLabel =
+                  rawVal && rawVal.trim() !== ''
+                    ? resolveRankDLabel(rawVal)
+                    : ''
+                return (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-1 text-end'>
+                      案件评级
+                    </FormLabel>
+                    <div className='col-span-4'>
+                      <Popover
+                        open={rankPopoverOpen}
+                        onOpenChange={setRankPopoverOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant='outline'
+                              role='combobox'
+                              aria-expanded={rankPopoverOpen}
+                              className='w-full justify-between'
+                            >
+                              {displayLabel ? (
+                                <span className='truncate'>{displayLabel}</span>
+                              ) : (
+                                <span className='text-muted-foreground'>
+                                  请选择案件评级
+                                </span>
+                              )}
+                              <div className='flex items-center gap-1'>
+                                {displayLabel ? (
+                                  <X
+                                    className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      field.onChange('')
+                                    }}
+                                  />
+                                ) : null}
+                                <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                              </div>
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+                          <Command>
+                            <CommandInput placeholder='搜索案件评级...' />
+                            <CommandList>
+                              <CommandEmpty>未找到匹配项</CommandEmpty>
+                              <CommandGroup>
+                                {rankDOptions.map((o) => {
+                                  const selected =
+                                    rawVal &&
+                                    rawVal.trim().toUpperCase() ===
+                                      String(o.value).toUpperCase()
+                                  return (
+                                    <CommandItem
+                                      key={o.value}
+                                      value={`${o.label} ${o.value}`}
+                                      onSelect={() => {
+                                        field.onChange(o.value)
+                                        queueMicrotask(() =>
+                                          setRankPopoverOpen(false)
+                                        )
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          selected ? 'opacity-100' : 'opacity-0'
+                                        )}
+                                      />
+                                      <span>{o.label}</span>
+                                    </CommandItem>
+                                  )
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )
+              }}
+            />
+            <FormField
+              control={form.control}
+              name='case_should_handle_today'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    当日需处理
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {urgentBOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          urgentBOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_should_handle_today_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_should_handle_today_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='owner_following'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    船东联络人
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          placeholder='点击从船东列表中选择...'
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={field.value || ''}
+                          onClick={() => setOwnerPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setOwnerPickerOpen(true)
+                            }
+                          }}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                          {field.value ? (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearOwner()
+                              }}
+                              aria-label='清空船东联络人'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          ) : null}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            aria-label='选择船东联络人'
+                          >
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <User className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                        </div>
+                      </div>
+                    </FormControl>
+                    {(ownerDisplay.email ||
+                      ownerDisplay.phone ||
+                      ownerDisplay.team ||
+                      ownerDisplay.department ||
+                      ownerDisplay.rank) && (
+                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {ownerDisplay.email && (
+                          <div>邮箱：{ownerDisplay.email}</div>
+                        )}
+                        {ownerDisplay.phone && (
+                          <div>电话：{ownerDisplay.phone}</div>
+                        )}
+                        {ownerDisplay.team && (
+                          <div>小组：{ownerDisplay.team}</div>
+                        )}
+                        {ownerDisplay.department && (
+                          <div>部门：{ownerDisplay.department}</div>
+                        )}
+                        {ownerDisplay.rank && (
+                          <div>职级：{ownerDisplay.rank}</div>
+                        )}
+                      </div>
+                    )}
+                    {field.value && !ownerDisplay.name && (
+                      <p className='mt-1 text-xs text-muted-foreground/80'>
+                        船东联络人：{field.value}（未找到对应船东）
+                      </p>
+                    )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_inquiry_date'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    询价日期
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_follow_date'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    开始日期
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_uptodate_date'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    跟进日期
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <div className='col-span-2'>
+              <Card className='py-1.5'>
+                <CardHeader className='pt-0 pb-1'>
+                  <div className='flex items-center justify-between gap-3'>
+                    <CardTitle className='text-base'>询价记录</CardTitle>
+                    <Button
+                      type='button'
+                      size='sm'
+                      onClick={() => {
+                        setInquiryEditingId(null)
+                        inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
+                        setInquiryDialogOpen(true)
+                      }}
+                    >
+                      <Plus className='mr-1 h-3.5 w-3.5' />
+                      新增询价
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className='pt-0 pb-0'>
+                  <div className='rounded-md border'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className='w-[calc(100%*8/24)]'>
+                            单位名称
+                          </TableHead>
+                          <TableHead className='w-[calc(100%*8/24/3)] text-center'>
+                            询价阶段
+                          </TableHead>
+                          <TableHead className='w-[calc(100%*8/24/3)] text-center'>
+                            询价日期
+                          </TableHead>
+                          <TableHead className='w-[calc(100%*8/24)] text-center'>
+                            备注
+                          </TableHead>
+                          <TableHead className='w-[calc(100%*8/24/3)] text-center'>
+                            操作
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inquiryList.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={5}
+                              className='h-24 text-center text-muted-foreground'
+                            >
+                              <span className='text-sm'>暂无询价记录</span>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          inquiryList.map((row) => {
+                            const supplierName = resolveSupplierNameById(
+                              row.case_inquiry_division_id
+                            )
+                            const inqTypeLabel = resolveInquiryTypeQLabel(
+                              row.case_inquiry_type
+                            )
+                            return (
+                              <TableRow key={row.inquiry_id}>
+                                <TableCell>{supplierName || '-'}</TableCell>
+                                <TableCell className='text-center'>
+                                  {inqTypeLabel ? (
+                                    <Badge
+                                      variant='outline'
+                                      className={cn(
+                                        getInquiryTypeQBadgeClass(inqTypeLabel)
                                       )}
-                                      onCheckedChange={(v) => {
-                                        const next = new Set(
-                                          checkedArr.map((s) =>
-                                            String(s).toUpperCase()
+                                    >
+                                      {inqTypeLabel}
+                                    </Badge>
+                                  ) : (
+                                    '-'
+                                  )}
+                                </TableCell>
+                                <TableCell className='text-center font-mono text-xs whitespace-nowrap'>
+                                  {row.case_inquired_date
+                                    ? formatDateTimeMinute(
+                                        row.case_inquired_date
+                                      )
+                                    : '-'}
+                                </TableCell>
+                                <TableCell className='max-w-[200px] truncate'>
+                                  {row.remark || '-'}
+                                </TableCell>
+                                <TableCell className='text-center'>
+                                  <div className='inline-flex items-center justify-center gap-1'>
+                                    <Button
+                                      type='button'
+                                      variant='ghost'
+                                      size='icon'
+                                      className='h-7 w-7'
+                                      aria-label='编辑询价'
+                                      onClick={() =>
+                                        handleStartEditInquiry(row)
+                                      }
+                                    >
+                                      <Pencil className='h-3.5 w-3.5' />
+                                    </Button>
+                                    <Button
+                                      type='button'
+                                      variant='ghost'
+                                      size='icon'
+                                      className='h-7 w-7 text-destructive/80 hover:text-destructive'
+                                      aria-label='删除询价'
+                                      onClick={() => {
+                                        setInquiryList((prev) =>
+                                          prev.filter(
+                                            (r) =>
+                                              Number(r.inquiry_id) !==
+                                              Number(row.inquiry_id)
                                           )
                                         )
-                                        const keyU = String(
-                                          o.value
-                                        ).toUpperCase()
-                                        if (v) next.add(keyU)
-                                        else next.delete(keyU)
-                                        const nextStr = joinCsvKeys(
-                                          Array.from(next)
+                                        localAddedInquiryIdsRef.current.delete(
+                                          Number(row.inquiry_id)
                                         )
-                                        field.onChange(nextStr)
                                       }}
-                                    />
-                                    <Label
-                                      htmlFor={`case_incharge_${o.value}`}
-                                      className='cursor-pointer font-normal select-none'
                                     >
-                                      {o.label}
-                                    </Label>
+                                      <X className='h-3.5 w-3.5' />
+                                    </Button>
                                   </div>
-                                ))
-                              )}
-                            </div>
-                          </FormControl>
-                        </div>
-                        <FormMessage className='col-span-4 col-start-3' />
-                      </FormItem>
-                    )
-                  }}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_rank'
-                  render={({ field }) => {
-                    const rawVal = field.value ?? ''
-                    const displayLabel =
-                      rawVal && rawVal.trim() !== ''
-                        ? resolveRankDLabel(rawVal)
-                        : ''
-                    return (
-                      <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                        <FormLabel className='col-span-2 pt-1 text-end'>
-                          案件评级
-                        </FormLabel>
-                        <div className='col-span-4'>
-                          <Popover
-                            open={rankPopoverOpen}
-                            onOpenChange={setRankPopoverOpen}
-                          >
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant='outline'
-                                  role='combobox'
-                                  aria-expanded={rankPopoverOpen}
-                                  className='w-full justify-between'
-                                >
-                                  {displayLabel ? (
-                                    <span className='truncate'>
-                                      {displayLabel}
-                                    </span>
-                                  ) : (
-                                    <span className='text-muted-foreground'>
-                                      请选择案件评级
-                                    </span>
-                                  )}
-                                  <div className='flex items-center gap-1'>
-                                    {displayLabel ? (
-                                      <X
-                                        className='h-4 w-4 shrink-0 opacity-50 hover:opacity-100'
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          field.onChange('')
-                                        }}
-                                      />
-                                    ) : null}
-                                    <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
-                                  </div>
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
-                              <Command>
-                                <CommandInput placeholder='搜索案件评级...' />
-                                <CommandList>
-                                  <CommandEmpty>未找到匹配项</CommandEmpty>
-                                  <CommandGroup>
-                                    {rankDOptions.map((o) => {
-                                      const selected =
-                                        rawVal &&
-                                        rawVal.trim().toUpperCase() ===
-                                          String(o.value).toUpperCase()
-                                      return (
-                                        <CommandItem
-                                          key={o.value}
-                                          value={`${o.label} ${o.value}`}
-                                          onSelect={() => {
-                                            field.onChange(o.value)
-                                            queueMicrotask(() =>
-                                              setRankPopoverOpen(false)
-                                            )
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              'mr-2 h-4 w-4',
-                                              selected
-                                                ? 'opacity-100'
-                                                : 'opacity-0'
-                                            )}
-                                          />
-                                          <span>{o.label}</span>
-                                        </CommandItem>
-                                      )
-                                    })}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <FormMessage className='col-span-4 col-start-3' />
-                      </FormItem>
-                    )
-                  }}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_should_handle_today'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-1 text-end'>
-                        当日需处理
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value ?? ''}
-                            className='flex flex-wrap items-center gap-4'
-                          >
-                            {urgentBOptions.length === 0 ? (
-                              <div className='text-sm text-muted-foreground'>
-                                -
-                              </div>
-                            ) : (
-                              urgentBOptions.map((o) => (
-                                <div
-                                  key={o.value}
-                                  className='flex items-center gap-2'
-                                >
-                                  <RadioGroupItem
-                                    value={o.value}
-                                    id={`case_should_handle_today_${o.value}`}
-                                  />
-                                  <Label
-                                    htmlFor={`case_should_handle_today_${o.value}`}
-                                    className='cursor-pointer font-normal select-none'
-                                  >
-                                    {o.label}
-                                  </Label>
-                                </div>
-                              ))
-                            )}
-                          </RadioGroup>
-                        </FormControl>
-                      </div>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='owner_following'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        船东联络人
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder='点击从船东列表中选择...'
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setOwnerPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setOwnerPickerOpen(true)
-                                }
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
-                              {field.value ? (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearOwner()
-                                  }}
-                                  aria-label='清空船东联络人'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              ) : null}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                aria-label='选择船东联络人'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <User className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(ownerDisplay.email ||
-                          ownerDisplay.phone ||
-                          ownerDisplay.team ||
-                          ownerDisplay.department ||
-                          ownerDisplay.rank) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {ownerDisplay.email && (
-                              <div>邮箱：{ownerDisplay.email}</div>
-                            )}
-                            {ownerDisplay.phone && (
-                              <div>电话：{ownerDisplay.phone}</div>
-                            )}
-                            {ownerDisplay.team && (
-                              <div>小组：{ownerDisplay.team}</div>
-                            )}
-                            {ownerDisplay.department && (
-                              <div>部门：{ownerDisplay.department}</div>
-                            )}
-                            {ownerDisplay.rank && (
-                              <div>职级：{ownerDisplay.rank}</div>
-                            )}
-                          </div>
-                        )}
-                        {field.value && !ownerDisplay.name && (
-                          <p className='mt-1 text-xs text-muted-foreground/80'>
-                            船东联络人：{field.value}（未找到对应船东）
-                          </p>
-                        )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_inquiry_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        询价日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_follow_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        开始日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_uptodate_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        跟进日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <div className='col-span-2'>
-                  <Card className='py-1.5'>
-                    <CardHeader className='pt-0 pb-1'>
-                      <div className='flex items-center justify-between gap-3'>
-                        <CardTitle className='text-base'>询价记录</CardTitle>
-                        <Button
-                          type='button'
-                          size='sm'
-                          onClick={() => {
-                            setInquiryEditingId(null)
-                            inquiryForm.reset(DEFAULT_INQUIRY_FORM_VALUES)
-                            setInquiryDialogOpen(true)
-                          }}
-                        >
-                          <Plus className='mr-1 h-3.5 w-3.5' />
-                          新增询价
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className='pt-0 pb-0'>
-                      <div className='rounded-md border'>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className='w-[calc(100%*8/24)]'>
-                                单位名称
-                              </TableHead>
-                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
-                                询价阶段
-                              </TableHead>
-                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
-                                询价日期
-                              </TableHead>
-                              <TableHead className='w-[calc(100%*8/24)] text-center'>
-                                备注
-                              </TableHead>
-                              <TableHead className='w-[calc(100%*8/24/3)] text-center'>
-                                操作
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {inquiryList.length === 0 ? (
-                              <TableRow>
-                                <TableCell
-                                  colSpan={5}
-                                  className='h-24 text-center text-muted-foreground'
-                                >
-                                  <span className='text-sm'>暂无询价记录</span>
                                 </TableCell>
                               </TableRow>
-                            ) : (
-                              inquiryList.map((row) => {
-                                const supplierName = resolveSupplierNameById(
-                                  row.case_inquiry_division_id
-                                )
-                                const inqTypeLabel = resolveInquiryTypeQLabel(
-                                  row.case_inquiry_type
-                                )
-                                return (
-                                  <TableRow key={row.inquiry_id}>
-                                    <TableCell>{supplierName || '-'}</TableCell>
-                                    <TableCell className='text-center'>
-                                      {inqTypeLabel ? (
-                                        <Badge
-                                          variant='outline'
-                                          className={cn(
-                                            getInquiryTypeQBadgeClass(
-                                              inqTypeLabel
-                                            )
-                                          )}
-                                        >
-                                          {inqTypeLabel}
-                                        </Badge>
-                                      ) : (
-                                        '-'
-                                      )}
-                                    </TableCell>
-                                    <TableCell className='text-center font-mono text-xs whitespace-nowrap'>
-                                      {row.case_inquired_date
-                                        ? formatDateTimeMinute(
-                                            row.case_inquired_date
-                                          )
-                                        : '-'}
-                                    </TableCell>
-                                    <TableCell className='max-w-[200px] truncate'>
-                                      {row.remark || '-'}
-                                    </TableCell>
-                                    <TableCell className='text-center'>
-                                      <div className='inline-flex items-center justify-center gap-1'>
-                                        <Button
-                                          type='button'
-                                          variant='ghost'
-                                          size='icon'
-                                          className='h-7 w-7'
-                                          aria-label='编辑询价'
-                                          onClick={() =>
-                                            handleStartEditInquiry(row)
-                                          }
-                                        >
-                                          <Pencil className='h-3.5 w-3.5' />
-                                        </Button>
-                                        <Button
-                                          type='button'
-                                          variant='ghost'
-                                          size='icon'
-                                          className='h-7 w-7 text-destructive/80 hover:text-destructive'
-                                          aria-label='删除询价'
-                                          onClick={() => {
-                                            setInquiryList((prev) =>
-                                              prev.filter(
-                                                (r) =>
-                                                  Number(r.inquiry_id) !==
-                                                  Number(row.inquiry_id)
-                                              )
-                                            )
-                                            localAddedInquiryIdsRef.current.delete(
-                                              Number(row.inquiry_id)
-                                            )
-                                          }}
-                                        >
-                                          <X className='h-3.5 w-3.5' />
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                )
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                <FormField
-                  control={form.control}
-                  name='shipyard_business'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        船厂经营
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder='点击从船厂经营联系人列表中选择...'
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setShipyardContactPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setShipyardContactPickerOpen(true)
-                                }
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
-                              {field.value ? (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearShipyardContact()
-                                  }}
-                                  aria-label='清空船厂经营'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              ) : null}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                aria-label='选择船厂经营联系人'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(shipyardContactDisplay.mobile ||
-                          shipyardContactDisplay.email ||
-                          shipyardContactDisplay.rank ||
-                          shipyardContactDisplay.division) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {shipyardContactDisplay.mobile && (
-                              <div>手机：{shipyardContactDisplay.mobile}</div>
-                            )}
-                            {shipyardContactDisplay.email && (
-                              <div>邮箱：{shipyardContactDisplay.email}</div>
-                            )}
-                            {shipyardContactDisplay.rank && (
-                              <div>职级：{shipyardContactDisplay.rank}</div>
-                            )}
-                            {shipyardContactDisplay.division && (
-                              <div>
-                                业务类型：{shipyardContactDisplay.division}
-                              </div>
-                            )}
-                          </div>
+                            )
+                          })
                         )}
-                        {field.value && !shipyardContactDisplay.name && (
-                          <p className='mt-1 text-xs text-muted-foreground/80'>
-                            船厂经营：{field.value}（未找到对应联系人，类型J4）
-                          </p>
-                        )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_agent'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        案件代理
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder={`点击从案件代理（${agentContactTypeLabel}）列表中选择...`}
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setAgentContactPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setAgentContactPickerOpen(true)
-                                }
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <FormField
+              control={form.control}
+              name='shipyard_business'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    船厂经营
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          placeholder='点击从船厂经营联系人列表中选择...'
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={field.value || ''}
+                          onClick={() => setShipyardContactPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setShipyardContactPickerOpen(true)
+                            }
+                          }}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                          {field.value ? (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearShipyardContact()
                               }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
-                              {field.value ? (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearAgentContact()
-                                  }}
-                                  aria-label='清空案件代理'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              ) : null}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                onClick={() => setAgentContactPickerOpen(true)}
-                                aria-label='选择案件代理'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <UserCheck className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(agentContactDisplay.mobile ||
-                          agentContactDisplay.email ||
-                          agentContactDisplay.rank ||
-                          agentContactDisplay.division) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {agentContactDisplay.mobile && (
-                              <div>手机：{agentContactDisplay.mobile}</div>
-                            )}
-                            {agentContactDisplay.email && (
-                              <div>邮箱：{agentContactDisplay.email}</div>
-                            )}
-                            {agentContactDisplay.rank && (
-                              <div>职级：{agentContactDisplay.rank}</div>
-                            )}
-                            {agentContactDisplay.division && (
-                              <div>
-                                业务类型：{agentContactDisplay.division}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {field.value &&
-                          !agentContactDisplay.mobile &&
-                          !agentContactDisplay.email &&
-                          !agentContactDisplay.rank &&
-                          !agentContactDisplay.division &&
-                          agentContactDisplay.name && (
-                            <p className='mt-1 text-xs text-muted-foreground/80'>
-                              案件代理：{field.value}（未找到对应联系人，
-                              {agentContactTypeLabel}）
-                            </p>
-                          )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_superintendent'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        案件机务
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder={`点击从案件机务（${superintendentDeptLabel}）列表中选择...`}
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setSuperintendentPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setSuperintendentPickerOpen(true)
-                                }
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
-                              {field.value ? (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearSuperintendent()
-                                  }}
-                                  aria-label='清空案件机务'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              ) : null}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                onClick={() =>
-                                  setSuperintendentPickerOpen(true)
-                                }
-                                aria-label='选择案件机务'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(superintendentDisplay.email ||
-                          superintendentDisplay.phone ||
-                          superintendentDisplay.team ||
-                          superintendentDisplay.department ||
-                          superintendentDisplay.rank) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {superintendentDisplay.email && (
-                              <div>邮箱：{superintendentDisplay.email}</div>
-                            )}
-                            {superintendentDisplay.phone && (
-                              <div>电话：{superintendentDisplay.phone}</div>
-                            )}
-                            {superintendentDisplay.team && (
-                              <div>小组：{superintendentDisplay.team}</div>
-                            )}
-                            {superintendentDisplay.department && (
-                              <div>
-                                部门：{superintendentDisplay.department}
-                              </div>
-                            )}
-                            {superintendentDisplay.rank && (
-                              <div>职级：{superintendentDisplay.rank}</div>
-                            )}
-                          </div>
-                        )}
-                        {field.value &&
-                          !superintendentDisplay.email &&
-                          !superintendentDisplay.phone &&
-                          !superintendentDisplay.team &&
-                          !superintendentDisplay.department &&
-                          !superintendentDisplay.rank &&
-                          superintendentDisplay.name && (
-                            <p className='mt-1 text-xs text-muted-foreground/80'>
-                              案件机务：{field.value}（未找到对应机务人员，
-                              {superintendentDeptLabel}）
-                            </p>
-                          )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_surveyor'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        案件船检
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder={`点击从案件船检（${surveyorContactTypeLabel}）列表中选择...`}
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={field.value || ''}
-                              onClick={() => setSurveyorContactPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setSurveyorContactPickerOpen(true)
-                                }
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
-                              {field.value && (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearSurveyorContact()
-                                  }}
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  aria-label='清空案件船检'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              )}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                onClick={() =>
-                                  setSurveyorContactPickerOpen(true)
-                                }
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                aria-label='选择案件船检'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <Compass className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {(surveyorContactDisplay.mobile ||
-                          surveyorContactDisplay.email ||
-                          surveyorContactDisplay.rank ||
-                          surveyorContactDisplay.division) && (
-                          <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                            {surveyorContactDisplay.mobile && (
-                              <div>手机：{surveyorContactDisplay.mobile}</div>
-                            )}
-                            {surveyorContactDisplay.email && (
-                              <div>邮箱：{surveyorContactDisplay.email}</div>
-                            )}
-                            {surveyorContactDisplay.rank && (
-                              <div>职级：{surveyorContactDisplay.rank}</div>
-                            )}
-                            {surveyorContactDisplay.division && (
-                              <div>
-                                业务类型：{surveyorContactDisplay.division}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {field.value &&
-                          !surveyorContactDisplay.mobile &&
-                          !surveyorContactDisplay.email &&
-                          !surveyorContactDisplay.rank &&
-                          !surveyorContactDisplay.division &&
-                          surveyorContactDisplay.name && (
-                            <p className='mt-1 text-xs text-muted-foreground/80'>
-                              案件船检：{field.value}
-                              （未找到对应联系人，{surveyorContactTypeLabel}）
-                            </p>
-                          )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_delivery_or_service_incharge'
-                  render={({ field }) => (
-                    <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-2 text-end'>
-                        承运人｜服务负责人
-                      </FormLabel>
-                      <div className='col-span-10'>
-                        <FormControl>
-                          <div className='relative'>
-                            <Input
-                              placeholder='点击从联系人列表中选择服务负责人（可多选）...'
-                              className='cursor-pointer pe-20 pr-20'
-                              readOnly
-                              value={serviceContactDisplay.rawNames || ''}
-                              onClick={() => setServiceContactPickerOpen(true)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  setServiceContactPickerOpen(true)
-                                }
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
-                              {(serviceContactDisplay.rawNames ||
-                                formCaseServiceInchargeId) && (
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleClearServiceContacts()
-                                  }}
-                                  className='pointer-events-auto h-7 w-7'
-                                  tabIndex={-1}
-                                  aria-label='清空服务负责人'
-                                >
-                                  <X className='h-3.5 w-3.5' />
-                                </Button>
-                              )}
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                onClick={() =>
-                                  setServiceContactPickerOpen(true)
-                                }
-                                className='pointer-events-auto h-7 w-7'
-                                tabIndex={-1}
-                                aria-label='选择服务负责人'
-                              >
-                                <Search className='h-3.5 w-3.5' />
-                              </Button>
-                              <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
-                            </div>
-                          </div>
-                        </FormControl>
-                        {serviceContactDisplay.count > 0 &&
-                          (serviceContactDisplay.mobiles.length > 0 ||
-                            serviceContactDisplay.emails.length > 0 ||
-                            serviceContactDisplay.ranks.length > 0 ||
-                            serviceContactDisplay.divisions.length > 0) && (
-                            <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                              <div>共 {serviceContactDisplay.count} 位</div>
-                              {serviceContactDisplay.mobiles.length > 0 && (
-                                <div>
-                                  手机：
-                                  {serviceContactDisplay.mobiles.join('，')}
-                                </div>
-                              )}
-                              {serviceContactDisplay.emails.length > 0 && (
-                                <div>
-                                  邮箱：
-                                  {serviceContactDisplay.emails.join('，')}
-                                </div>
-                              )}
-                              {serviceContactDisplay.ranks.length > 0 && (
-                                <div>
-                                  职级：
-                                  {[
-                                    ...new Set(serviceContactDisplay.ranks),
-                                  ].join('，')}
-                                </div>
-                              )}
-                              {serviceContactDisplay.divisions.length > 0 && (
-                                <div>
-                                  类型：
-                                  {[
-                                    ...new Set(serviceContactDisplay.divisions),
-                                  ].join('，')}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        {serviceContactDisplay.count === 0 &&
-                          serviceContactDisplay.rawNames && (
-                            <p className='mt-1 text-xs text-muted-foreground/80'>
-                              服务负责人：
-                              {serviceContactDisplay.rawNames}
-                              （未在联系人库中找到匹配项，请手动补充或重新选择）
-                            </p>
-                          )}
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_delivery_or_service_deadline'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        运输｜服务截止日
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_eta_cargo_ready_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船舶到港 | 备货完成
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_etb_cargo_departure_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船舶靠港 ｜ 货物发出
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_etd_cargo_delivery_date'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船舶开航 ｜ 货物签收
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_epd'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        船东结账日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_spd'
-                  render={({ field }) => (
-                    <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        供应商结账日期
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='vessel_position'
-                  render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 pt-1 text-end'>
-                        船舶位置
-                      </FormLabel>
-                      <div className='col-span-4'>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value ?? ''}
-                            className='flex flex-wrap items-center gap-4'
+                              aria-label='清空船厂经营'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          ) : null}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            aria-label='选择船厂经营联系人'
                           >
-                            {vesselPositionCOptions.length === 0 ? (
-                              <div className='text-sm text-muted-foreground'>
-                                -
-                              </div>
-                            ) : (
-                              vesselPositionCOptions.map((o) => (
-                                <div
-                                  key={o.value}
-                                  className='flex items-center gap-2'
-                                >
-                                  <RadioGroupItem
-                                    value={o.value}
-                                    id={`vessel_position_${o.value}`}
-                                  />
-                                  <Label
-                                    htmlFor={`vessel_position_${o.value}`}
-                                    className='cursor-pointer font-normal select-none'
-                                  >
-                                    {o.label}
-                                  </Label>
-                                </div>
-                              ))
-                            )}
-                          </RadioGroup>
-                        </FormControl>
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <Briefcase className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                        </div>
                       </div>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_settlement_done'
-                  render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件结算完成日期
-                      </FormLabel>
-                      <FormControl>
+                    </FormControl>
+                    {(shipyardContactDisplay.mobile ||
+                      shipyardContactDisplay.email ||
+                      shipyardContactDisplay.rank ||
+                      shipyardContactDisplay.division) && (
+                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {shipyardContactDisplay.mobile && (
+                          <div>手机：{shipyardContactDisplay.mobile}</div>
+                        )}
+                        {shipyardContactDisplay.email && (
+                          <div>邮箱：{shipyardContactDisplay.email}</div>
+                        )}
+                        {shipyardContactDisplay.rank && (
+                          <div>职级：{shipyardContactDisplay.rank}</div>
+                        )}
+                        {shipyardContactDisplay.division && (
+                          <div>业务类型：{shipyardContactDisplay.division}</div>
+                        )}
+                      </div>
+                    )}
+                    {field.value && !shipyardContactDisplay.name && (
+                      <p className='mt-1 text-xs text-muted-foreground/80'>
+                        船厂经营：{field.value}（未找到对应联系人，类型J4）
+                      </p>
+                    )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_agent'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    案件代理
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <div className='relative'>
                         <Input
-                          type='date'
-                          className='col-span-4'
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_memo_address'
-                  render={({ field }) => (
-                    <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件备忘录地址
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='请输入案件备忘录地址'
-                          className='col-span-4'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className='col-span-4 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='case_memo_name'
-                  render={({ field }) => (
-                    <FormItem className='col-span-2 grid grid-cols-12 items-center space-y-0 gap-x-4 gap-y-1'>
-                      <FormLabel className='col-span-2 text-end'>
-                        案件备忘录名称
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='由「船名」// 「需求名称」//「询价日期」生成，可手动修改'
-                          className='col-span-10'
-                          {...field}
-                          onChange={(e) => {
-                            memoNameEditedRef.current = true
-                            field.onChange(e)
-                          }}
-                          onBlur={(e) => {
-                            memoNameEditedRef.current = true
-                            field.onBlur?.(e)
+                          placeholder={`点击从案件代理（${agentContactTypeLabel}）列表中选择...`}
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={field.value || ''}
+                          onClick={() => setAgentContactPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setAgentContactPickerOpen(true)
+                            }
                           }}
                         />
-                      </FormControl>
-                      <FormMessage className='col-span-10 col-start-3' />
-                    </FormItem>
-                  )}
-                />
-              </form>
-            </Form>
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                          {field.value ? (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearAgentContact()
+                              }}
+                              aria-label='清空案件代理'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          ) : null}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            onClick={() => setAgentContactPickerOpen(true)}
+                            aria-label='选择案件代理'
+                          >
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <UserCheck className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                        </div>
+                      </div>
+                    </FormControl>
+                    {(agentContactDisplay.mobile ||
+                      agentContactDisplay.email ||
+                      agentContactDisplay.rank ||
+                      agentContactDisplay.division) && (
+                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {agentContactDisplay.mobile && (
+                          <div>手机：{agentContactDisplay.mobile}</div>
+                        )}
+                        {agentContactDisplay.email && (
+                          <div>邮箱：{agentContactDisplay.email}</div>
+                        )}
+                        {agentContactDisplay.rank && (
+                          <div>职级：{agentContactDisplay.rank}</div>
+                        )}
+                        {agentContactDisplay.division && (
+                          <div>业务类型：{agentContactDisplay.division}</div>
+                        )}
+                      </div>
+                    )}
+                    {field.value &&
+                      !agentContactDisplay.mobile &&
+                      !agentContactDisplay.email &&
+                      !agentContactDisplay.rank &&
+                      !agentContactDisplay.division &&
+                      agentContactDisplay.name && (
+                        <p className='mt-1 text-xs text-muted-foreground/80'>
+                          案件代理：{field.value}（未找到对应联系人，
+                          {agentContactTypeLabel}）
+                        </p>
+                      )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_superintendent'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    案件机务
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          placeholder={`点击从案件机务（${superintendentDeptLabel}）列表中选择...`}
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={field.value || ''}
+                          onClick={() => setSuperintendentPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setSuperintendentPickerOpen(true)
+                            }
+                          }}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pe-2 pr-2'>
+                          {field.value ? (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearSuperintendent()
+                              }}
+                              aria-label='清空案件机务'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          ) : null}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            onClick={() => setSuperintendentPickerOpen(true)}
+                            aria-label='选择案件机务'
+                          >
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                        </div>
+                      </div>
+                    </FormControl>
+                    {(superintendentDisplay.email ||
+                      superintendentDisplay.phone ||
+                      superintendentDisplay.team ||
+                      superintendentDisplay.department ||
+                      superintendentDisplay.rank) && (
+                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {superintendentDisplay.email && (
+                          <div>邮箱：{superintendentDisplay.email}</div>
+                        )}
+                        {superintendentDisplay.phone && (
+                          <div>电话：{superintendentDisplay.phone}</div>
+                        )}
+                        {superintendentDisplay.team && (
+                          <div>小组：{superintendentDisplay.team}</div>
+                        )}
+                        {superintendentDisplay.department && (
+                          <div>部门：{superintendentDisplay.department}</div>
+                        )}
+                        {superintendentDisplay.rank && (
+                          <div>职级：{superintendentDisplay.rank}</div>
+                        )}
+                      </div>
+                    )}
+                    {field.value &&
+                      !superintendentDisplay.email &&
+                      !superintendentDisplay.phone &&
+                      !superintendentDisplay.team &&
+                      !superintendentDisplay.department &&
+                      !superintendentDisplay.rank &&
+                      superintendentDisplay.name && (
+                        <p className='mt-1 text-xs text-muted-foreground/80'>
+                          案件机务：{field.value}（未找到对应机务人员，
+                          {superintendentDeptLabel}）
+                        </p>
+                      )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_surveyor'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    案件船检
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          placeholder={`点击从案件船检（${surveyorContactTypeLabel}）列表中选择...`}
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={field.value || ''}
+                          onClick={() => setSurveyorContactPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setSurveyorContactPickerOpen(true)
+                            }
+                          }}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
+                          {field.value && (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearSurveyorContact()
+                              }}
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              aria-label='清空案件船检'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          )}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => setSurveyorContactPickerOpen(true)}
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            aria-label='选择案件船检'
+                          >
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <Compass className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                        </div>
+                      </div>
+                    </FormControl>
+                    {(surveyorContactDisplay.mobile ||
+                      surveyorContactDisplay.email ||
+                      surveyorContactDisplay.rank ||
+                      surveyorContactDisplay.division) && (
+                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {surveyorContactDisplay.mobile && (
+                          <div>手机：{surveyorContactDisplay.mobile}</div>
+                        )}
+                        {surveyorContactDisplay.email && (
+                          <div>邮箱：{surveyorContactDisplay.email}</div>
+                        )}
+                        {surveyorContactDisplay.rank && (
+                          <div>职级：{surveyorContactDisplay.rank}</div>
+                        )}
+                        {surveyorContactDisplay.division && (
+                          <div>业务类型：{surveyorContactDisplay.division}</div>
+                        )}
+                      </div>
+                    )}
+                    {field.value &&
+                      !surveyorContactDisplay.mobile &&
+                      !surveyorContactDisplay.email &&
+                      !surveyorContactDisplay.rank &&
+                      !surveyorContactDisplay.division &&
+                      surveyorContactDisplay.name && (
+                        <p className='mt-1 text-xs text-muted-foreground/80'>
+                          案件船检：{field.value}
+                          （未找到对应联系人，{surveyorContactTypeLabel}）
+                        </p>
+                      )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_delivery_or_service_incharge'
+              render={({ field }) => (
+                <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    承运人｜服务负责人
+                  </FormLabel>
+                  <div className='col-span-10'>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          placeholder='点击从联系人列表中选择服务负责人（可多选）...'
+                          className='cursor-pointer pe-20 pr-20'
+                          readOnly
+                          value={serviceContactDisplay.rawNames || ''}
+                          onClick={() => setServiceContactPickerOpen(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setServiceContactPickerOpen(true)
+                            }
+                          }}
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2 pr-2'>
+                          {(serviceContactDisplay.rawNames ||
+                            formCaseServiceInchargeId) && (
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleClearServiceContacts()
+                              }}
+                              className='pointer-events-auto h-7 w-7'
+                              tabIndex={-1}
+                              aria-label='清空服务负责人'
+                            >
+                              <X className='h-3.5 w-3.5' />
+                            </Button>
+                          )}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => setServiceContactPickerOpen(true)}
+                            className='pointer-events-auto h-7 w-7'
+                            tabIndex={-1}
+                            aria-label='选择服务负责人'
+                          >
+                            <Search className='h-3.5 w-3.5' />
+                          </Button>
+                          <Wrench className='me-1 mr-1 h-3.5 w-3.5 text-muted-foreground' />
+                        </div>
+                      </div>
+                    </FormControl>
+                    {serviceContactDisplay.count > 0 &&
+                      (serviceContactDisplay.mobiles.length > 0 ||
+                        serviceContactDisplay.emails.length > 0 ||
+                        serviceContactDisplay.ranks.length > 0 ||
+                        serviceContactDisplay.divisions.length > 0) && (
+                        <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
+                          <div>共 {serviceContactDisplay.count} 位</div>
+                          {serviceContactDisplay.mobiles.length > 0 && (
+                            <div>
+                              手机：
+                              {serviceContactDisplay.mobiles.join('，')}
+                            </div>
+                          )}
+                          {serviceContactDisplay.emails.length > 0 && (
+                            <div>
+                              邮箱：
+                              {serviceContactDisplay.emails.join('，')}
+                            </div>
+                          )}
+                          {serviceContactDisplay.ranks.length > 0 && (
+                            <div>
+                              职级：
+                              {[...new Set(serviceContactDisplay.ranks)].join(
+                                '，'
+                              )}
+                            </div>
+                          )}
+                          {serviceContactDisplay.divisions.length > 0 && (
+                            <div>
+                              类型：
+                              {[
+                                ...new Set(serviceContactDisplay.divisions),
+                              ].join('，')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    {serviceContactDisplay.count === 0 &&
+                      serviceContactDisplay.rawNames && (
+                        <p className='mt-1 text-xs text-muted-foreground/80'>
+                          服务负责人：
+                          {serviceContactDisplay.rawNames}
+                          （未在联系人库中找到匹配项，请手动补充或重新选择）
+                        </p>
+                      )}
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_delivery_or_service_deadline'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    运输｜服务截止日
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_eta_cargo_ready_date'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    船舶到港 | 备货完成
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_etb_cargo_departure_date'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    船舶靠港 ｜ 货物发出
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_etd_cargo_delivery_date'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    船舶开航 ｜ 货物签收
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_epd'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    船东结账日期
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_spd'
+              render={({ field }) => (
+                <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    供应商结账日期
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='vessel_position'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    船舶位置
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {vesselPositionCOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          vesselPositionCOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`vessel_position_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`vessel_position_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_settlement_done'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    案件结算完成日期
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      className='col-span-4'
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_memo_address'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    案件备忘录地址
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='请输入案件备忘录地址'
+                      className='col-span-4'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_memo_name'
+              render={({ field }) => (
+                <FormItem className='col-span-2 grid grid-cols-12 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 text-end'>
+                    案件备忘录名称
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='由「船名」// 「需求名称」//「询价日期」生成，可手动修改'
+                      className='col-span-10'
+                      {...field}
+                      onChange={(e) => {
+                        memoNameEditedRef.current = true
+                        field.onChange(e)
+                      }}
+                      onBlur={(e) => {
+                        memoNameEditedRef.current = true
+                        field.onBlur?.(e)
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage className='col-span-10 col-start-3' />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+      </div>
+      <div
+        className={
+          mode === 'page'
+            ? 'mt-2 flex shrink-0 justify-end gap-2 pt-4'
+            : 'DialogFooter-cls mt-2 flex shrink-0 justify-end gap-2 pt-4'
+        }
+      >
+        <Button
+          type='button'
+          variant='outline'
+          onClick={handleCancel}
+          disabled={isSubmitting}
+        >
+          取消
+        </Button>
+        <Button type='submit' form='cases-form' disabled={isSubmitting}>
+          {isSubmitting ? '保存中...' : '保存'}
+        </Button>
+      </div>
+    </>
+  )
+
+  return (
+    <>
+      {mode === 'page' ? (
+        <div className='mx-auto flex h-[90vh] max-h-[90vh] w-full flex-col overflow-hidden p-6 sm:max-w-5xl'>
+          <div className='mb-4 shrink-0 text-start'>
+            <h2 className='text-xl leading-none font-semibold tracking-tight'>
+              {isEdit ? '编辑案件' : '添加新案件'}
+            </h2>
+            <p className='mt-2 text-sm text-muted-foreground'>
+              {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
+              完成后点击保存。
+            </p>
           </div>
-          <DialogFooter className='mt-2 shrink-0 pt-4'>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={() => {
-                form.reset()
-                onOpenChange(false)
-              }}
-              disabled={isSubmitting}
-            >
-              取消
-            </Button>
-            <Button type='submit' form='cases-form' disabled={isSubmitting}>
-              {isSubmitting ? '保存中...' : '保存'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {renderBody()}
+        </div>
+      ) : (
+        <Dialog
+          open={open}
+          onOpenChange={(state) => {
+            if (!state) {
+              form.reset()
+            }
+            onOpenChange?.(state)
+          }}
+        >
+          <DialogContent className='flex h-[90vh] max-h-[90vh] flex-col overflow-hidden p-6 sm:max-w-5xl'>
+            <DialogHeader className='shrink-0 text-start'>
+              <DialogTitle>{isEdit ? '编辑案件' : '添加新案件'}</DialogTitle>
+              <DialogDescription>
+                {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
+                完成后点击保存。
+              </DialogDescription>
+            </DialogHeader>
+            {renderBody()}
+          </DialogContent>
+        </Dialog>
+      )}
 
       <VesselPickerDialog
         open={vesselPickerOpen}

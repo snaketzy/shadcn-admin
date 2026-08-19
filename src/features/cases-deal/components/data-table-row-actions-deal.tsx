@@ -3,6 +3,7 @@ import { StickyNotePlus, Trash2, UserPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { type Case } from '@/features/cases/data/schema'
 import { useCasesDeal } from './cases-deal-provider'
+import { useNavigate } from '@tanstack/react-router'
 
 type DataTableRowActionsDealProps = {
   row: Row<Case>
@@ -12,6 +13,7 @@ export function DataTableRowActionsDeal({
   row,
 }: DataTableRowActionsDealProps) {
   const { setOpen, setCurrentRow } = useCasesDeal()
+  const navigate = useNavigate()
   return (
     <div className='flex justify-end gap-1 pe-2'>
       <Button
@@ -19,8 +21,10 @@ export function DataTableRowActionsDeal({
         size='icon'
         className='h-8 w-8'
         onClick={() => {
-          setCurrentRow(row.original)
-          setOpen('edit')
+          navigate({
+            to: '/case_edit/$caseId',
+            params: { caseId: String(row.original.case_id) },
+          })
         }}
       >
         <UserPen size={16} />
