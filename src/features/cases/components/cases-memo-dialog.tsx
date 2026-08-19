@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { DateTimePicker } from '@/components/date-picker'
 import {
   createCaseMemo,
   deleteCaseMemo,
@@ -62,13 +63,13 @@ function pad2(n: number) {
   return n < 10 ? `0${n}` : `${n}`
 }
 
-function formatNowForDatetimeLocal(now: Date): string {
+function formatNowForStorage(now: Date): string {
   const y = now.getFullYear()
   const m = pad2(now.getMonth() + 1)
   const d = pad2(now.getDate())
   const hh = pad2(now.getHours())
   const mm = pad2(now.getMinutes())
-  return `${y}-${m}-${d}T${hh}:${mm}`
+  return `${y}-${m}-${d} ${hh}:${mm}`
 }
 
 function formatDisplayDate(raw: string | null | undefined): string {
@@ -167,19 +168,24 @@ export function CasesMemoDialog({
     const isActive = mode === 'page' || open
     if (isActive) {
       if (editingMemo) {
-        const rawDate = safeStr(editingMemo.case_memo_date).replace(' ', 'T')
-        const d = new Date(rawDate)
+        const rawDate = safeStr(editingMemo.case_memo_date).replace('T', ' ')
+        const d = new Date(rawDate.replace(' ', 'T'))
         if (rawDate && !Number.isNaN(d.getTime())) {
-          setMemoDate(formatNowForDatetimeLocal(d))
+          const [datePart, timePart] = rawDate.split(' ')
+          setMemoDate(
+            timePart
+              ? `${datePart} ${timePart.slice(0, 5)}`
+              : `${datePart} 00:00`
+          )
         } else {
-          setMemoDate(formatNowForDatetimeLocal(new Date()))
+          setMemoDate(formatNowForStorage(new Date()))
         }
         setMemoContent(safeStr(editingMemo.case_memo_content))
         setMemoRemark(safeStr(editingMemo.case_memo_remark))
         setAttachments(parseAttachments(editingMemo.case_memo_attachment))
       } else {
         if (!memoDate) {
-          setMemoDate(formatNowForDatetimeLocal(new Date()))
+          setMemoDate(formatNowForStorage(new Date()))
         }
         setMemoContent('')
         setMemoRemark('')
@@ -201,7 +207,7 @@ export function CasesMemoDialog({
     setMemoContent('')
     setMemoRemark('')
     setAttachments([])
-    setMemoDate(formatNowForDatetimeLocal(new Date()))
+    setMemoDate(formatNowForStorage(new Date()))
     onEditingMemoChange?.(null)
   }
 
@@ -209,7 +215,7 @@ export function CasesMemoDialog({
     mutationFn: () =>
       createCaseMemo({
         case_id: caseNo,
-        case_memo_date: memoDate ? memoDate.replace('T', ' ') : null,
+        case_memo_date: memoDate || null,
         case_memo_content: memoContent.trim() || null,
         case_memo_remark: memoRemark.trim() || null,
         case_memo_attachment: attachments.length > 0 ? attachments : null,
@@ -250,7 +256,7 @@ export function CasesMemoDialog({
   const updateMutation = useMutation({
     mutationFn: () =>
       updateCaseMemo(editingMemoId!, {
-        case_memo_date: memoDate ? memoDate.replace('T', ' ') : null,
+        case_memo_date: memoDate || null,
         case_memo_content: memoContent.trim() || null,
         case_memo_remark: memoRemark.trim() || null,
         case_memo_attachment: attachments.length > 0 ? attachments : null,
@@ -433,15 +439,7 @@ export function CasesMemoDialog({
             备忘日期
           </Label>
           <div>
-            <Input
-              type='datetime-local'
-              value={memoDate}
-              onChange={(e) => setMemoDate(e.target.value)}
-              className={cn(
-                'h-10 text-base font-medium tracking-wide',
-                'focus-visible:ring-2 focus-visible:ring-primary/60'
-              )}
-            />
+            <DateTimePicker value={memoDate} onChange={setMemoDate} />
           </div>
 
           <Label className='pt-2 text-sm font-semibold text-foreground/90'>

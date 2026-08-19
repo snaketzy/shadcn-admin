@@ -65,6 +65,12 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  DatePicker,
+  DateTimePicker,
+  parseDateOnly,
+  toISODateOnly,
+} from '@/components/date-picker'
+import {
   CasesServiceContactMultiPickerDialog,
   type CasesServiceContactMultiPickerResult,
 } from '@/features/cases/components/cases-service-contact-multi-picker-dialog'
@@ -2984,14 +2990,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     询价日期
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3004,14 +3010,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     开始日期
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3024,14 +3030,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     跟进日期
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3646,14 +3652,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     运输｜服务截止日
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3666,14 +3672,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     船舶到港 | 备货完成
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3686,14 +3692,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     船舶靠港 ｜ 货物发出
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3706,14 +3712,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     船舶开航 ｜ 货物签收
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3726,14 +3732,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     船东结账日期
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3746,14 +3752,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     供应商结账日期
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -3809,14 +3815,14 @@ export function CasesActionDialog({
                   <FormLabel className='col-span-2 text-end'>
                     案件结算完成日期
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      type='date'
-                      className='col-span-4'
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <DatePicker
+                        selected={parseDateOnly(field.value)}
+                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
               )}
@@ -4149,16 +4155,9 @@ export function CasesActionDialog({
                     </FormLabel>
                     <div className='col-span-4'>
                       <FormControl>
-                        <Input
-                          type='datetime-local'
-                          step={60}
-                          className='col-span-4'
-                          {...field}
-                          value={toDatetimeLocalValue(field.value ?? '')}
-                          onChange={(e) => {
-                            const v = e.target.value
-                            field.onChange(v ? v.replace('T', ' ') : '')
-                          }}
+                        <DateTimePicker
+                          value={field.value ?? ''}
+                          onChange={(v) => field.onChange(v)}
                         />
                       </FormControl>
                       <FormMessage />
