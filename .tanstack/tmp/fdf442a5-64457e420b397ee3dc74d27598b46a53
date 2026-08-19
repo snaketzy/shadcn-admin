@@ -26,6 +26,7 @@ import { Route as AuthenticatedAppsIndexRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCase_deal_listIndexRouteImport } from './routes/_authenticated/case_deal_list/index'
 import { Route as AuthenticatedCase_editCaseIdRouteImport } from './routes/_authenticated/case_edit/$caseId'
 import { Route as AuthenticatedCase_listIndexRouteImport } from './routes/_authenticated/case_list/index'
+import { Route as AuthenticatedCase_memoCaseIdRouteImport } from './routes/_authenticated/case_memo/$caseId'
 import { Route as AuthenticatedCase_newIndexRouteImport } from './routes/_authenticated/case_new/index'
 import { Route as AuthenticatedCase_today_listIndexRouteImport } from './routes/_authenticated/case_today_list/index'
 import { Route as AuthenticatedCollaboration_listIndexRouteImport } from './routes/_authenticated/collaboration_list/index'
@@ -135,6 +136,12 @@ const AuthenticatedCase_listIndexRoute =
   AuthenticatedCase_listIndexRouteImport.update({
     id: '/case_list/',
     path: '/case_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCase_memoCaseIdRoute =
+  AuthenticatedCase_memoCaseIdRouteImport.update({
+    id: '/case_memo/$caseId',
+    path: '/case_memo/$caseId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCase_newIndexRoute =
@@ -285,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
+  '/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -322,6 +330,7 @@ export interface FileRoutesByTo {
   '/503': typeof errors503Route
   '/': typeof AuthenticatedIndexRoute
   '/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
+  '/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -364,6 +373,7 @@ export interface FileRoutesById {
   '/_authenticated/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
   '/_authenticated/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/_authenticated/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
+  '/_authenticated/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/contact_detail/$contactId'
     | '/supplier_detail/$supplierId'
     | '/case_edit/$caseId'
+    | '/case_memo/$caseId'
     | '/errors/$error'
     | '/settings/account'
     | '/settings/appearance'
@@ -443,6 +454,7 @@ export interface FileRouteTypes {
     | '/503'
     | '/'
     | '/case_edit/$caseId'
+    | '/case_memo/$caseId'
     | '/errors/$error'
     | '/settings/account'
     | '/settings/appearance'
@@ -484,6 +496,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contact_detail/$contactId'
     | '/_authenticated/supplier_detail/$supplierId'
     | '/_authenticated/case_edit/$caseId'
+    | '/_authenticated/case_memo/$caseId'
     | '/_authenticated/errors/$error'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
@@ -642,6 +655,13 @@ declare module '@tanstack/react-router' {
       path: '/case_list'
       fullPath: '/case_list/'
       preLoaderRoute: typeof AuthenticatedCase_listIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/case_memo/$caseId': {
+      id: '/_authenticated/case_memo/$caseId'
+      path: '/case_memo/$caseId'
+      fullPath: '/case_memo/$caseId'
+      preLoaderRoute: typeof AuthenticatedCase_memoCaseIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/case_new/': {
@@ -866,6 +886,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContact_detailContactIdRouteRoute: typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
   AuthenticatedSupplier_detailSupplierIdRouteRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   AuthenticatedCase_editCaseIdRoute: typeof AuthenticatedCase_editCaseIdRoute
+  AuthenticatedCase_memoCaseIdRoute: typeof AuthenticatedCase_memoCaseIdRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
   AuthenticatedCase_deal_listIndexRoute: typeof AuthenticatedCase_deal_listIndexRoute
@@ -890,6 +911,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSupplier_detailSupplierIdRouteRoute:
     AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren,
   AuthenticatedCase_editCaseIdRoute: AuthenticatedCase_editCaseIdRoute,
+  AuthenticatedCase_memoCaseIdRoute: AuthenticatedCase_memoCaseIdRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
   AuthenticatedCase_deal_listIndexRoute: AuthenticatedCase_deal_listIndexRoute,

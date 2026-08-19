@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircle,
@@ -10,6 +11,11 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -18,11 +24,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import {
@@ -94,7 +95,7 @@ function CaseMemoEditButton({
   rowData: Case
   memo: CaseMemo
 }) {
-  const { setCurrentRow, setEditingMemo, setOpen } = useCasesDeal()
+  const navigate = useNavigate()
   return (
     <Button
       type='button'
@@ -104,9 +105,11 @@ function CaseMemoEditButton({
       onClick={(e) => {
         e.stopPropagation()
         e.preventDefault()
-        setCurrentRow(rowData)
-        setEditingMemo(memo)
-        setOpen('memo')
+        navigate({
+          to: '/case_memo/$caseId',
+          params: { caseId: String(rowData.case_id) },
+          search: { memoId: String(memo.case_memo_id) },
+        })
       }}
       aria-label='编辑该备忘'
       title='编辑该备忘'
@@ -121,10 +124,7 @@ export function getCasesDealColumns(params?: {
   urgentBIsUrgentSet?: Set<string>
   handleTodayBIsYesSet?: Set<string>
   ownerNameEmailMap?: Map<string, { owner_name: string; owner_email: string }>
-  ownerIdEmailMap?: Map<
-    string,
-    { owner_name: string; owner_email: string }
-  >
+  ownerIdEmailMap?: Map<string, { owner_name: string; owner_email: string }>
   inqTypeAMap?: Map<string, string>
   inchargeEMap?: Map<string, string>
   rankDMap?: Map<string, string>
@@ -516,7 +516,8 @@ export function getCasesDealColumns(params?: {
         }
         const inquiryGroups = {
           询价: groupInquirySuppliers((l) =>
-            /询价|询盘|inquir|enquir/i.test(l)),
+            /询价|询盘|inquir|enquir/i.test(l)
+          ),
           报价: groupInquirySuppliers((l) => /报价|quot/i.test(l)),
           竞标: groupInquirySuppliers((l) => /竞标|投标|bid/i.test(l)),
           中标: groupInquirySuppliers((l) => /中标|win|award/i.test(l)),
@@ -565,12 +566,8 @@ export function getCasesDealColumns(params?: {
             <div
               className={cn(
                 'rounded-md p-2.5 ring-1',
-                accent.includes('slate')
-                  ? 'bg-slate-50/80 ring-slate-200'
-                  : '',
-                accent.includes('amber')
-                  ? 'bg-amber-50/70 ring-amber-200'
-                  : '',
+                accent.includes('slate') ? 'bg-slate-50/80 ring-slate-200' : '',
+                accent.includes('amber') ? 'bg-amber-50/70 ring-amber-200' : '',
                 accent.includes('blue') ? 'bg-blue-50/70 ring-blue-200' : '',
                 accent.includes('emerald')
                   ? 'bg-emerald-50/70 ring-emerald-200'
@@ -635,7 +632,7 @@ export function getCasesDealColumns(params?: {
               sideOffset={8}
               onOpenAutoFocus={(e) => e.preventDefault()}
               onCloseAutoFocus={(e) => e.preventDefault()}
-              className='z-[100] flex h-[90vh] w-[620px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95'
+              className='z-[100] flex h-[90vh] w-[620px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95'
             >
               <div className='flex shrink-0 items-center gap-2 border-b border-border/80 bg-muted/40 px-3.5 py-2.5'>
                 <div className='min-w-0 flex-1'>
@@ -779,8 +776,7 @@ export function getCasesDealColumns(params?: {
                           {resolveDict(
                             inchargeEMap,
                             rowData.case_delivery_or_service_incharge
-                          ) ||
-                            s(rowData.case_delivery_or_service_incharge)}
+                          ) || s(rowData.case_delivery_or_service_incharge)}
                         </LongText>
                       )
                     )}
@@ -796,9 +792,7 @@ export function getCasesDealColumns(params?: {
                     )}
                     {kvRow(
                       'ETB',
-                      formatDateAsHyphen(
-                        rowData.case_etb_cargo_departure_date
-                      )
+                      formatDateAsHyphen(rowData.case_etb_cargo_departure_date)
                     )}
                     {kvRow(
                       'ETD',

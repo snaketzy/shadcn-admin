@@ -1,9 +1,9 @@
+import { useNavigate } from '@tanstack/react-router'
 import { type Row } from '@tanstack/react-table'
 import { StickyNotePlus, Trash2, UserPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { type Case } from '../data/schema'
 import { useCases } from './cases-provider'
-import { useNavigate } from '@tanstack/react-router'
 
 type DataTableRowActionsProps = {
   row: Row<Case>
@@ -43,8 +43,10 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         size='icon'
         className='h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-600'
         onClick={() => {
-          setCurrentRow(row.original)
-          setOpen('memo')
+          navigate({
+            to: '/case_memo/$caseId',
+            params: { caseId: String(row.original.case_id) },
+          })
         }}
       >
         <StickyNotePlus size={16} />

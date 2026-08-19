@@ -28,11 +28,9 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,11 +48,14 @@ import {
 import type { Case } from '../data/schema'
 
 type CasesMemoDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   currentRow: Case
   editingMemo?: CaseMemo | null
   onEditingMemoChange?: (memo: CaseMemo | null) => void
+  mode?: 'dialog' | 'page'
+  onCancel?: () => void
+  onSuccess?: () => void
 }
 
 function pad2(n: number) {
@@ -119,11 +120,14 @@ function filenameAllowed(name: string): boolean {
 }
 
 export function CasesMemoDialog({
-  open,
+  open = true,
   onOpenChange,
   currentRow,
   editingMemo = null,
   onEditingMemoChange,
+  mode = 'dialog',
+  onCancel,
+  onSuccess,
 }: CasesMemoDialogProps) {
   const queryClient = useQueryClient()
   const [memoDate, setMemoDate] = useState<string>('')
@@ -148,7 +152,7 @@ export function CasesMemoDialog({
   } = useQuery({
     queryKey: ['case-memo-list', caseNo],
     queryFn: () => fetchCaseMemoListByCaseId(caseNo),
-    enabled: open && caseNo > 0,
+    enabled: mode === 'page' || (open && caseNo > 0),
     staleTime: 60_000,
   })
 
@@ -160,7 +164,8 @@ export function CasesMemoDialog({
   }
 
   useEffect(() => {
-    if (open) {
+    const isActive = mode === 'page' || open
+    if (isActive) {
       if (editingMemo) {
         const rawDate = safeStr(editingMemo.case_memo_date).replace(' ', 'T')
         const d = new Date(rawDate)
@@ -188,7 +193,7 @@ export function CasesMemoDialog({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editingMemo])
+  }, [mode === 'page' || open, editingMemo])
 
   const saveModeRef = useRef<'close' | 'new' | null>(null)
 
@@ -218,12 +223,16 @@ export function CasesMemoDialog({
             Array.isArray(q.queryKey) &&
             q.queryKey[0] === 'case-memo-list-by-page-case-ids',
         })
-        const mode = saveModeRef.current
+        const modeSave = saveModeRef.current
         saveModeRef.current = null
-        if (mode === 'close') {
+        if (modeSave === 'close') {
           toast.success('备忘已保存')
-          onOpenChange(false)
-        } else if (mode === 'new') {
+          if (mode === 'page') {
+            onSuccess?.()
+          } else {
+            onOpenChange?.(false)
+          }
+        } else if (modeSave === 'new') {
           toast.success('备忘已保存，可继续新增')
           clearForm()
         }
@@ -258,7 +267,11 @@ export function CasesMemoDialog({
         saveModeRef.current = null
         toast.success('备忘已更新')
         clearForm()
-        onOpenChange(false)
+        if (mode === 'page') {
+          onSuccess?.()
+        } else {
+          onOpenChange?.(false)
+        }
       } else {
         saveModeRef.current = null
         toast.error('更新失败，请稍后重试')
@@ -401,229 +414,266 @@ export function CasesMemoDialog({
     </div>
   )
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={true}
-        className='flex h-[90vh] max-h-[90vh] flex-col overflow-hidden p-6 sm:max-w-4xl'
-      >
-        <DialogHeader className='shrink-0 text-start'>
-          <DialogTitle className='text-xl leading-7'>{caseTitle}</DialogTitle>
-          <DialogDescription className='sr-only'>
-            案件备忘：添加与查看历史备忘
-          </DialogDescription>
-          {caseHeaderMeta}
-        </DialogHeader>
+  const handleClose = () => {
+    clearForm()
+    if (mode === 'page') {
+      onCancel?.()
+    } else {
+      onOpenChange?.(false)
+    }
+  }
 
-        <Separator className='-mx-6 w-[calc(100%+3rem)] shrink-0' />
+  const renderBody = () => (
+    <>
+      <Separator className='-mx-6 w-[calc(100%+3rem)] shrink-0' />
 
-        <div className='min-h-0 w-[calc(100%+0.75rem)] flex-1 overflow-y-auto py-5 pe-3'>
-          <div className='grid grid-cols-[150px_1fr] items-start gap-x-6 gap-y-5'>
-            <Label className='pt-2 text-sm font-semibold text-foreground/90'>
-              备忘日期
-            </Label>
-            <div>
-              <Input
-                type='datetime-local'
-                value={memoDate}
-                onChange={(e) => setMemoDate(e.target.value)}
-                className={cn(
-                  'h-10 text-base font-medium tracking-wide',
-                  'focus-visible:ring-2 focus-visible:ring-primary/60'
-                )}
-              />
-            </div>
-
-            <Label className='pt-2 text-sm font-semibold text-foreground/90'>
-              备忘内容
-            </Label>
-            <div className='flex flex-col gap-1.5'>
-              <p className='text-xs text-muted-foreground/80'>
-                支持 Markdown
-                格式：**加粗**、*斜体*、[链接](url)、列表、表格、代码块等
-              </p>
-              <Textarea
-                value={memoContent}
-                onChange={(e) => setMemoContent(e.target.value)}
-                placeholder={
-                  '## 标题\n\n- **要点1**：说明\n- *要点2*：说明\n\n`行内代码` 或 ``` 代码块'
-                }
-                rows={6}
-                className='min-h-[160px] resize-y font-mono text-[13px] leading-6'
-              />
-            </div>
-
-            <Label className='pt-2 text-sm font-semibold text-foreground/90'>
-              备忘备注
-            </Label>
+      <div className='min-h-0 w-[calc(100%+0.75rem)] flex-1 overflow-y-auto py-5 pe-3'>
+        <div className='grid grid-cols-[150px_1fr] items-start gap-x-6 gap-y-5'>
+          <Label className='pt-2 text-sm font-semibold text-foreground/90'>
+            备忘日期
+          </Label>
+          <div>
             <Input
-              value={memoRemark}
-              onChange={(e) => setMemoRemark(e.target.value)}
-              placeholder='请输入备忘备注...'
+              type='datetime-local'
+              value={memoDate}
+              onChange={(e) => setMemoDate(e.target.value)}
+              className={cn(
+                'h-10 text-base font-medium tracking-wide',
+                'focus-visible:ring-2 focus-visible:ring-primary/60'
+              )}
             />
+          </div>
 
-            <Label className='pt-2 text-sm font-semibold text-foreground/90'>
-              备忘附件
-            </Label>
-            <div className='flex flex-col gap-2'>
-              <div className='flex flex-wrap items-center gap-3'>
-                <input
-                  ref={fileInputRef}
-                  type='file'
-                  multiple
-                  className='hidden'
-                  accept='.pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/pdf,image/*,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation'
-                  onChange={(e) => {
-                    handleAttachmentsPick(e.target.files)
-                    e.target.value = ''
-                  }}
-                />
-                <Button
-                  variant='outline'
-                  type='button'
-                  onClick={() => fileInputRef.current?.click()}
-                  className='h-10 gap-2 px-4'
-                >
-                  <PaperclipIcon size={16} />
-                  <span>选择文件</span>
-                </Button>
-                <p className='text-sm text-muted-foreground'>
-                  支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV 等，单文件 ≤
-                  20MB，可多选
-                </p>
-              </div>
-              {attachments.length > 0 && (
-                <div className='flex flex-wrap gap-2 pt-1'>
-                  {attachments.map((a, idx) => (
-                    <Badge
-                      key={`${a.name}-${idx}`}
-                      variant='secondary'
-                      className='h-8 gap-1 rounded-full px-3 py-0 text-xs font-normal'
-                    >
-                      <PaperclipIcon size={12} className='opacity-70' />
-                      <span className='max-w-[16rem] truncate'>{a.name}</span>
-                      {a.size != null && (
-                        <span className='opacity-60'>
-                          ({formatBytes(a.size)})
-                        </span>
-                      )}
-                      <button
-                        type='button'
-                        aria-label={`移除附件 ${a.name}`}
-                        onClick={() =>
-                          setAttachments((prev) =>
-                            prev.filter((_, i) => i !== idx)
-                          )
-                        }
-                        className='ms-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-foreground/10'
-                      >
-                        <XIcon size={12} />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
+          <Label className='pt-2 text-sm font-semibold text-foreground/90'>
+            备忘内容
+          </Label>
+          <div className='flex flex-col gap-1.5'>
+            <p className='text-xs text-muted-foreground/80'>
+              支持 Markdown
+              格式：**加粗**、*斜体*、[链接](url)、列表、表格、代码块等
+            </p>
+            <Textarea
+              value={memoContent}
+              onChange={(e) => setMemoContent(e.target.value)}
+              placeholder={
+                '## 标题\n\n- **要点1**：说明\n- *要点2*：说明\n\n`行内代码` 或 ``` 代码块'
+              }
+              rows={6}
+              className='min-h-[160px] resize-y font-mono text-[13px] leading-6'
+            />
+          </div>
+
+          <Label className='pt-2 text-sm font-semibold text-foreground/90'>
+            备忘备注
+          </Label>
+          <Input
+            value={memoRemark}
+            onChange={(e) => setMemoRemark(e.target.value)}
+            placeholder='请输入备忘备注...'
+          />
+
+          <Label className='pt-2 text-sm font-semibold text-foreground/90'>
+            备忘附件
+          </Label>
+          <div className='flex flex-col gap-2'>
+            <div className='flex flex-wrap items-center gap-3'>
+              <input
+                ref={fileInputRef}
+                type='file'
+                multiple
+                className='hidden'
+                accept='.pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/pdf,image/*,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                onChange={(e) => {
+                  handleAttachmentsPick(e.target.files)
+                  e.target.value = ''
+                }}
+              />
+              <Button
+                variant='outline'
+                type='button'
+                onClick={() => fileInputRef.current?.click()}
+                className='h-10 gap-2 px-4'
+              >
+                <PaperclipIcon size={16} />
+                <span>选择文件</span>
+              </Button>
+              <p className='text-sm text-muted-foreground'>
+                支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV 等，单文件 ≤
+                20MB，可多选
+              </p>
             </div>
-
-            <Separator className='col-span-2 my-1' />
-
-            <Label className='pt-1 text-sm font-semibold text-foreground/90'>
-              历史备忘
-            </Label>
-            <div className='space-y-3'>
-              <div className='flex items-center justify-between'>
-                <div />
-                <span className='text-sm text-muted-foreground'>
-                  共 {memoList.length} 条备忘
-                </span>
-              </div>
-
-              {memoList.length === 0 ? (
-                <div
-                  className={cn(
-                    'rounded-lg border border-dashed px-6 py-10 text-center',
-                    'text-muted-foreground',
-                    'border-border bg-muted/20'
-                  )}
-                >
-                  {isLoadingMemoList ? (
-                    '历史备忘加载中...'
-                  ) : (
-                    <>暂无历史备忘，填写上方表单后点击「保存备忘」即可添加。</>
-                  )}
-                </div>
-              ) : (
-                <div className='grid grid-cols-1 gap-3'>
-                  {memoList.map((m) => (
-                    <MemoHistoryItem
-                      key={m.case_memo_id}
-                      memo={m}
-                      isDeleting={
-                        deleteMutation.isPending &&
-                        deleteMutation.variables === m.case_memo_id
+            {attachments.length > 0 && (
+              <div className='flex flex-wrap gap-2 pt-1'>
+                {attachments.map((a, idx) => (
+                  <Badge
+                    key={`${a.name}-${idx}`}
+                    variant='secondary'
+                    className='h-8 gap-1 rounded-full px-3 py-0 text-xs font-normal'
+                  >
+                    <PaperclipIcon size={12} className='opacity-70' />
+                    <span className='max-w-[16rem] truncate'>{a.name}</span>
+                    {a.size != null && (
+                      <span className='opacity-60'>
+                        ({formatBytes(a.size)})
+                      </span>
+                    )}
+                    <button
+                      type='button'
+                      aria-label={`移除附件 ${a.name}`}
+                      onClick={() =>
+                        setAttachments((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        )
                       }
-                      isEditing={isEditMode && editingMemoId === m.case_memo_id}
-                      onEdit={() => {
-                        onEditingMemoChange?.(m)
-                      }}
-                      onDelete={() => {
-                        if (
-                          window.confirm(
-                            '确定要删除该条备注吗？该操作不可恢复。'
-                          )
-                        ) {
-                          deleteMutation.mutate(m.case_memo_id)
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+                      className='ms-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-foreground/10'
+                    >
+                      <XIcon size={12} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator className='col-span-2 my-1' />
+
+          <Label className='pt-1 text-sm font-semibold text-foreground/90'>
+            历史备忘
+          </Label>
+          <div className='space-y-3'>
+            <div className='flex items-center justify-between'>
+              <div />
+              <span className='text-sm text-muted-foreground'>
+                共 {memoList.length} 条备忘
+              </span>
             </div>
+
+            {memoList.length === 0 ? (
+              <div
+                className={cn(
+                  'rounded-lg border border-dashed px-6 py-10 text-center',
+                  'text-muted-foreground',
+                  'border-border bg-muted/20'
+                )}
+              >
+                {isLoadingMemoList ? (
+                  '历史备忘加载中...'
+                ) : (
+                  <>暂无历史备忘，填写上方表单后点击「保存备忘」即可添加。</>
+                )}
+              </div>
+            ) : (
+              <div className='grid grid-cols-1 gap-3'>
+                {memoList.map((m) => (
+                  <MemoHistoryItem
+                    key={m.case_memo_id}
+                    memo={m}
+                    isDeleting={
+                      deleteMutation.isPending &&
+                      deleteMutation.variables === m.case_memo_id
+                    }
+                    isEditing={isEditMode && editingMemoId === m.case_memo_id}
+                    onEdit={() => {
+                      onEditingMemoChange?.(m)
+                    }}
+                    onDelete={() => {
+                      if (
+                        window.confirm('确定要删除该条备注吗？该操作不可恢复。')
+                      ) {
+                        deleteMutation.mutate(m.case_memo_id)
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        <Separator className='-mx-6 w-[calc(100%+3rem)] shrink-0' />
-        <DialogFooter className='mt-2 shrink-0 pt-4'>
-          {isEditMode && (
-            <Button
-              type='button'
-              variant='ghost'
-              onClick={() => onEditingMemoChange?.(null)}
-              className='h-10 px-5'
-            >
-              取消编辑
-            </Button>
-          )}
-          <DialogClose asChild>
-            <Button variant='outline' type='button' className='h-10 px-5'>
-              关闭
-            </Button>
-          </DialogClose>
-          {!isEditMode && (
-            <Button
-              type='button'
-              variant='secondary'
-              onClick={handleSaveAndNew}
-              disabled={!canSave || isSaving}
-              className='h-10 gap-2 px-5'
-            >
-              <PlusIcon size={16} />
-              {isSaving ? '保存中...' : '保存并新增备忘'}
-            </Button>
-          )}
+      <Separator className='-mx-6 w-[calc(100%+3rem)] shrink-0' />
+      <div className='mt-2 flex shrink-0 flex-wrap items-center justify-end gap-2 pt-4'>
+        {isEditMode && (
           <Button
             type='button'
-            onClick={handleSave}
+            variant='ghost'
+            onClick={() => onEditingMemoChange?.(null)}
+            className='h-10 px-5'
+          >
+            取消编辑
+          </Button>
+        )}
+        <Button
+          variant='outline'
+          type='button'
+          className='h-10 px-5'
+          onClick={handleClose}
+        >
+          关闭
+        </Button>
+        {!isEditMode && (
+          <Button
+            type='button'
+            variant='secondary'
+            onClick={handleSaveAndNew}
             disabled={!canSave || isSaving}
             className='h-10 gap-2 px-5'
           >
-            <SaveIcon size={16} />
-            {isSaving ? '保存中...' : isEditMode ? '更新备忘' : '保存备忘'}
+            <PlusIcon size={16} />
+            {isSaving ? '保存中...' : '保存并新增备忘'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        )}
+        <Button
+          type='button'
+          onClick={handleSave}
+          disabled={!canSave || isSaving}
+          className='h-10 gap-2 px-5'
+        >
+          <SaveIcon size={16} />
+          {isSaving ? '保存中...' : isEditMode ? '更新备忘' : '保存备忘'}
+        </Button>
+      </div>
+    </>
+  )
+
+  return (
+    <>
+      {mode === 'page' ? (
+        <div className='mx-auto flex h-[90vh] max-h-[90vh] w-full flex-col overflow-hidden p-6 sm:max-w-4xl'>
+          <div className='mb-2 shrink-0 text-start'>
+            <div className='text-xl leading-7 font-semibold'>{caseTitle}</div>
+            {caseHeaderMeta}
+          </div>
+          {renderBody()}
+        </div>
+      ) : (
+        <Dialog
+          open={open}
+          onOpenChange={(state) => {
+            if (!state) {
+              clearForm()
+            }
+            onOpenChange?.(state)
+          }}
+        >
+          <DialogContent
+            showCloseButton={true}
+            className='flex h-[90vh] max-h-[90vh] flex-col overflow-hidden p-6 sm:max-w-4xl'
+          >
+            <DialogHeader className='shrink-0 text-start'>
+              <DialogTitle className='text-xl leading-7'>
+                {caseTitle}
+              </DialogTitle>
+              <DialogDescription className='sr-only'>
+                案件备忘：添加与查看历史备忘
+              </DialogDescription>
+              {caseHeaderMeta}
+            </DialogHeader>
+            {renderBody()}
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   )
 }
 

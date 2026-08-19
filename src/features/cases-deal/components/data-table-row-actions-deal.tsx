@@ -45,8 +45,10 @@ export function DataTableRowActionsDeal({
         size='icon'
         className='h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-600'
         onClick={() => {
-          setCurrentRow(row.original)
-          setOpen('memo')
+          navigate({
+            to: '/case_memo/$caseId',
+            params: { caseId: String(row.original.case_id) },
+          })
         }}
       >
         <StickyNotePlus size={16} />

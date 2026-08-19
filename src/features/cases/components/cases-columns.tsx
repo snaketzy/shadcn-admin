@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircle,
@@ -94,7 +95,7 @@ function CaseMemoEditButton({
   rowData: Case
   memo: CaseMemo
 }) {
-  const { setCurrentRow, setEditingMemo, setOpen } = useCases()
+  const navigate = useNavigate()
   return (
     <Button
       type='button'
@@ -104,9 +105,11 @@ function CaseMemoEditButton({
       onClick={(e) => {
         e.stopPropagation()
         e.preventDefault()
-        setCurrentRow(rowData)
-        setEditingMemo(memo)
-        setOpen('memo')
+        navigate({
+          to: '/case_memo/$caseId',
+          params: { caseId: String(rowData.case_id) },
+          search: { memoId: String(memo.case_memo_id) },
+        })
       }}
       aria-label='编辑该备忘'
       title='编辑该备忘'
