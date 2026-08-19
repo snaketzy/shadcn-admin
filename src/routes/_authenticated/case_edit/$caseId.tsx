@@ -44,8 +44,16 @@ function CaseEditPage() {
   useEffect(() => {
     const originalTitle = document.title
     document.title = `${originalTitle} - 编辑案件`
+
+    const originalHtmlOverflow = document.documentElement.style.overflow
+    const originalBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+
     return () => {
       document.title = originalTitle
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overflow = originalBodyOverflow
     }
   }, [])
 
@@ -83,15 +91,17 @@ function CaseEditPage() {
         <ProfileDropdown />
       </Header>
 
-      <Main fixed fluid className='flex flex-1 flex-col gap-4 overflow-hidden sm:gap-6'>
+      <Main fixed fluid className='flex flex-1 flex-col overflow-hidden pb-4 pt-0 sm:pb-6 sm:pt-0'>
         {isLoading || !caseRow ? (
-          <div className='space-y-6 p-6 w-full max-w-5xl mx-auto'>
-            <Skeleton className='h-8 w-48' />
-            <Skeleton className='h-4 w-72' />
-            <div className='grid grid-cols-2 gap-4'>
-              {Array.from({ length: 12 }).map((_, i) => (
-                <Skeleton key={i} className='h-10 w-full' />
-              ))}
+          <div className='mx-auto flex h-full min-h-0 w-full max-w-5xl items-start justify-center overflow-auto p-6'>
+            <div className='w-full space-y-6'>
+              <Skeleton className='h-8 w-48' />
+              <Skeleton className='h-4 w-72' />
+              <div className='grid grid-cols-2 gap-4'>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <Skeleton key={i} className='h-10 w-full' />
+                ))}
+              </div>
             </div>
           </div>
         ) : (

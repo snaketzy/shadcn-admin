@@ -31,8 +31,16 @@ function CaseNewPage() {
   useEffect(() => {
     const originalTitle = document.title
     document.title = `${originalTitle} - 添加新案件`
+
+    const originalHtmlOverflow = document.documentElement.style.overflow
+    const originalBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+
     return () => {
       document.title = originalTitle
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overflow = originalBodyOverflow
     }
   }, [])
 
@@ -67,7 +75,7 @@ function CaseNewPage() {
         <ProfileDropdown />
       </Header>
 
-      <Main fixed fluid className='flex flex-1 flex-col gap-4 overflow-hidden sm:gap-6'>
+      <Main fixed fluid className='flex flex-1 flex-col overflow-hidden pb-4 pt-0 sm:pb-6 sm:pt-0'>
         <CasesActionDialog
           mode='page'
           onCancel={goBack}

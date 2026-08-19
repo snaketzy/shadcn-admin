@@ -2355,12 +2355,12 @@ export function CasesActionDialog({
 
   const renderBody = () => (
     <>
-      <div className='min-h-0 w-[calc(100%+0.75rem)] flex-1 overflow-y-auto py-1 pe-3'>
+      <div className='min-h-0 flex-1 overflow-y-auto py-1 pe-3'>
         <Form {...form}>
           <form
             id='cases-form'
             onSubmit={form.handleSubmit(onSubmit)}
-            className='grid grid-cols-2 gap-4 px-0.5'
+            className='grid grid-cols-2 gap-4'
           >
             <FormField
               control={form.control}
@@ -3873,21 +3873,23 @@ export function CasesActionDialog({
       <div
         className={
           mode === 'page'
-            ? 'mt-2 flex shrink-0 justify-end gap-2 pt-4'
+            ? '-mx-6 shrink-0 border-t bg-card px-6 py-4'
             : 'DialogFooter-cls mt-2 flex shrink-0 justify-end gap-2 pt-4'
         }
       >
-        <Button
-          type='button'
-          variant='outline'
-          onClick={handleCancel}
-          disabled={isSubmitting}
-        >
-          取消
-        </Button>
-        <Button type='submit' form='cases-form' disabled={isSubmitting}>
-          {isSubmitting ? '保存中...' : '保存'}
-        </Button>
+        <div className={mode === 'page' ? 'flex justify-end gap-2' : ''}>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
+            取消
+          </Button>
+          <Button type='submit' form='cases-form' disabled={isSubmitting}>
+            {isSubmitting ? '保存中...' : '保存'}
+          </Button>
+        </div>
       </div>
     </>
   )
@@ -3895,18 +3897,20 @@ export function CasesActionDialog({
   return (
     <>
       {mode === 'page' ? (
-        <div className='mx-auto flex h-[90vh] max-h-[90vh] w-full flex-col overflow-hidden p-6 sm:max-w-5xl'>
-          <div className='mb-4 shrink-0 text-start'>
-            <h2 className='text-xl leading-none font-semibold tracking-tight'>
+        <Card className='mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden py-0 sm:max-w-5xl'>
+          <CardHeader className='shrink-0 pt-6 text-start'>
+            <CardTitle className='text-xl leading-none font-semibold tracking-tight'>
               {isEdit ? '编辑案件' : '添加新案件'}
-            </h2>
+            </CardTitle>
             <p className='mt-2 text-sm text-muted-foreground'>
               {isEdit ? '在此更新案件信息。' : '在此创建新案件。'}
               完成后点击保存。
             </p>
-          </div>
-          {renderBody()}
-        </div>
+          </CardHeader>
+          <CardContent className='flex min-h-0 flex-1 flex-col overflow-hidden p-0 px-6'>
+            {renderBody()}
+          </CardContent>
+        </Card>
       ) : (
         <Dialog
           open={open}
