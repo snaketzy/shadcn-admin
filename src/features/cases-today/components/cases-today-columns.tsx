@@ -1,4 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
+import { useMemo } from 'react'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircle,
@@ -31,10 +32,12 @@ import {
   type CaseMemo,
   type CaseInquiry,
 } from '@/features/cases/api/client'
+import { buildCaseNavSearch } from '@/features/cases/api/nav-helpers'
 import { getBadgeColor } from '@/features/cases/data/data'
 import { type Case } from '@/features/cases/data/schema'
-import { useCasesToday } from './cases-today-provider'
 import { DataTableRowActionsToday } from './data-table-row-actions-today'
+
+const route = getRouteApi('/_authenticated/case_today_list/')
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`
@@ -96,6 +99,15 @@ function CaseMemoEditButton({
   memo: CaseMemo
 }) {
   const navigate = useNavigate()
+  const search = route.useSearch()
+  const navSearch = useMemo(
+    () =>
+      buildCaseNavSearch({
+        fromPath: '/case_today_list',
+        listSearch: search as Record<string, unknown>,
+      }),
+    [search]
+  )
   return (
     <Button
       type='button'
@@ -108,7 +120,10 @@ function CaseMemoEditButton({
         navigate({
           to: '/case_memo/$caseId',
           params: { caseId: String(rowData.case_id) },
-          search: { memoId: String(memo.case_memo_id) },
+          search: {
+            ...navSearch,
+            memoId: String(memo.case_memo_id),
+          },
         })
       }}
       aria-label='编辑该备忘'
@@ -135,7 +150,6 @@ export function getCasesTodayColumns(params?: {
   supplierIdNameMap?: Map<number, string>
   inquiryTypeQKeyToLabel?: Map<string, string>
 }): ColumnDef<Case>[] {
-  const urgentBMap = params?.urgentBMap
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
   const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
   const ownerNameEmailMap = params?.ownerNameEmailMap
@@ -162,14 +176,6 @@ export function getCasesTodayColumns(params?: {
     const p = String(raw).trim()
     if (!p) return false
     return handleTodayBIsYesSet.has(p.toUpperCase())
-  }
-  const resolveUrgentBLabel = (raw: unknown): string => {
-    if (raw === null || raw === undefined || raw === '') return ''
-    const p = String(raw).trim()
-    if (!p) return ''
-    const hit = urgentBMap?.get(p.toUpperCase())
-    if (hit) return hit
-    return p
   }
   const resolveInqTypeALabel = (raw: unknown): string => {
     if (raw === null || raw === undefined || raw === '') return ''

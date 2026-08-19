@@ -103,10 +103,6 @@ async function main() {
     if (!memoDay) { skipMemo++; continue }
     const curTs = new Date(curDay + 'T00:00:00Z').getTime()
     const memoTs = new Date(memoDay + 'T00:00:00Z').getTime()
-    const inqTs = inqDay ? new Date(inqDay + 'T00:00:00Z').getTime() : null
-
-    // 当 memoDay < curDay（curDay 明显是"晚"的那个 uptodate），
-    // 修复：case_follow_date = 较早的 memoDay；case_uptodate_date 保持较晚的 curDay
     // 不强制 inq 必须 >= memo（有少量行 inq 比 memo 晚 1 天，仍在 follow..up 区间内，不影响 fl<up 目标）
     const shouldPatch = memoTs < curTs
     if (!shouldPatch) { skipKeep++; continue }

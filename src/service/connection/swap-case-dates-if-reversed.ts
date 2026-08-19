@@ -86,15 +86,6 @@ async function main() {
     // 互换后: follow = 早, up = 晚
     const newFollowSql = oldUp instanceof Date ? oldUp : new Date(String(oldUp))
     const newUpSql = oldFollow instanceof Date ? oldFollow : new Date(String(oldFollow))
-    const toStr = (d: Date) => {
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      const hh = String(d.getHours()).padStart(2, '0')
-      const mm = String(d.getMinutes()).padStart(2, '0')
-      const ss = String(d.getSeconds()).padStart(2, '0')
-      return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
-    }
     // 注意：new Date(str) 会把本地时区转UTC存入；DB里 DATETIME 不涉及时区，直接以本地时区格式化"YYYY-MM-DD HH:mm:ss"写入
     // 这里先把读出的 Date 当成数据库里实际显示的同一值，即：无论时区，按 UTC 分量取。
     const toStrUTC = (d: Date) => {

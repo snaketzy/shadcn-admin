@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect, useMemo } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { Button } from '@/components/ui/button'
 import { ConfigDrawer } from '@/components/config-drawer'
@@ -8,11 +8,25 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Separator } from '@/components/ui/separator'
-import { Link } from '@tanstack/react-router'
 import { CasesActionDialog } from '@/features/cases/components/cases-action-dialog'
+import { resolveCaseNavFromSearch } from '@/features/cases/api/nav-helpers'
 
 function CaseNewPage() {
   const navigate = useNavigate()
+  const search = Route.useSearch()
+  const nav = useMemo(
+    () =>
+      resolveCaseNavFromSearch(
+        search as Record<string, unknown>,
+        '/case_list'
+      ),
+    [search]
+  )
+  const goBack = () =>
+    navigate({
+      to: nav.fromPath,
+      search: nav.listSearch,
+    })
 
   useEffect(() => {
     const originalTitle = document.title
@@ -30,21 +44,18 @@ function CaseNewPage() {
             variant='outline'
             size='sm'
             className='h-8 gap-1'
-            onClick={() =>
-              navigate({
-                to: '/case_list',
-              })
-            }
+            onClick={goBack}
           >
             <ArrowLeftIcon className='size-4' />
             返回
           </Button>
           <Separator orientation='vertical' className='mx-1 h-6' />
           <Link
-            to='/case_list'
+            to={nav.fromPath}
+            search={nav.listSearch}
             className='text-sm font-medium text-muted-foreground hover:underline'
           >
-            案件列表
+            {nav.fromLabel}
           </Link>
           <span className='text-muted-foreground/60 text-xs'>/</span>
           <span className='text-sm font-medium truncate max-w-48'>
@@ -59,8 +70,8 @@ function CaseNewPage() {
       <Main fixed fluid className='flex flex-1 flex-col gap-4 overflow-hidden sm:gap-6'>
         <CasesActionDialog
           mode='page'
-          onCancel={() => navigate({ to: '/case_list' })}
-          onSuccess={() => navigate({ to: '/case_list' })}
+          onCancel={goBack}
+          onSuccess={goBack}
         />
       </Main>
     </>

@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect, useMemo } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { Button } from '@/components/ui/button'
@@ -9,15 +9,30 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Separator } from '@/components/ui/separator'
-import { Link } from '@tanstack/react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CasesActionDialog } from '@/features/cases/components/cases-action-dialog'
 import { fetchCaseDetail } from '@/features/cases/api/client'
+import { resolveCaseNavFromSearch } from '@/features/cases/api/nav-helpers'
 
 function CaseEditPage() {
   const navigate = useNavigate()
   const { caseId } = Route.useParams()
+  const search = Route.useSearch()
   const caseIdNum = Number(caseId)
+
+  const nav = useMemo(
+    () =>
+      resolveCaseNavFromSearch(
+        search as Record<string, unknown>,
+        '/case_list'
+      ),
+    [search]
+  )
+  const goBack = () =>
+    navigate({
+      to: nav.fromPath,
+      search: nav.listSearch,
+    })
 
   const { data: caseRow, isLoading } = useQuery({
     queryKey: ['case-detail', caseIdNum],
@@ -34,7 +49,8 @@ function CaseEditPage() {
     }
   }, [])
 
-  const displayTitle = caseRow?.vessel_name || caseRow?.case_inquiry_keyword || `#${caseId}`
+  const displayTitle =
+    caseRow?.vessel_name || caseRow?.case_inquiry_keyword || `#${caseId}`
 
   return (
     <>
@@ -44,21 +60,18 @@ function CaseEditPage() {
             variant='outline'
             size='sm'
             className='h-8 gap-1'
-            onClick={() =>
-              navigate({
-                to: '/case_list',
-              })
-            }
+            onClick={goBack}
           >
             <ArrowLeftIcon className='size-4' />
             返回
           </Button>
           <Separator orientation='vertical' className='mx-1 h-6' />
           <Link
-            to='/case_list'
+            to={nav.fromPath}
+            search={nav.listSearch}
             className='text-sm font-medium text-muted-foreground hover:underline'
           >
-            案件列表
+            {nav.fromLabel}
           </Link>
           <span className='text-muted-foreground/60 text-xs'>/</span>
           <span className='text-sm font-medium truncate max-w-48'>
@@ -85,8 +98,8 @@ function CaseEditPage() {
           <CasesActionDialog
             mode='page'
             currentRow={caseRow}
-            onCancel={() => navigate({ to: '/case_list' })}
-            onSuccess={() => navigate({ to: '/case_list' })}
+            onCancel={goBack}
+            onSuccess={goBack}
           />
         )}
       </Main>

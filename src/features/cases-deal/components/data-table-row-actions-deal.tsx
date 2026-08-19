@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { type Row } from '@tanstack/react-table'
 import { AlertTriangle, StickyNotePlus, Trash2, UserPen } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,7 +12,9 @@ import {
 } from '@/components/ui/popover'
 import { type Case } from '@/features/cases/data/schema'
 import { deleteCase } from '@/features/cases/api/client'
-import { useNavigate } from '@tanstack/react-router'
+import { buildCaseNavSearch } from '@/features/cases/api/nav-helpers'
+
+const route = getRouteApi('/_authenticated/case_deal_list/')
 
 type DataTableRowActionsDealProps = {
   row: Row<Case>
@@ -20,9 +23,19 @@ type DataTableRowActionsDealProps = {
 export function DataTableRowActionsDeal({
   row,
 }: DataTableRowActionsDealProps) {
-  const navigate = useNavigate()
+  const navigate = route.useNavigate()
+  const search = route.useSearch()
   const queryClient = useQueryClient()
   const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const navSearch = useMemo(
+    () =>
+      buildCaseNavSearch({
+        fromPath: '/case_deal_list',
+        listSearch: search as Record<string, unknown>,
+      }),
+    [search]
+  )
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteCase(id),
@@ -58,6 +71,7 @@ export function DataTableRowActionsDeal({
           navigate({
             to: '/case_edit/$caseId',
             params: { caseId: String(row.original.case_id) },
+            search: navSearch,
           })
         }}
       >
@@ -122,6 +136,7 @@ export function DataTableRowActionsDeal({
           navigate({
             to: '/case_memo/$caseId',
             params: { caseId: String(row.original.case_id) },
+            search: navSearch,
           })
         }}
       >

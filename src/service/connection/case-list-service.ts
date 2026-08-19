@@ -454,9 +454,10 @@ export async function updateCaseList(
     shipyard_business?: string | null
     case_agent?: string | null
     case_superintendent?: string | null
+    case_superintendent_id?: number | string | null
     case_surveyor?: string | null
     case_delivery_or_service_incharge?: string | null
-    case_delivery_or_service_incharge_id?: string | null
+    case_delivery_or_service_incharge_id?: string | number | null
     case_delivery_or_service_deadline?: string | null
     case_eta_cargo_ready_date?: string | null
     case_etb_cargo_departure_date?: string | null

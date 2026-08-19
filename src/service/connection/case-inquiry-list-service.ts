@@ -87,7 +87,7 @@ export async function createCaseInquiryListBulk(
   for (const r of rows) {
     params.push(
       Number(r.case_id),
-      r.case_inquiry_division_id == null || r.case_inquiry_division_id === ''
+      r.case_inquiry_division_id == null
         ? null
         : Number(r.case_inquiry_division_id),
       r.case_inquiry_type ?? null,
@@ -137,8 +137,7 @@ export async function replaceCaseInquiryListByCaseId(
       for (const r of rows) {
         params.push(
           Number(caseId),
-          r.case_inquiry_division_id == null ||
-          r.case_inquiry_division_id === ''
+          r.case_inquiry_division_id == null
             ? null
             : Number(r.case_inquiry_division_id),
           r.case_inquiry_type ?? null,

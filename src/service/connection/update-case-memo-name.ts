@@ -35,8 +35,6 @@ function computeMemo(r: Row): { newMemo: string; truncated: boolean; noDate: boo
   const base = noDate ? `${vn} // ${kw}` : `${vn} // ${kw} // ${dateStr}`
   if (base.length <= MAX_LEN) return { newMemo: base, truncated: false, noDate }
   // 超长则从 keyword 处截断
-  const fixed = `${vn} // ` + (noDate ? '' : ` // ${dateStr}`)
-  const budget = MAX_LEN - fixed.length + (noDate ? 0 : ' // '.length - 0)
   // 更简单的方法：直接从 keyword 截断保留号和日期
   let candidate = base
   let truncated = false

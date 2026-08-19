@@ -473,26 +473,6 @@ export function CasesActionDialog({
     }))
   }, [urgentBRows])
 
-  const urgentBKeyToLabel = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const o of urgentBOptions) {
-      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
-    }
-    return m
-  }, [urgentBOptions])
-
-  const resolveUrgentBLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = urgentBKeyToLabel.get(p.toUpperCase())
-      if (hit) return hit
-      return p
-    },
-    [urgentBKeyToLabel]
-  )
-
   const defaultUrgentBNoKey = useMemo<string>(() => {
     const list = (urgentBRows as CaseDict[]) ?? []
     const noHit = list.find((d) => {
@@ -523,26 +503,6 @@ export function CasesActionDialog({
     }))
   }, [vesselPositionCRows])
 
-  const vesselPositionCKeyToLabel = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const o of vesselPositionCOptions) {
-      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
-    }
-    return m
-  }, [vesselPositionCOptions])
-
-  const resolveVesselPositionCLabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = vesselPositionCKeyToLabel.get(p.toUpperCase())
-      if (hit) return hit
-      return p
-    },
-    [vesselPositionCKeyToLabel]
-  )
-
   const { data: inqTypeARows = [] } = useQuery({
     queryKey: ['case-dict-prefix-A'],
     queryFn: () => fetchCaseDictByKeyPrefix('A'),
@@ -558,26 +518,6 @@ export function CasesActionDialog({
     }))
   }, [inqTypeARows])
 
-  const inqTypeAKeyToLabel = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const o of inqTypeAOptions) {
-      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
-    }
-    return m
-  }, [inqTypeAOptions])
-
-  const resolveInqTypeALabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = inqTypeAKeyToLabel.get(p.toUpperCase())
-      if (hit) return hit
-      return p
-    },
-    [inqTypeAKeyToLabel]
-  )
-
   const { data: inchargeERows = [] } = useQuery({
     queryKey: ['case-dict-prefix-E'],
     queryFn: () => fetchCaseDictByKeyPrefix('E'),
@@ -592,26 +532,6 @@ export function CasesActionDialog({
       label: String(d.dict_value ?? d.dict_key ?? ''),
     }))
   }, [inchargeERows])
-
-  const inchargeEKeyToLabel = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const o of inchargeEOptions) {
-      if (o.value) m.set(String(o.value).toUpperCase(), o.label)
-    }
-    return m
-  }, [inchargeEOptions])
-
-  const resolveInchargeELabel = useCallback(
-    (raw: unknown): string => {
-      if (raw === null || raw === undefined || raw === '') return ''
-      const p = String(raw).trim()
-      if (!p) return ''
-      const hit = inchargeEKeyToLabel.get(p.toUpperCase())
-      if (hit) return hit
-      return p
-    },
-    [inchargeEKeyToLabel]
-  )
 
   const { data: rankDRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-D'],
@@ -815,7 +735,7 @@ export function CasesActionDialog({
   const ownerIdMap = useMemo(() => {
     const map = new Map<string, Owner>()
     for (const o of ownerRows as Owner[]) {
-      if (o.owner_id != null && o.owner_id !== '') {
+      if (o.owner_id != null) {
         map.set(String(o.owner_id), o)
       }
     }
@@ -977,7 +897,7 @@ export function CasesActionDialog({
   const superintendentIdMap = useMemo(() => {
     const m = new Map<string, Owner>()
     for (const o of superintendentRows) {
-      if (o.owner_id != null && o.owner_id !== '') {
+      if (o.owner_id != null) {
         m.set(String(o.owner_id), o)
       }
     }
@@ -1564,7 +1484,7 @@ export function CasesActionDialog({
   )
 
   const form = useForm<CaseForm>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues,
   })
 
@@ -1623,7 +1543,7 @@ export function CasesActionDialog({
   const serviceContactIdMap = useMemo(() => {
     const m = new Map<string, Contact>()
     for (const c of serviceContactAll as Contact[]) {
-      if (c.contact_id != null && c.contact_id !== '') {
+      if (c.contact_id != null) {
         m.set(String(c.contact_id), c)
       }
     }
@@ -1989,7 +1909,7 @@ export function CasesActionDialog({
       })
       form.setValue(
         'owner_following_id',
-        r.owner_id != null && r.owner_id !== '' ? String(r.owner_id) : '',
+        r.owner_id != null ? String(r.owner_id) : '',
         {
           shouldDirty: true,
           shouldValidate: false,
@@ -2018,7 +1938,7 @@ export function CasesActionDialog({
       })
       form.setValue(
         'case_superintendent_id',
-        r.owner_id != null && r.owner_id !== '' ? String(r.owner_id) : '',
+        r.owner_id != null ? String(r.owner_id) : '',
         {
           shouldDirty: true,
           shouldValidate: false,
@@ -2128,7 +2048,7 @@ export function CasesActionDialog({
   }, [form])
 
   const inquiryForm = useForm<InquiryFormValues>({
-    resolver: zodResolver(inquiryFormSchema),
+    resolver: zodResolver(inquiryFormSchema) as any,
     defaultValues: DEFAULT_INQUIRY_FORM_VALUES,
   })
 
@@ -2563,7 +2483,7 @@ export function CasesActionDialog({
                           ''
                       }}
                       onBlur={async (e) => {
-                        field.onBlur?.(e)
+                        field.onBlur?.()
                         await setKeywordErrorIfDuplicate(
                           e.currentTarget.value ?? ''
                         )
@@ -3614,7 +3534,7 @@ export function CasesActionDialog({
             <FormField
               control={form.control}
               name='case_delivery_or_service_incharge'
-              render={({ field }) => (
+              render={({ field: _field }) => (
                 <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
                   <FormLabel className='col-span-2 pt-2 text-end'>
                     承运人｜服务负责人
@@ -3937,9 +3857,9 @@ export function CasesActionDialog({
                         memoNameEditedRef.current = true
                         field.onChange(e)
                       }}
-                      onBlur={(e) => {
+                      onBlur={() => {
                         memoNameEditedRef.current = true
-                        field.onBlur?.(e)
+                        field.onBlur?.()
                       }}
                     />
                   </FormControl>
@@ -4101,7 +4021,7 @@ export function CasesActionDialog({
               <FormField
                 control={inquiryForm.control}
                 name='case_inquiry_division_id'
-                render={({ field }) => (
+                render={({ field: _field }) => (
                   <FormItem className='col-span-6 grid grid-cols-6 items-start space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 pt-2 text-end'>
                       单位名称

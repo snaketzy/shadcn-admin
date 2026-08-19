@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { getRouteApi } from '@tanstack/react-router'
 import { type Row } from '@tanstack/react-table'
 import { AlertTriangle, StickyNotePlus, Trash2, UserPen } from 'lucide-react'
 import { toast } from 'sonner'
@@ -11,16 +11,29 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { deleteCase } from '../api/client'
+import { buildCaseNavSearch } from '../api/nav-helpers'
 import { type Case } from '../data/schema'
+
+const route = getRouteApi('/_authenticated/case_list/')
 
 type DataTableRowActionsProps = {
   row: Row<Case>
 }
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
-  const navigate = useNavigate()
+  const navigate = route.useNavigate()
+  const search = route.useSearch()
   const queryClient = useQueryClient()
   const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const navSearch = useMemo(
+    () =>
+      buildCaseNavSearch({
+        fromPath: '/case_list',
+        listSearch: search as Record<string, unknown>,
+      }),
+    [search]
+  )
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteCase(id),
@@ -60,6 +73,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           navigate({
             to: '/case_edit/$caseId',
             params: { caseId: String(row.original.case_id) },
+            search: navSearch,
           })
         }}
       >
@@ -124,6 +138,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           navigate({
             to: '/case_memo/$caseId',
             params: { caseId: String(row.original.case_id) },
+            search: navSearch,
           })
         }}
       >

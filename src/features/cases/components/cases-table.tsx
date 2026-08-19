@@ -48,7 +48,6 @@ import {
   type Supplier,
 } from '@/features/suppliers/api/client'
 import {
-  fetchCaseGroups,
   fetchCasePaginated,
   fetchCaseMemoListByCaseIds,
   fetchCaseInquiryListByCaseIds,
@@ -146,15 +145,6 @@ export function CasesTable(_: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [inqDatePopoverOpen, setInqDatePopoverOpen] = useState(false)
 
-  const { data: groupsData } = useQuery({
-    queryKey: ['case-list-groups'],
-    queryFn: fetchCaseGroups,
-  })
-  const caseProgresses = groupsData?.caseProgresses ?? []
-  const caseInquiryTypes = groupsData?.caseInquiryTypes ?? []
-  const caseInCharges = groupsData?.caseInCharges ?? []
-  const caseRanks = groupsData?.caseRanks ?? []
-
   const { data: ownerAllRows = [] } = useQuery({
     queryKey: ['owner-picker-all-for-case-list'],
     queryFn: fetchOwnerAll,
@@ -182,7 +172,7 @@ export function CasesTable(_: DataTableProps) {
     const m = new Map<string, { owner_name: string; owner_email: string }>()
     const list = (ownerAllRows as Owner[]) ?? []
     for (const o of list) {
-      if (o.owner_id != null && o.owner_id !== '') {
+      if (o.owner_id != null) {
         m.set(String(o.owner_id), {
           owner_name: o.owner_name ? String(o.owner_name) : '',
           owner_email: o.owner_email ? String(o.owner_email) : '',
@@ -869,8 +859,6 @@ export function CasesTable(_: DataTableProps) {
     caseIdInquiriesMapRef.current = m
     setInquiryTick((t) => (t + 1) & 0x3fffffff)
   }, [inquiryQuery.data])
-
-  const caseIdMemosMap = caseIdMemosMapRef.current
 
   const pageCount = Math.max(
     1,

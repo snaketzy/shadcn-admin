@@ -158,10 +158,6 @@ export function ShipyardContactPickerDialog({
     )
   }, [allContacts])
 
-  const typeMap = useMemo(
-    () => makeDictMap(groupsData?.typeDict ?? []),
-    [groupsData]
-  )
   const rankMap = useMemo(
     () => makeDictMap(groupsData?.rankDict ?? []),
     [groupsData]

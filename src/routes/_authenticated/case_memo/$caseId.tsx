@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
@@ -15,14 +15,30 @@ import {
   fetchCaseMemoListByCaseId,
   type CaseMemo,
 } from '@/features/cases/api/client'
+import { resolveCaseNavFromSearch } from '@/features/cases/api/nav-helpers'
 import { CasesMemoDialog } from '@/features/cases/components/cases-memo-dialog'
 
 function CaseMemoPage() {
   const navigate = useNavigate()
   const { caseId } = Route.useParams()
-  const { memoId } = Route.useSearch()
+  const rawSearch = Route.useSearch()
   const caseIdNum = Number(caseId)
+
+  const nav = useMemo(
+    () =>
+      resolveCaseNavFromSearch(
+        rawSearch as Record<string, unknown>,
+        '/case_list'
+      ),
+    [rawSearch]
+  )
+  const memoId = (rawSearch as { memoId?: string }).memoId
   const memoIdNum = memoId ? Number(memoId) : undefined
+  const goBack = () =>
+    navigate({
+      to: nav.fromPath,
+      search: nav.listSearch,
+    })
 
   const [editingMemo, setEditingMemo] = useState<CaseMemo | null>(null)
 
@@ -72,21 +88,18 @@ function CaseMemoPage() {
             variant='outline'
             size='sm'
             className='h-8 gap-1'
-            onClick={() =>
-              navigate({
-                to: '/case_list',
-              })
-            }
+            onClick={goBack}
           >
             <ArrowLeftIcon className='size-4' />
             返回
           </Button>
           <Separator orientation='vertical' className='mx-1 h-6' />
           <Link
-            to='/case_list'
+            to={nav.fromPath}
+            search={nav.listSearch}
             className='text-sm font-medium text-muted-foreground hover:underline'
           >
-            案件列表
+            {nav.fromLabel}
           </Link>
           <span className='text-xs text-muted-foreground/60'>/</span>
           <span className='max-w-48 truncate text-sm font-medium'>
@@ -119,8 +132,8 @@ function CaseMemoPage() {
             currentRow={caseRow}
             editingMemo={editingMemo}
             onEditingMemoChange={setEditingMemo}
-            onCancel={() => navigate({ to: '/case_list' })}
-            onSuccess={() => navigate({ to: '/case_list' })}
+            onCancel={goBack}
+            onSuccess={goBack}
           />
         )}
       </Main>
@@ -133,6 +146,12 @@ export const Route = createFileRoute('/_authenticated/case_memo/$caseId')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       memoId: search.memoId ? String(search.memoId) : undefined,
-    } as { memoId?: string }
+      __from:
+        typeof search.__from === 'string' ? (search.__from as string) : undefined,
+      __listSearch:
+        typeof search.__listSearch === 'string'
+          ? (search.__listSearch as string)
+          : undefined,
+    } as { memoId?: string; __from?: string; __listSearch?: string }
   },
 })

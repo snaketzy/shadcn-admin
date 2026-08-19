@@ -1,14 +1,32 @@
+import { useMemo } from 'react'
 import { FileText as FileTextIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useNavigate } from '@tanstack/react-router'
+import { getRouteApi } from '@tanstack/react-router'
+import { buildCaseNavSearch } from '@/features/cases/api/nav-helpers'
+
+const route = getRouteApi('/_authenticated/case_deal_list/')
 
 export function CasesDealPrimaryButtons() {
-  const navigate = useNavigate()
+  const navigate = route.useNavigate()
+  const search = route.useSearch()
+  const navSearch = useMemo(
+    () =>
+      buildCaseNavSearch({
+        fromPath: '/case_deal_list',
+        listSearch: search as Record<string, unknown>,
+      }),
+    [search]
+  )
   return (
     <div className='flex gap-2'>
       <Button
         className='space-x-1'
-        onClick={() => navigate({ to: '/case_new' })}
+        onClick={() =>
+          navigate({
+            to: '/case_new',
+            search: navSearch,
+          })
+        }
       >
         <span>添加案件</span> <FileTextIcon size={18} />
       </Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   type ColumnDef,
@@ -12,7 +12,6 @@ import {
 } from '@tanstack/react-table'
 import { Briefcase, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,13 +22,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { LongText } from '@/components/long-text'
 import {
   fetchSupplierAll,
@@ -335,11 +327,7 @@ export function SupplierPickerDialog({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => {
-                      const accessorKey = String(
-                        header.column.columnDef.accessorKey ??
-                          header.column.id ??
-                          ''
-                      )
+                      const accessorKey = String(header.column.id ?? '')
                       const w = header.column.getSize()
                       const baseStyle = FIXED_COL_STYLES[accessorKey]?.th ?? {}
                       const style: React.CSSProperties = {
@@ -400,11 +388,7 @@ export function SupplierPickerDialog({
                       )}
                     >
                       {row.getVisibleCells().map((cell) => {
-                        const accessorKey = String(
-                          cell.column.columnDef.accessorKey ??
-                            cell.column.id ??
-                            ''
-                        )
+                        const accessorKey = String(cell.column.id ?? '')
                         const w = cell.column.getSize()
                         const baseStyle =
                           FIXED_COL_STYLES[accessorKey]?.td ?? {}
