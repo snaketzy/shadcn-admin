@@ -26,6 +26,7 @@ import {
   FileText,
   ListChecks,
   Handshake,
+  Anchor,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -70,6 +71,11 @@ export const sidebarData: SidebarData = {
           title: '成交案件列表',
           url: '/case_deal_list',
           icon: Handshake,
+        },
+        {
+          title: '坞修案件列表',
+          url: '/case_drydocking_list',
+          icon: Anchor,
         },
         {
           title: '案件列表',

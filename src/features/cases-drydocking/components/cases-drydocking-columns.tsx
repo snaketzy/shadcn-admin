@@ -35,9 +35,9 @@ import {
 import { buildCaseNavSearch } from '@/features/cases/api/nav-helpers'
 import { getBadgeColor } from '@/features/cases/data/data'
 import { type Case } from '@/features/cases/data/schema'
-import { DataTableRowActionsDeal } from './data-table-row-actions-deal'
+import { DataTableRowActionsDrydocking } from './data-table-row-actions-drydocking'
 
-const route = getRouteApi('/_authenticated/case_deal_list/')
+const route = getRouteApi('/_authenticated/case_drydocking_list/')
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`
@@ -103,7 +103,7 @@ function CaseMemoEditButton({
   const navSearch = useMemo(
     () =>
       buildCaseNavSearch({
-        fromPath: '/case_deal_list',
+        fromPath: '/case_drydocking_list',
         listSearch: search as Record<string, unknown>,
       }),
     [search]
@@ -134,7 +134,7 @@ function CaseMemoEditButton({
   )
 }
 
-export function getCasesDealColumns(params?: {
+export function getCasesDrydockingColumns(params?: {
   urgentBMap?: Map<string, string>
   urgentBIsUrgentSet?: Set<string>
   handleTodayBIsYesSet?: Set<string>
@@ -657,14 +657,6 @@ export function getCasesDealColumns(params?: {
                 <div className='flex flex-col gap-3.5 p-3.5'>
                   <div className='grid grid-cols-1 gap-y-2.5'>
                     {kvRow(
-                      '发票号',
-                      s(rowData.invoice_number) && (
-                        <LongText className='max-w-[480px] break-all'>
-                          {s(rowData.invoice_number)}
-                        </LongText>
-                      )
-                    )}
-                    {kvRow(
                       '订单编号',
                       s(rowData.order_number) && (
                         <LongText className='max-w-[480px] break-all'>
@@ -835,22 +827,6 @@ export function getCasesDealColumns(params?: {
       enableHiding: false,
     },
     {
-      accessorKey: 'invoice_number',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='发票号' />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue('invoice_number') as string | null
-        if (!value) return <div>-</div>
-        return <LongText className='max-w-40'>{value}</LongText>
-      },
-      meta: {
-        label: '发票号',
-      },
-      enableHiding: false,
-      enableSorting: false,
-    },
-    {
       accessorKey: 'order_number',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='订单编号' />
@@ -868,6 +844,9 @@ export function getCasesDealColumns(params?: {
     },
     {
       accessorKey: 'case_inquiry_keyword',
+      size: 185,
+      minSize: 185,
+      maxSize: 185,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='需求编号/名称' />
       ),
@@ -878,6 +857,8 @@ export function getCasesDealColumns(params?: {
       },
       meta: {
         label: '需求编号/名称',
+        className: 'w-[185px] min-w-[185px] max-w-[185px]',
+        thClassName: 'w-[185px] min-w-[185px] max-w-[185px]',
       },
       enableHiding: false,
       enableSorting: false,
@@ -888,9 +869,11 @@ export function getCasesDealColumns(params?: {
         <DataTableColumnHeader column={column} title='案件进度' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_progress') as string | null
+        const rawValue = row.getValue('case_progress') as string | null
+        const value = rawValue ? rawValue.toUpperCase() : null
         if (!value) return <div>-</div>
         const display = resolveProgressRLabel(value)
+        const isR91 = value === 'R91'
         return (
           <TooltipProvider delayDuration={0}>
             <Tooltip>
@@ -899,7 +882,9 @@ export function getCasesDealColumns(params?: {
                   <Badge
                     variant='outline'
                     className={cn(
-                      getBadgeColor(value),
+                      isR91
+                        ? 'border-border bg-transparent text-foreground hover:bg-transparent'
+                        : getBadgeColor(value),
                       'max-w-full px-2 whitespace-nowrap'
                     )}
                   >
@@ -1044,9 +1029,17 @@ export function getCasesDealColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('owner_following') as string | null
-        if (!value) return <div>-</div>
-        const info = ownerNameEmailMap?.get(String(value))
-        const name = info?.owner_name ?? String(value)
+        const ownerIdRaw = (row.original as any)?.owner_following_id
+        const ownerIdStr =
+          ownerIdRaw != null &&
+          ownerIdRaw !== '' &&
+          !Number.isNaN(Number(ownerIdRaw))
+            ? String(ownerIdRaw)
+            : ''
+        let info: { owner_name: string; owner_email: string } | undefined
+        if (ownerIdStr) info = ownerIdEmailMap?.get(ownerIdStr)
+        if (!info && value) info = ownerNameEmailMap?.get(String(value))
+        const name = info?.owner_name ?? (value ? String(value) : '')
         const email = info?.owner_email ?? ''
         const parts = [name, email].filter(
           (p) => p && String(p).trim().length > 0
@@ -1416,7 +1409,7 @@ export function getCasesDealColumns(params?: {
       header: () => (
         <span className='inline-block w-full pe-3 text-end'>操作</span>
       ),
-      cell: DataTableRowActionsDeal,
+      cell: DataTableRowActionsDrydocking,
       meta: {
         className: cn(
           'sticky right-0 z-30 w-[88px] min-w-[88px] rounded-tr-[inherit] bg-background pe-0'

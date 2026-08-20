@@ -2,6 +2,7 @@ export const CASE_LIST_FROM = {
   case_list: '/case_list',
   case_today_list: '/case_today_list',
   case_deal_list: '/case_deal_list',
+  case_drydocking_list: '/case_drydocking_list',
 } as const
 
 export type CaseListFromKey = keyof typeof CASE_LIST_FROM
@@ -11,6 +12,7 @@ export const CASE_LIST_TO_LABEL: Record<CaseListFromPath, string> = {
   '/case_list': '案件列表',
   '/case_today_list': '今日待办',
   '/case_deal_list': '我处理的',
+  '/case_drydocking_list': '坞修案件列表',
 }
 
 export type BaseCasesSearch = Record<string, unknown>
@@ -87,6 +89,7 @@ const VALID_FROM_PATHS: CaseListFromPath[] = [
   '/case_list',
   '/case_today_list',
   '/case_deal_list',
+  '/case_drydocking_list',
 ]
 
 export function resolveCaseNavFromSearch(

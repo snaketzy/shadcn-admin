@@ -132,6 +132,7 @@ import {
   fetchCaseInquiryListByCaseId,
   replaceCaseInquiryByCaseId,
   fetchCaseInquiryKeywordCheck,
+  fetchCaseDetail,
 } from '../api/client'
 import type { Case } from '../data/schema'
 
@@ -1843,6 +1844,64 @@ export function CasesActionDialog({
     })
   }, [form, formVesselName, formInquiryKeyword, formInquiryDate])
 
+  const buildFormValuesFromCase = useCallback(
+    (row: Case): CaseForm => ({
+      vessel_name: row.vessel_name ?? '',
+      invoice_number: row.invoice_number ?? '',
+      order_number: row.order_number ?? '',
+      case_inquiry_keyword: row.case_inquiry_keyword ?? '',
+      case_progress: row.case_progress ?? '',
+      case_urgent: row.case_urgent ?? '',
+      case_inquiry_type: row.case_inquiry_type ?? '',
+      case_inquiry_date: formatDateAsHyphen(row.case_inquiry_date),
+      case_follow_date: formatDateAsHyphen(row.case_follow_date),
+      case_uptodate_date: formatDateAsHyphen(row.case_uptodate_date),
+      case_should_handle_today: row.case_should_handle_today ?? '',
+      owner_following: row.owner_following ?? '',
+      owner_following_id:
+        (row as any).owner_following_id != null &&
+        (row as any).owner_following_id !== 0 &&
+        !Number.isNaN(Number((row as any).owner_following_id))
+          ? String((row as any).owner_following_id)
+          : '',
+      shipyard_business: row.shipyard_business ?? '',
+      case_agent: row.case_agent ?? '',
+      case_superintendent: row.case_superintendent ?? '',
+      case_superintendent_id:
+        (row as any).case_superintendent_id != null &&
+        (row as any).case_superintendent_id !== 0 &&
+        !Number.isNaN(Number((row as any).case_superintendent_id))
+          ? String((row as any).case_superintendent_id)
+          : '',
+      case_surveyor: row.case_surveyor ?? '',
+      case_delivery_or_service_incharge:
+        row.case_delivery_or_service_incharge ?? '',
+      case_delivery_or_service_incharge_id:
+        (row as any).case_delivery_or_service_incharge_id ?? null,
+      case_delivery_or_service_deadline: formatDateAsHyphen(
+        row.case_delivery_or_service_deadline
+      ),
+      case_eta_cargo_ready_date: formatDateAsHyphen(
+        row.case_eta_cargo_ready_date
+      ),
+      case_etb_cargo_departure_date: formatDateAsHyphen(
+        row.case_etb_cargo_departure_date
+      ),
+      case_etd_cargo_delivery_date: formatDateAsHyphen(
+        row.case_etd_cargo_delivery_date
+      ),
+      vessel_position: row.vessel_position ?? '',
+      case_settlement_done: formatDateAsHyphen(row.case_settlement_done),
+      case_epd: formatDateAsHyphen(row.case_epd),
+      case_spd: formatDateAsHyphen(row.case_spd),
+      case_incharge: row.case_incharge ?? '',
+      case_memo_name: row.case_memo_name ?? '',
+      case_memo_address: row.case_memo_address ?? '',
+      case_rank: row.case_rank ?? '',
+    }),
+    []
+  )
+
   const didResetRef = useRef(false)
   useEffect(() => {
     if (!open) {
@@ -1863,8 +1922,19 @@ export function CasesActionDialog({
           setInquiryList(rows as CaseInquiry[])
         })
         .catch(() => {})
+      const caseIdNum = Number(currentRow.case_id)
+      if (Number.isFinite(caseIdNum) && caseIdNum > 0) {
+        fetchCaseDetail(caseIdNum)
+          .then((fullRow) => {
+            if (fullRow) {
+              const fullDefaults = buildFormValuesFromCase(fullRow)
+              form.reset(fullDefaults)
+            }
+          })
+          .catch(() => {})
+      }
     }
-  }, [open, form, defaultValues, isEdit, currentRow])
+  }, [open, form, defaultValues, isEdit, currentRow, buildFormValuesFromCase])
 
   useEffect(() => {
     if (!open) return
