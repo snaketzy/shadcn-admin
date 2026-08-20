@@ -127,6 +127,7 @@ export async function fetchCasePaginated(params: {
   invoiceNumber?: string | string[]
   orderNumber?: string | string[]
   orderNumberHasValue?: boolean
+  serviceProjectActive?: boolean
   caseInquiryKeyword?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
@@ -300,10 +301,13 @@ export interface CaseInquiry {
 function apiRowToCaseInquiry(row: any): CaseInquiry {
   return {
     inquiry_id:
-      row.case_inquiry_id != null ? Number(row.case_inquiry_id) : Number(row.inquiry_id),
+      row.case_inquiry_id != null
+        ? Number(row.case_inquiry_id)
+        : Number(row.inquiry_id),
     case_id: Number(row.case_id),
     case_inquiry_division_id:
-      row.case_inquiry_division_id == null || row.case_inquiry_division_id === ''
+      row.case_inquiry_division_id == null ||
+      row.case_inquiry_division_id === ''
         ? null
         : Number(row.case_inquiry_division_id),
     case_inquiry_type:
@@ -359,13 +363,15 @@ export async function fetchCaseInquiryListByCaseIds(
   }
 }
 
-export async function createCaseInquiryBulk(rows: Array<{
-  case_id: number
-  case_inquiry_division_id: number | null
-  case_inquiry_type: string | null
-  case_inquired_date: string | null
-  remark: string | null
-}>): Promise<number> {
+export async function createCaseInquiryBulk(
+  rows: Array<{
+    case_id: number
+    case_inquiry_division_id: number | null
+    case_inquiry_type: string | null
+    case_inquired_date: string | null
+    remark: string | null
+  }>
+): Promise<number> {
   const res = await api.post<ApiEnvelope<{ inserted: number }>>(
     '/case-inquiry-list/bulk-insert',
     { rows }
@@ -499,15 +505,18 @@ export async function updateCaseMemo(
   }
 ): Promise<CaseMemo | null> {
   try {
-    const res = await api.put<ApiEnvelope<CaseMemo>>(`/case-memo-list/${memoId}`, {
-      case_memo_date: payload.case_memo_date,
-      case_memo_content: payload.case_memo_content,
-      case_memo_remark: payload.case_memo_remark,
-      case_memo_attachment:
-        'case_memo_attachment' in payload
-          ? stringifyAttachments(payload.case_memo_attachment)
-          : undefined,
-    })
+    const res = await api.put<ApiEnvelope<CaseMemo>>(
+      `/case-memo-list/${memoId}`,
+      {
+        case_memo_date: payload.case_memo_date,
+        case_memo_content: payload.case_memo_content,
+        case_memo_remark: payload.case_memo_remark,
+        case_memo_attachment:
+          'case_memo_attachment' in payload
+            ? stringifyAttachments(payload.case_memo_attachment)
+            : undefined,
+      }
+    )
     return res.data.data ?? null
   } catch (e: any) {
     if (e?.response?.status === 404) return null

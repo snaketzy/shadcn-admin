@@ -6,6 +6,7 @@ import fontReducer from './slices/ui/font-slice'
 import searchReducer from './slices/ui/search-slice'
 import casesReducer from './slices/cases/cases-slice'
 import casesDealReducer from './slices/cases/cases-deal-slice'
+import casesServiceReducer from './slices/cases/cases-service-slice'
 import casesTodayReducer from './slices/cases/cases-today-slice'
 import contactsReducer from './slices/contacts-slice'
 import collaborationsReducer from './slices/collaborations-slice'
@@ -24,6 +25,7 @@ export const store = configureStore({
     search: searchReducer,
     cases: casesReducer,
     casesDeal: casesDealReducer,
+    casesService: casesServiceReducer,
     casesToday: casesTodayReducer,
     contacts: contactsReducer,
     collaborations: collaborationsReducer,

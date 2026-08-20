@@ -2,6 +2,7 @@ export const CASE_LIST_FROM = {
   case_list: '/case_list',
   case_today_list: '/case_today_list',
   case_deal_list: '/case_deal_list',
+  case_service_list: '/case_service_list',
   case_drydocking_list: '/case_drydocking_list',
 } as const
 
@@ -12,6 +13,7 @@ export const CASE_LIST_TO_LABEL: Record<CaseListFromPath, string> = {
   '/case_list': '全部案件列表',
   '/case_today_list': '今日待办',
   '/case_deal_list': '我处理的',
+  '/case_service_list': '服务项目案件列表',
   '/case_drydocking_list': '坞修案件列表',
 }
 
@@ -89,6 +91,7 @@ const VALID_FROM_PATHS: CaseListFromPath[] = [
   '/case_list',
   '/case_today_list',
   '/case_deal_list',
+  '/case_service_list',
   '/case_drydocking_list',
 ]
 

@@ -79,6 +79,10 @@ export const sidebarData: SidebarData = {
               url: '/case_deal_list',
             },
             {
+              title: '服务项目案件列表',
+              url: '/case_service_list',
+            },
+            {
               title: '坞修案件列表',
               url: '/case_drydocking_list',
             },

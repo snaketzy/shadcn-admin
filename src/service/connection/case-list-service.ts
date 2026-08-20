@@ -1,11 +1,17 @@
-import { query, execute, type ExecuteValues, describeTable, listTables } from './db'
+import { getCaseDictByKeyPrefix, type CaseDictRow } from './case-dict-service'
+import {
+  query,
+  execute,
+  type ExecuteValues,
+  describeTable,
+  listTables,
+} from './db'
 import {
   auditInsert,
   auditUpdate,
   auditDelete,
   auditBulkDelete,
 } from './log-list-service'
-import { getCaseDictByKeyPrefix, type CaseDictRow } from './case-dict-service'
 
 export interface CaseListRow {
   case_id: number
@@ -86,17 +92,17 @@ export async function checkDuplicateInquiryKeyword(params: {
     return { exists: false }
   }
   const whereClauses: string[] = [
-    "TRIM(LOWER(CAST(case_inquiry_keyword AS CHAR))) = ?",
+    'TRIM(LOWER(CAST(case_inquiry_keyword AS CHAR))) = ?',
   ]
   const whereParams: ExecuteValues[] = [normalizedKeyword]
   if (
     params.excludeCaseId != null &&
     !Number.isNaN(Number(params.excludeCaseId))
   ) {
-    whereClauses.push("case_id <> ?")
+    whereClauses.push('case_id <> ?')
     whereParams.push(Number(params.excludeCaseId))
   }
-  const whereSql = whereClauses.join(" AND ")
+  const whereSql = whereClauses.join(' AND ')
   const rows = await query<
     { case_id: number; case_inquiry_keyword: string | null }[]
   >(
@@ -199,7 +205,9 @@ export async function getCaseListGroups(): Promise<{
     invoiceNumbers: flattenUnique(invoiceNumbers.map((r) => r.invoice_number)),
     orderNumbers: flattenUnique(orderNumbers.map((r) => r.order_number)),
     caseProgresses: flattenUnique(caseProgresses.map((r) => r.case_progress)),
-    caseInquiryTypes: flattenUnique(caseInquiryTypes.map((r) => r.case_inquiry_type)),
+    caseInquiryTypes: flattenUnique(
+      caseInquiryTypes.map((r) => r.case_inquiry_type)
+    ),
     caseInCharges: flattenUnique(caseInCharges.map((r) => r.case_incharge)),
     caseRanks: flattenUnique(caseRanks.map((r) => r.case_rank)),
     progressDict,
@@ -220,6 +228,7 @@ export async function getCaseListPaginated(params: {
   invoiceNumber?: string
   orderNumber?: string
   orderNumberHasValue?: boolean
+  serviceProjectActive?: boolean
   caseInquiryKeyword?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
@@ -249,6 +258,11 @@ export async function getCaseListPaginated(params: {
   }
   if (params.orderNumberHasValue) {
     whereClauses.push("order_number IS NOT NULL AND TRIM(order_number) <> ''")
+  }
+  if (params.serviceProjectActive) {
+    whereClauses.push(
+      "case_etd_cargo_delivery_date IS NOT NULL AND TRIM(case_etd_cargo_delivery_date) <> '' AND DATE(case_etd_cargo_delivery_date) >= CURDATE()"
+    )
   }
   if (params.caseInquiryKeyword && params.caseInquiryKeyword.trim() !== '') {
     const kw = `%${params.caseInquiryKeyword}%`
@@ -295,9 +309,7 @@ export async function getCaseListPaginated(params: {
     if (opts?.splitComma) {
       const ors: string[] = []
       for (const val of arr) {
-        ors.push(
-          `(UPPER(CONCAT(',', REPLACE(${col}, ', ', ','), ',')) LIKE ?)`
-        )
+        ors.push(`(UPPER(CONCAT(',', REPLACE(${col}, ', ', ','), ',')) LIKE ?)`)
         whereParams.push(`%,${String(val).toUpperCase()},%`)
       }
       whereClauses.push(`(${ors.join(' OR ')})`)
@@ -398,18 +410,23 @@ export async function createCaseList(data: {
       data.case_uptodate_date ?? null,
       data.case_should_handle_today ?? null,
       data.owner_following ?? null,
-      data.owner_following_id != null && data.owner_following_id !== '' && !Number.isNaN(Number(data.owner_following_id))
+      data.owner_following_id != null &&
+      data.owner_following_id !== '' &&
+      !Number.isNaN(Number(data.owner_following_id))
         ? Number(data.owner_following_id)
         : null,
       data.shipyard_business ?? null,
       data.case_agent ?? null,
       data.case_superintendent ?? null,
-      data.case_superintendent_id != null && data.case_superintendent_id !== '' && !Number.isNaN(Number(data.case_superintendent_id))
+      data.case_superintendent_id != null &&
+      data.case_superintendent_id !== '' &&
+      !Number.isNaN(Number(data.case_superintendent_id))
         ? Number(data.case_superintendent_id)
         : null,
       data.case_surveyor ?? null,
       data.case_delivery_or_service_incharge ?? null,
-      data.case_delivery_or_service_incharge_id != null && String(data.case_delivery_or_service_incharge_id).trim().length > 0
+      data.case_delivery_or_service_incharge_id != null &&
+      String(data.case_delivery_or_service_incharge_id).trim().length > 0
         ? String(data.case_delivery_or_service_incharge_id)
         : null,
       data.case_delivery_or_service_deadline ?? null,
@@ -550,10 +567,9 @@ export async function updateCaseList(
 
 export async function deleteCaseList(caseId: number): Promise<boolean> {
   const row = await getCaseListById(caseId)
-  const result = await execute(
-    'DELETE FROM `case_list` WHERE case_id = ?',
-    [caseId]
-  )
+  const result = await execute('DELETE FROM `case_list` WHERE case_id = ?', [
+    caseId,
+  ])
   const success = result.affectedRows > 0
   if (success && row) {
     await auditDelete('case_list', row, {
@@ -564,9 +580,7 @@ export async function deleteCaseList(caseId: number): Promise<boolean> {
   return success
 }
 
-export async function deleteCaseListBulk(
-  caseIds: number[]
-): Promise<number> {
+export async function deleteCaseListBulk(caseIds: number[]): Promise<number> {
   if (caseIds.length === 0) return 0
   const placeholders = caseIds.map(() => '?').join(', ')
   const rawRows = await query<CaseListRow[]>(
@@ -593,40 +607,77 @@ function normalizeRow(row: any): CaseListRow {
     vessel_name: row.vessel_name ? String(row.vessel_name) : null,
     invoice_number: row.invoice_number ? String(row.invoice_number) : null,
     order_number: row.order_number ? String(row.order_number) : null,
-    case_inquiry_keyword: row.case_inquiry_keyword ? String(row.case_inquiry_keyword) : null,
+    case_inquiry_keyword: row.case_inquiry_keyword
+      ? String(row.case_inquiry_keyword)
+      : null,
     case_progress: row.case_progress ? String(row.case_progress) : null,
     case_urgent: row.case_urgent ? String(row.case_urgent) : null,
-    case_inquiry_type: row.case_inquiry_type ? String(row.case_inquiry_type) : null,
-    case_inquiry_date: row.case_inquiry_date ? String(row.case_inquiry_date) : null,
-    case_follow_date: row.case_follow_date ? String(row.case_follow_date) : null,
-    case_uptodate_date: row.case_uptodate_date ? String(row.case_uptodate_date) : null,
-    case_should_handle_today: row.case_should_handle_today ? String(row.case_should_handle_today) : null,
+    case_inquiry_type: row.case_inquiry_type
+      ? String(row.case_inquiry_type)
+      : null,
+    case_inquiry_date: row.case_inquiry_date
+      ? String(row.case_inquiry_date)
+      : null,
+    case_follow_date: row.case_follow_date
+      ? String(row.case_follow_date)
+      : null,
+    case_uptodate_date: row.case_uptodate_date
+      ? String(row.case_uptodate_date)
+      : null,
+    case_should_handle_today: row.case_should_handle_today
+      ? String(row.case_should_handle_today)
+      : null,
     owner_following: row.owner_following ? String(row.owner_following) : null,
     owner_following_id:
-      row.owner_following_id != null && row.owner_following_id !== '' && !Number.isNaN(Number(row.owner_following_id))
+      row.owner_following_id != null &&
+      row.owner_following_id !== '' &&
+      !Number.isNaN(Number(row.owner_following_id))
         ? Number(row.owner_following_id)
         : null,
-    shipyard_business: row.shipyard_business ? String(row.shipyard_business) : null,
+    shipyard_business: row.shipyard_business
+      ? String(row.shipyard_business)
+      : null,
     case_agent: row.case_agent ? String(row.case_agent) : null,
-    case_superintendent: row.case_superintendent ? String(row.case_superintendent) : null,
+    case_superintendent: row.case_superintendent
+      ? String(row.case_superintendent)
+      : null,
     case_superintendent_id:
-      row.case_superintendent_id != null && row.case_superintendent_id !== '' && !Number.isNaN(Number(row.case_superintendent_id))
+      row.case_superintendent_id != null &&
+      row.case_superintendent_id !== '' &&
+      !Number.isNaN(Number(row.case_superintendent_id))
         ? Number(row.case_superintendent_id)
         : null,
     case_surveyor: row.case_surveyor ? String(row.case_surveyor) : null,
-    case_delivery_or_service_incharge: row.case_delivery_or_service_incharge ? String(row.case_delivery_or_service_incharge) : null,
-    case_delivery_or_service_incharge_id: row.case_delivery_or_service_incharge_id ? String(row.case_delivery_or_service_incharge_id) : null,
-    case_delivery_or_service_deadline: row.case_delivery_or_service_deadline ? String(row.case_delivery_or_service_deadline) : null,
-    case_eta_cargo_ready_date: row.case_eta_cargo_ready_date ? String(row.case_eta_cargo_ready_date) : null,
-    case_etb_cargo_departure_date: row.case_etb_cargo_departure_date ? String(row.case_etb_cargo_departure_date) : null,
-    case_etd_cargo_delivery_date: row.case_etd_cargo_delivery_date ? String(row.case_etd_cargo_delivery_date) : null,
+    case_delivery_or_service_incharge: row.case_delivery_or_service_incharge
+      ? String(row.case_delivery_or_service_incharge)
+      : null,
+    case_delivery_or_service_incharge_id:
+      row.case_delivery_or_service_incharge_id
+        ? String(row.case_delivery_or_service_incharge_id)
+        : null,
+    case_delivery_or_service_deadline: row.case_delivery_or_service_deadline
+      ? String(row.case_delivery_or_service_deadline)
+      : null,
+    case_eta_cargo_ready_date: row.case_eta_cargo_ready_date
+      ? String(row.case_eta_cargo_ready_date)
+      : null,
+    case_etb_cargo_departure_date: row.case_etb_cargo_departure_date
+      ? String(row.case_etb_cargo_departure_date)
+      : null,
+    case_etd_cargo_delivery_date: row.case_etd_cargo_delivery_date
+      ? String(row.case_etd_cargo_delivery_date)
+      : null,
     vessel_position: row.vessel_position ? String(row.vessel_position) : null,
-    case_settlement_done: row.case_settlement_done ? String(row.case_settlement_done) : null,
+    case_settlement_done: row.case_settlement_done
+      ? String(row.case_settlement_done)
+      : null,
     case_epd: row.case_epd ? String(row.case_epd) : null,
     case_spd: row.case_spd ? String(row.case_spd) : null,
     case_incharge: row.case_incharge ? String(row.case_incharge) : null,
     case_memo_name: row.case_memo_name ? String(row.case_memo_name) : null,
-    case_memo_address: row.case_memo_address ? String(row.case_memo_address) : null,
+    case_memo_address: row.case_memo_address
+      ? String(row.case_memo_address)
+      : null,
     case_rank: row.case_rank ? String(row.case_rank) : null,
   }
 }
@@ -634,7 +685,8 @@ function normalizeRow(row: any): CaseListRow {
 let _ensureCaseOwnerFollowingIdPromise: Promise<void> | null = null
 
 export async function ensureCaseOwnerFollowingIdColumn(): Promise<void> {
-  if (_ensureCaseOwnerFollowingIdPromise) return _ensureCaseOwnerFollowingIdPromise
+  if (_ensureCaseOwnerFollowingIdPromise)
+    return _ensureCaseOwnerFollowingIdPromise
   _ensureCaseOwnerFollowingIdPromise = (async () => {
     const TABLE_NAME = 'case_list'
     const COL_NAME = 'owner_following_id'
@@ -667,7 +719,8 @@ export async function ensureCaseOwnerFollowingIdColumn(): Promise<void> {
 let _ensureCaseDeliveryServiceInchargeIdPromise: Promise<void> | null = null
 
 export async function ensureCaseDeliveryServiceInchargeIdColumn(): Promise<void> {
-  if (_ensureCaseDeliveryServiceInchargeIdPromise) return _ensureCaseDeliveryServiceInchargeIdPromise
+  if (_ensureCaseDeliveryServiceInchargeIdPromise)
+    return _ensureCaseDeliveryServiceInchargeIdPromise
   _ensureCaseDeliveryServiceInchargeIdPromise = (async () => {
     const TABLE_NAME = 'case_list'
     const COL_NAME = 'case_delivery_or_service_incharge_id'
@@ -741,45 +794,179 @@ export async function ensureCaseListSchema(): Promise<void> {
       const info = await describeTable(TABLE_NAME)
       const byName = new Map(info.columns.map((c) => [c.field, c]))
       const spec: Array<{ col: string; def: string; after: string }> = [
-        { col: 'case_id', def: 'INT NOT NULL AUTO_INCREMENT COMMENT \'案件ID\'', after: 'FIRST' },
-        { col: 'vessel_name', def: 'VARCHAR(128) NULL COMMENT \'船名\'', after: 'AFTER case_id' },
-        { col: 'invoice_number', def: 'VARCHAR(64) NULL COMMENT \'发票号\'', after: 'AFTER vessel_name' },
-        { col: 'order_number', def: 'VARCHAR(64) NULL COMMENT \'订单编号\'', after: 'AFTER invoice_number' },
-        { col: 'case_inquiry_keyword', def: 'VARCHAR(512) NULL COMMENT \'需求编号/名称\'', after: 'AFTER order_number' },
-        { col: 'case_progress', def: 'VARCHAR(16) NULL COMMENT \'案件进度\'', after: 'AFTER case_inquiry_keyword' },
-        { col: 'case_urgent', def: 'VARCHAR(16) NULL COMMENT \'紧急程度\'', after: 'AFTER case_progress' },
-        { col: 'case_inquiry_type', def: 'VARCHAR(16) NULL COMMENT \'询价类型\'', after: 'AFTER case_urgent' },
-        { col: 'case_inquiry_date', def: 'DATE NULL COMMENT \'询价日期\'', after: 'AFTER case_inquiry_type' },
-        { col: 'case_follow_date', def: 'DATE NULL COMMENT \'开始日期\'', after: 'AFTER case_inquiry_date' },
-        { col: 'case_uptodate_date', def: 'DATE NULL COMMENT \'跟进日期\'', after: 'AFTER case_follow_date' },
-        { col: 'case_should_handle_today', def: 'VARCHAR(16) NULL COMMENT \'今日是否应处理\'', after: 'AFTER case_uptodate_date' },
-        { col: 'owner_following', def: 'VARCHAR(128) NULL COMMENT \'船东联系人\'', after: 'AFTER case_should_handle_today' },
-        { col: 'owner_following_id', def: 'INT NULL COMMENT \'船东联系人ID（对应 owner_list.owner_id）\'', after: 'AFTER owner_following' },
-        { col: 'shipyard_business', def: 'VARCHAR(128) NULL COMMENT \'船厂经营\'', after: 'AFTER owner_following_id' },
-        { col: 'case_agent', def: 'VARCHAR(128) NULL COMMENT \'代理\'', after: 'AFTER shipyard_business' },
-        { col: 'case_superintendent', def: 'VARCHAR(128) NULL COMMENT \'机务主管\'', after: 'AFTER case_agent' },
-        { col: 'case_superintendent_id', def: 'INT NULL COMMENT \'机务主管ID（对应 owner_list.owner_id）\'', after: 'AFTER case_superintendent' },
-        { col: 'case_surveyor', def: 'VARCHAR(128) NULL COMMENT \'验船师\'', after: 'AFTER case_superintendent_id' },
-        { col: 'case_delivery_or_service_incharge', def: 'VARCHAR(512) NULL COMMENT \'服务负责人（姓名多选逗号分隔）\'', after: 'AFTER case_surveyor' },
-        { col: 'case_delivery_or_service_incharge_id', def: 'VARCHAR(512) NULL COMMENT \'服务负责人多选ID列表（对应 contact_list.contact_id）\'', after: 'AFTER case_delivery_or_service_incharge' },
-        { col: 'case_delivery_or_service_deadline', def: 'DATE NULL COMMENT \'交付/服务截止日期\'', after: 'AFTER case_delivery_or_service_incharge_id' },
-        { col: 'case_eta_cargo_ready_date', def: 'DATE NULL COMMENT \'ETA货物准备日期\'', after: 'AFTER case_delivery_or_service_deadline' },
-        { col: 'case_etb_cargo_departure_date', def: 'DATE NULL COMMENT \'ETB货物离港日期\'', after: 'AFTER case_eta_cargo_ready_date' },
-        { col: 'case_etd_cargo_delivery_date', def: 'DATE NULL COMMENT \'ETD货物交付日期\'', after: 'AFTER case_etb_cargo_departure_date' },
-        { col: 'vessel_position', def: 'VARCHAR(16) NULL COMMENT \'船舶位置\'', after: 'AFTER case_etd_cargo_delivery_date' },
-        { col: 'case_settlement_done', def: 'VARCHAR(16) NULL COMMENT \'结算是否完成\'', after: 'AFTER vessel_position' },
-        { col: 'case_epd', def: 'VARCHAR(32) NULL COMMENT \'EPD\'', after: 'AFTER case_settlement_done' },
-        { col: 'case_spd', def: 'VARCHAR(32) NULL COMMENT \'SPD\'', after: 'AFTER case_epd' },
-        { col: 'case_incharge', def: 'VARCHAR(16) NULL COMMENT \'案件负责人代码\'', after: 'AFTER case_spd' },
-        { col: 'case_memo_name', def: 'VARCHAR(1024) NULL COMMENT \'案件备忘名称\'', after: 'AFTER case_incharge' },
-        { col: 'case_memo_address', def: 'VARCHAR(1024) NULL COMMENT \'案件备忘地址\'', after: 'AFTER case_memo_name' },
-        { col: 'case_rank', def: 'VARCHAR(16) NULL COMMENT \'案件等级\'', after: 'AFTER case_memo_address' },
+        {
+          col: 'case_id',
+          def: "INT NOT NULL AUTO_INCREMENT COMMENT '案件ID'",
+          after: 'FIRST',
+        },
+        {
+          col: 'vessel_name',
+          def: "VARCHAR(128) NULL COMMENT '船名'",
+          after: 'AFTER case_id',
+        },
+        {
+          col: 'invoice_number',
+          def: "VARCHAR(64) NULL COMMENT '发票号'",
+          after: 'AFTER vessel_name',
+        },
+        {
+          col: 'order_number',
+          def: "VARCHAR(64) NULL COMMENT '订单编号'",
+          after: 'AFTER invoice_number',
+        },
+        {
+          col: 'case_inquiry_keyword',
+          def: "VARCHAR(512) NULL COMMENT '需求编号/名称'",
+          after: 'AFTER order_number',
+        },
+        {
+          col: 'case_progress',
+          def: "VARCHAR(16) NULL COMMENT '案件进度'",
+          after: 'AFTER case_inquiry_keyword',
+        },
+        {
+          col: 'case_urgent',
+          def: "VARCHAR(16) NULL COMMENT '紧急程度'",
+          after: 'AFTER case_progress',
+        },
+        {
+          col: 'case_inquiry_type',
+          def: "VARCHAR(16) NULL COMMENT '询价类型'",
+          after: 'AFTER case_urgent',
+        },
+        {
+          col: 'case_inquiry_date',
+          def: "DATE NULL COMMENT '询价日期'",
+          after: 'AFTER case_inquiry_type',
+        },
+        {
+          col: 'case_follow_date',
+          def: "DATE NULL COMMENT '开始日期'",
+          after: 'AFTER case_inquiry_date',
+        },
+        {
+          col: 'case_uptodate_date',
+          def: "DATE NULL COMMENT '跟进日期'",
+          after: 'AFTER case_follow_date',
+        },
+        {
+          col: 'case_should_handle_today',
+          def: "VARCHAR(16) NULL COMMENT '今日是否应处理'",
+          after: 'AFTER case_uptodate_date',
+        },
+        {
+          col: 'owner_following',
+          def: "VARCHAR(128) NULL COMMENT '船东联系人'",
+          after: 'AFTER case_should_handle_today',
+        },
+        {
+          col: 'owner_following_id',
+          def: "INT NULL COMMENT '船东联系人ID（对应 owner_list.owner_id）'",
+          after: 'AFTER owner_following',
+        },
+        {
+          col: 'shipyard_business',
+          def: "VARCHAR(128) NULL COMMENT '船厂经营'",
+          after: 'AFTER owner_following_id',
+        },
+        {
+          col: 'case_agent',
+          def: "VARCHAR(128) NULL COMMENT '代理'",
+          after: 'AFTER shipyard_business',
+        },
+        {
+          col: 'case_superintendent',
+          def: "VARCHAR(128) NULL COMMENT '机务主管'",
+          after: 'AFTER case_agent',
+        },
+        {
+          col: 'case_superintendent_id',
+          def: "INT NULL COMMENT '机务主管ID（对应 owner_list.owner_id）'",
+          after: 'AFTER case_superintendent',
+        },
+        {
+          col: 'case_surveyor',
+          def: "VARCHAR(128) NULL COMMENT '验船师'",
+          after: 'AFTER case_superintendent_id',
+        },
+        {
+          col: 'case_delivery_or_service_incharge',
+          def: "VARCHAR(512) NULL COMMENT '服务负责人（姓名多选逗号分隔）'",
+          after: 'AFTER case_surveyor',
+        },
+        {
+          col: 'case_delivery_or_service_incharge_id',
+          def: "VARCHAR(512) NULL COMMENT '服务负责人多选ID列表（对应 contact_list.contact_id）'",
+          after: 'AFTER case_delivery_or_service_incharge',
+        },
+        {
+          col: 'case_delivery_or_service_deadline',
+          def: "DATE NULL COMMENT '交付/服务截止日期'",
+          after: 'AFTER case_delivery_or_service_incharge_id',
+        },
+        {
+          col: 'case_eta_cargo_ready_date',
+          def: "DATE NULL COMMENT 'ETA货物准备日期'",
+          after: 'AFTER case_delivery_or_service_deadline',
+        },
+        {
+          col: 'case_etb_cargo_departure_date',
+          def: "DATE NULL COMMENT 'ETB货物离港日期'",
+          after: 'AFTER case_eta_cargo_ready_date',
+        },
+        {
+          col: 'case_etd_cargo_delivery_date',
+          def: "DATE NULL COMMENT 'ETD货物交付日期'",
+          after: 'AFTER case_etb_cargo_departure_date',
+        },
+        {
+          col: 'vessel_position',
+          def: "VARCHAR(16) NULL COMMENT '船舶位置'",
+          after: 'AFTER case_etd_cargo_delivery_date',
+        },
+        {
+          col: 'case_settlement_done',
+          def: "VARCHAR(16) NULL COMMENT '结算是否完成'",
+          after: 'AFTER vessel_position',
+        },
+        {
+          col: 'case_epd',
+          def: "VARCHAR(32) NULL COMMENT 'EPD'",
+          after: 'AFTER case_settlement_done',
+        },
+        {
+          col: 'case_spd',
+          def: "VARCHAR(32) NULL COMMENT 'SPD'",
+          after: 'AFTER case_epd',
+        },
+        {
+          col: 'case_incharge',
+          def: "VARCHAR(16) NULL COMMENT '案件负责人代码'",
+          after: 'AFTER case_spd',
+        },
+        {
+          col: 'case_memo_name',
+          def: "VARCHAR(1024) NULL COMMENT '案件备忘名称'",
+          after: 'AFTER case_incharge',
+        },
+        {
+          col: 'case_memo_address',
+          def: "VARCHAR(1024) NULL COMMENT '案件备忘地址'",
+          after: 'AFTER case_memo_name',
+        },
+        {
+          col: 'case_rank',
+          def: "VARCHAR(16) NULL COMMENT '案件等级'",
+          after: 'AFTER case_memo_address',
+        },
       ]
       for (const { col, def, after } of spec) {
         const existing = byName.get(col)
         if (!existing) {
           try {
-            await execute(`ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${col}\` ${def} ${after}`)
+            await execute(
+              `ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${col}\` ${def} ${after}`
+            )
           } catch (err) {
             if (col === 'case_id') continue
             throw err

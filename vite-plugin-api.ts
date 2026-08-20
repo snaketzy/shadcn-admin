@@ -1021,6 +1021,10 @@ async function handleCaseListApi(
             searchParams.get('orderNumberHasValue') === 'true'
               ? true
               : undefined,
+          serviceProjectActive:
+            searchParams.get('serviceProjectActive') === 'true'
+              ? true
+              : undefined,
           caseInquiryKeyword: toOptStr(searchParams.get('caseInquiryKeyword')),
           caseInquiryDateFrom: toOptStr(
             searchParams.get('caseInquiryDateFrom')
