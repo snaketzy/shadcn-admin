@@ -324,9 +324,9 @@ export function getCasesServiceColumns(params?: {
                 side='right'
                 align='start'
                 sideOffset={6}
-                collisionPadding={16}
+                collisionPadding={40}
                 avoidCollisions
-                className='z-[100] flex max-h-[90vh] w-[520px] max-w-[90vw] flex-col overflow-hidden border border-amber-200/80 bg-amber-50/95 p-0 shadow-lg shadow-amber-500/10 backdrop-blur'
+                className='z-[100] flex h-[calc(100vh-80px)] max-h-[90vh] w-[600px] max-w-[90vw] flex-col overflow-hidden border border-amber-200/80 bg-amber-50/95 p-0 shadow-lg shadow-amber-500/10 backdrop-blur'
               >
                 <div className='flex shrink-0 items-center gap-2 border-b border-amber-200/80 bg-amber-100/70 px-3 py-2'>
                   <StickyNote className='size-4 shrink-0 text-amber-700' />
@@ -334,7 +334,7 @@ export function getCasesServiceColumns(params?: {
                     案件备忘（共 {memos.length} 条）
                   </span>
                 </div>
-                <ScrollArea className='min-h-0 flex-1'>
+                <ScrollArea className='h-0 min-h-0 flex-1'>
                   <div className='flex flex-col gap-0 p-2'>
                     {memos.map((memo, idx) => {
                       const attach = parseAttachments(
