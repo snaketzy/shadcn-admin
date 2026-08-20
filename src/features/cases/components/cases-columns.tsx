@@ -159,6 +159,7 @@ export function getCasesColumns(params?: {
   divisionKeyMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
+  const urgentBMap = params?.urgentBMap
   const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
   const ownerNameEmailMap = params?.ownerNameEmailMap
   const ownerIdEmailMap = params?.ownerIdEmailMap
@@ -411,6 +412,58 @@ export function getCasesColumns(params?: {
     const hit = progressRMap?.get(p.toUpperCase())
     if (hit) return hit
     return p
+  }
+  const resolveBLabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = urgentBMap?.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
+  const isBYesRow = (raw: unknown): boolean => {
+    if (raw === null || raw === undefined || raw === '') return false
+    const p = String(raw).trim().toUpperCase()
+    if (!p) return false
+    const labelRaw = urgentBMap?.get(p)
+    const label = (labelRaw ?? p ?? '').trim().toUpperCase()
+    const isNo =
+      label === 'NO' ||
+      label === '否' ||
+      label.includes('普通') ||
+      label.includes('非紧急') ||
+      label.includes('常规') ||
+      p === 'NO' ||
+      /^B-?0/.test(p)
+    if (isNo) return false
+    return (
+      label.includes('是') ||
+      label.includes('完成') ||
+      label === 'YES' ||
+      p.includes('YES') ||
+      /^B-?1/.test(p) ||
+      label.includes('紧急') ||
+      label.includes('已完成')
+    )
+  }
+  function renderBYesNoBadge(raw: unknown): React.ReactNode {
+    if (raw === null || raw === undefined || raw === '') return <div>-</div>
+    const label = resolveBLabel(raw)
+    if (!label) return <div>-</div>
+    const isYes = isBYesRow(raw)
+    return (
+      <Badge
+        variant='outline'
+        className={cn(
+          'whitespace-nowrap',
+          isYes
+            ? 'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-900/40 dark:text-emerald-200'
+            : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-300'
+        )}
+      >
+        {label}
+      </Badge>
+    )
   }
   const splitCsvKeys = (raw: unknown): string[] => {
     if (raw === null || raw === undefined) return []
@@ -1034,6 +1087,40 @@ export function getCasesColumns(params?: {
                         </LongText>
                       )
                     )}
+                    {kvRow(
+                      '案件结算完成日期',
+                      formatDateAsHyphen(rowData.case_settlement_done)
+                    )}
+                    {kvRow(
+                      '完成个人表登记',
+                      renderBYesNoBadge(
+                        rowData.case_personal_register_completed
+                      )
+                    )}
+                    {kvRow(
+                      '完成经营表登记',
+                      renderBYesNoBadge(
+                        rowData.case_business_register_completed
+                      )
+                    )}
+                    {kvRow(
+                      '完成电子归档',
+                      renderBYesNoBadge(rowData.case_e_filing_completed)
+                    )}
+                    {kvRow(
+                      '完成纸质归档',
+                      renderBYesNoBadge(
+                        rowData.case_paper_based_filing_completed
+                      )
+                    )}
+                    {kvRow(
+                      '船东结账日期',
+                      formatDateAsHyphen(rowData.case_epd)
+                    )}
+                    {kvRow(
+                      '供应商结账日期',
+                      formatDateAsHyphen(rowData.case_spd)
+                    )}
                   </div>
                 </div>
               </ScrollArea>
@@ -1525,6 +1612,62 @@ export function getCasesColumns(params?: {
         label: '案件结算完成日期',
         className: 'w-[144px] min-w-[144px]',
         thClassName: 'w-[144px] min-w-[144px]',
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'case_personal_register_completed',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='完成个人表登记' />
+      ),
+      cell: ({ row }) =>
+        renderBYesNoBadge(row.original.case_personal_register_completed),
+      meta: {
+        label: '完成个人表登记',
+        className: 'w-[128px] min-w-[128px]',
+        thClassName: 'w-[128px] min-w-[128px]',
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'case_business_register_completed',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='完成经营表登记' />
+      ),
+      cell: ({ row }) =>
+        renderBYesNoBadge(row.original.case_business_register_completed),
+      meta: {
+        label: '完成经营表登记',
+        className: 'w-[128px] min-w-[128px]',
+        thClassName: 'w-[128px] min-w-[128px]',
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'case_e_filing_completed',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='完成电子归档' />
+      ),
+      cell: ({ row }) =>
+        renderBYesNoBadge(row.original.case_e_filing_completed),
+      meta: {
+        label: '完成电子归档',
+        className: 'w-[120px] min-w-[120px]',
+        thClassName: 'w-[120px] min-w-[120px]',
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'case_paper_based_filing_completed',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='完成纸质归档' />
+      ),
+      cell: ({ row }) =>
+        renderBYesNoBadge(row.original.case_paper_based_filing_completed),
+      meta: {
+        label: '完成纸质归档',
+        className: 'w-[120px] min-w-[120px]',
+        thClassName: 'w-[120px] min-w-[120px]',
       },
       enableSorting: false,
     },
