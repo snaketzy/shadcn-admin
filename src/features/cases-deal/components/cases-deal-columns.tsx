@@ -7,6 +7,7 @@ import {
   Handshake,
   StickyNote,
   Pencil,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
@@ -676,9 +678,9 @@ export function getCasesDealColumns(params?: {
             : null
         const finalOwner = ownerById ?? ownerInfo
         const displayValue = value ?? '-'
-        const trigger = (
+        const vesselLabel = (
           <span
-            className='inline-flex max-w-50 cursor-help items-center truncate ps-3 align-middle font-medium'
+            className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium'
             title={String(value ?? '')}
           >
             <LongText className='max-w-50 truncate'>{displayValue}</LongText>
@@ -762,16 +764,25 @@ export function getCasesDealColumns(params?: {
         }
         return (
           <Popover>
-            <PopoverTrigger asChild tabIndex={-1}>
-              <span
-                role='button'
-                tabIndex={-1}
-                onClick={(e) => e.stopPropagation()}
-                className='inline-flex cursor-pointer select-none'
-              >
-                {trigger}
+            <PopoverAnchor asChild>
+              <span className='inline-flex items-center'>
+                {vesselLabel}
+                <PopoverTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    tabIndex={-1}
+                    className='h-6 w-6 shrink-0 text-muted-foreground/70 hover:bg-slate-200/60 hover:text-foreground'
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label='查看案件详情速览'
+                    title='查看案件详情速览'
+                  >
+                    <FileText size={13} aria-hidden />
+                  </Button>
+                </PopoverTrigger>
               </span>
-            </PopoverTrigger>
+            </PopoverAnchor>
             <PopoverContent
               side='right'
               align='start'

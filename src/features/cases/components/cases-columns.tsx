@@ -3,6 +3,7 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircle,
+  FileText,
   ListChecks,
   Handshake,
   StickyNote,
@@ -16,6 +17,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  PopoverAnchor,
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -676,12 +678,31 @@ export function getCasesColumns(params?: {
             : null
         const finalOwner = ownerById ?? ownerInfo
         const displayValue = value ?? '-'
-        const trigger = (
+        const vesselLabel = (
           <span
-            className='inline-flex max-w-50 cursor-help items-center truncate ps-3 align-middle font-medium'
+            className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium'
             title={String(value ?? '')}
           >
             <LongText className='max-w-50 truncate'>{displayValue}</LongText>
+          </span>
+        )
+        const trigger = (
+          <span
+            className='inline-flex items-center gap-1'
+            title={'点击图标查看案件详情速览'}
+          >
+            {vesselLabel}
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              className='h-6 w-6 shrink-0 text-muted-foreground/70 hover:bg-slate-200/60 hover:text-foreground'
+              onClick={(e) => e.stopPropagation()}
+              aria-label='查看案件详情速览'
+              title='查看案件详情速览'
+            >
+              <FileText size={13} aria-hidden />
+            </Button>
           </span>
         )
         const kvRow = (label: string, content: React.ReactNode) => {
@@ -762,16 +783,25 @@ export function getCasesColumns(params?: {
         }
         return (
           <Popover>
-            <PopoverTrigger asChild tabIndex={-1}>
-              <span
-                role='button'
-                tabIndex={-1}
-                onClick={(e) => e.stopPropagation()}
-                className='inline-flex cursor-pointer select-none'
-              >
-                {trigger}
+            <PopoverAnchor asChild>
+              <span className='inline-flex items-center'>
+                {vesselLabel}
+                <PopoverTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    tabIndex={-1}
+                    className='h-6 w-6 shrink-0 text-muted-foreground/70 hover:bg-slate-200/60 hover:text-foreground'
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label='查看案件详情速览'
+                    title='查看案件详情速览'
+                  >
+                    <FileText size={13} aria-hidden />
+                  </Button>
+                </PopoverTrigger>
               </span>
-            </PopoverTrigger>
+            </PopoverAnchor>
             <PopoverContent
               side='right'
               align='start'
