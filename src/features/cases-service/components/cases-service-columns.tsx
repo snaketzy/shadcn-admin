@@ -1038,7 +1038,13 @@ export function getCasesServiceColumns(params?: {
       cell: ({ row }) => {
         const value = row.getValue('case_progress') as string | null
         if (!value) return <div>-</div>
-        const display = resolveProgressRLabel(value)
+        const valueUpper = value.toUpperCase()
+        const display = resolveProgressRLabel(valueUpper)
+        const usePlainStyle =
+          valueUpper.startsWith('R9') ||
+          /^9/.test(display) ||
+          /\b9/.test(display) ||
+          /R9/.test(valueUpper)
         return (
           <TooltipProvider delayDuration={0}>
             <Tooltip>
@@ -1047,7 +1053,9 @@ export function getCasesServiceColumns(params?: {
                   <Badge
                     variant='outline'
                     className={cn(
-                      getBadgeColor(value),
+                      usePlainStyle
+                        ? 'border-border bg-transparent text-foreground hover:bg-transparent'
+                        : getBadgeColor(value),
                       'max-w-full px-2 whitespace-nowrap'
                     )}
                   >

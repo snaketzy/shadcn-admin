@@ -1291,33 +1291,49 @@ export function CasesServiceTable(_: DataTableProps) {
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                    className='group/row'
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        style={
-                          FIXED_COL_STYLES[cell.column.id ?? '']?.td ??
-                          undefined
-                        }
-                        className={cn(
-                          'bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted',
-                          cell.column.columnDef.meta?.className,
-                          cell.column.columnDef.meta?.tdClassName
-                        )}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
+                table.getRowModel().rows.map((row) => {
+                  const progressVal = (row.original as any)?.case_progress
+                    ? String((row.original as any).case_progress).toUpperCase()
+                    : null
+                  const progressDisplay =
+                    progressVal && progressRMap?.get(progressVal)
+                  const isR9 =
+                    progressVal &&
+                    (progressVal.startsWith('R9') ||
+                      progressVal.includes('R9') ||
+                      (progressDisplay &&
+                        (/^9/.test(progressDisplay) ||
+                          /\b9/.test(progressDisplay))))
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                      className={cn('group/row', isR9 && 'bg-slate-200/70')}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          style={
+                            FIXED_COL_STYLES[cell.column.id ?? '']?.td ??
+                            undefined
+                          }
+                          className={cn(
+                            isR9
+                              ? 'bg-slate-200/70 group-hover/row:bg-slate-200 group-data-[state=selected]/row:bg-slate-200'
+                              : 'bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted',
+                            cell.column.columnDef.meta?.className,
+                            cell.column.columnDef.meta?.tdClassName
+                          )}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                })
               ) : (
                 <TableRow>
                   <TableCell

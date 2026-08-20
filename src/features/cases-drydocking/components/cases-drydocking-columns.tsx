@@ -1017,11 +1017,18 @@ export function getCasesDrydockingColumns(params?: {
         <DataTableColumnHeader column={column} title='案件进度' />
       ),
       cell: ({ row }) => {
-        const rawValue = row.getValue('case_progress') as string | null
-        const value = rawValue ? rawValue.toUpperCase() : null
+        const value = row.getValue('case_progress') as string | null
         if (!value) return <div>-</div>
-        const display = resolveProgressRLabel(value)
-        const isR91 = value === 'R91'
+        const valueUpper = value.toUpperCase()
+        const display = resolveProgressRLabel(valueUpper)
+        const usePlainStyle =
+          valueUpper.startsWith('R9') ||
+          /^9/.test(display) ||
+          /\b9/.test(display) ||
+          /R9/.test(valueUpper)
+        const badgeClass = usePlainStyle
+          ? 'border-border bg-transparent text-foreground hover:bg-transparent'
+          : getBadgeColor(value)
         return (
           <TooltipProvider delayDuration={0}>
             <Tooltip>
@@ -1030,9 +1037,7 @@ export function getCasesDrydockingColumns(params?: {
                   <Badge
                     variant='outline'
                     className={cn(
-                      isR91
-                        ? 'border-border bg-transparent text-foreground hover:bg-transparent'
-                        : getBadgeColor(value),
+                      badgeClass,
                       'max-w-full px-2 whitespace-nowrap'
                     )}
                   >

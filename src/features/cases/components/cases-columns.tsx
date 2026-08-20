@@ -1065,6 +1065,10 @@ export function getCasesColumns(params?: {
         if (!value) return <div>-</div>
         const display = resolveProgressRLabel(value)
         const isR91 = value === 'R91'
+        const isR9 = isR91 || value.startsWith('R9')
+        const displayIs9 =
+          isR91 || /(^|\D)9/.test(display) || /^9/.test(display)
+        const usePlainStyle = isR9 || displayIs9
         return (
           <TooltipProvider delayDuration={0}>
             <Tooltip>
@@ -1073,7 +1077,7 @@ export function getCasesColumns(params?: {
                   <Badge
                     variant='outline'
                     className={cn(
-                      isR91
+                      usePlainStyle
                         ? 'border-border bg-transparent text-foreground hover:bg-transparent'
                         : getBadgeColor(value),
                       'max-w-full px-2 whitespace-nowrap'

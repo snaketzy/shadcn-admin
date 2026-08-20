@@ -1321,12 +1321,20 @@ export function CasesDrydockingTable(_: DataTableProps) {
                   const progressVal = (row.original as any)?.case_progress
                     ? String((row.original as any).case_progress).toUpperCase()
                     : null
-                  const isR91 = progressVal === 'R91'
+                  const progressDisplay =
+                    progressVal && progressRMap?.get(progressVal)
+                  const isR9 =
+                    progressVal &&
+                    (progressVal.startsWith('R9') ||
+                      progressVal.includes('R9') ||
+                      (progressDisplay &&
+                        (/^9/.test(progressDisplay) ||
+                          /\b9/.test(progressDisplay))))
                   return (
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}
-                      className={cn('group/row', isR91 && 'bg-slate-200/70')}
+                      className={cn('group/row', isR9 && 'bg-slate-200/70')}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
@@ -1336,7 +1344,7 @@ export function CasesDrydockingTable(_: DataTableProps) {
                             undefined
                           }
                           className={cn(
-                            isR91
+                            isR9
                               ? 'bg-slate-200/70 group-hover/row:bg-slate-200 group-data-[state=selected]/row:bg-slate-200'
                               : 'bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted',
                             cell.column.columnDef.meta?.className,
