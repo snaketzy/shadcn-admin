@@ -41,7 +41,7 @@ import {
   type DivisionPickerResult,
 } from './division-picker-dialog'
 
-const LINKED_TYPE_KEYS = new Set(['J1', 'J2', 'J3'])
+const LINKED_TYPE_KEYS = new Set(['J0', 'J1', 'J2', 'J3', 'J10'])
 
 function resolveDictLabel(
   raw: string | null | undefined,

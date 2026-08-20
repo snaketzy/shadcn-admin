@@ -207,15 +207,15 @@ export function CasesServiceContactMultiPickerDialog({
     if (t === 'K1') {
       const sn = supplierShortnameMap.get(idStr)
       return { label: sn ?? '', prefix: '供应商' }
-    } else if (t === 'K2') {
+    }
+    if (t === 'K2') {
       const sn = collaborationShortnameMap.get(idStr)
       return { label: sn ?? '', prefix: '协作商' }
     }
-    const s = supplierShortnameMap.get(idStr)
-    if (s) return { label: s, prefix: '供应商' }
-    const cs = collaborationShortnameMap.get(idStr)
-    if (cs) return { label: cs, prefix: '协作商' }
-    return { label: idStr, prefix: '' }
+    if (t === '' && c.contact_division_type == null) {
+      return { label: '', prefix: '' }
+    }
+    return { label: '', prefix: '' }
   }
 
   const filteredRows: Contact[] = useMemo(() => {
@@ -388,11 +388,7 @@ export function CasesServiceContactMultiPickerDialog({
           const t = String(row.contact_division_type ?? '').toUpperCase()
           if (t === 'K1') return supplierShortnameMap.get(idStr) ?? idStr
           if (t === 'K2') return collaborationShortnameMap.get(idStr) ?? idStr
-          return (
-            supplierShortnameMap.get(idStr) ??
-            collaborationShortnameMap.get(idStr) ??
-            idStr
-          )
+          return ''
         },
         size: 180,
         cell: ({ row }) => {
@@ -404,22 +400,13 @@ export function CasesServiceContactMultiPickerDialog({
           if (!idStr) return <div>-</div>
           const t = String(c.contact_division_type ?? '').toUpperCase()
           let sn: string | undefined
-          let prefix: string
+          let prefix = ''
           if (t === 'K1') {
             sn = supplierShortnameMap.get(idStr)
             prefix = '供应商'
           } else if (t === 'K2') {
             sn = collaborationShortnameMap.get(idStr)
             prefix = '协作商'
-          } else {
-            sn =
-              supplierShortnameMap.get(idStr) ??
-              collaborationShortnameMap.get(idStr)
-            prefix = supplierShortnameMap.has(idStr)
-              ? '供应商'
-              : collaborationShortnameMap.has(idStr)
-                ? '协作商'
-                : ''
           }
           return (
             <div className='flex items-center gap-1.5'>

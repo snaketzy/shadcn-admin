@@ -206,11 +206,7 @@ export function ContactPickerDialog({
       const sn = collaborationShortnameMap.get(idStr)
       return { label: sn ?? '', prefix: '协作商' }
     }
-    const s = supplierShortnameMap.get(idStr)
-    if (s) return { label: s, prefix: '供应商' }
-    const cs = collaborationShortnameMap.get(idStr)
-    if (cs) return { label: cs, prefix: '协作商' }
-    return { label: idStr, prefix: '' }
+    return { label: '', prefix: '' }
   }
 
   const filteredRows: Contact[] = useMemo(() => {
@@ -292,13 +288,9 @@ export function ContactPickerDialog({
               ? ''
               : String(row.contact_division_id)
           const t = String(row.contact_division_type ?? '').toUpperCase()
-          if (t === 'K1') return supplierShortnameMap.get(idStr) ?? idStr
-          if (t === 'K2') return collaborationShortnameMap.get(idStr) ?? idStr
-          return (
-            supplierShortnameMap.get(idStr) ??
-            collaborationShortnameMap.get(idStr) ??
-            idStr
-          )
+          if (t === 'K1') return supplierShortnameMap.get(idStr) ?? ''
+          if (t === 'K2') return collaborationShortnameMap.get(idStr) ?? ''
+          return ''
         },
         size: 180,
         cell: ({ row }) => {
@@ -318,14 +310,8 @@ export function ContactPickerDialog({
             sn = collaborationShortnameMap.get(idStr)
             prefix = '协作商'
           } else {
-            sn =
-              supplierShortnameMap.get(idStr) ??
-              collaborationShortnameMap.get(idStr)
-            prefix = supplierShortnameMap.has(idStr)
-              ? '供应商'
-              : collaborationShortnameMap.has(idStr)
-                ? '协作商'
-                : ''
+            sn = undefined
+            prefix = ''
           }
           return (
             <div className='flex items-center gap-1.5'>

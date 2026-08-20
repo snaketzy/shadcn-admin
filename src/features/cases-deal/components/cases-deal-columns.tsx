@@ -194,39 +194,48 @@ export function getCasesDealColumns(params?: {
     const dtLabel = divisionKeyMap?.get(dtUp) || dt
     const dtLabelUp = dtLabel.toUpperCase()
 
-    if (
+    const isSupplier =
       dtUp.startsWith('K1') ||
       dtUp === 'S' ||
       dtUp.startsWith('SUP') ||
       dtLabelUp.includes('供应') ||
-      dtLabelUp.includes('供方') ||
-      supplierIdNameMap?.has(didNum)
-    ) {
-      if (Number.isFinite(didNum) && didNum > 0) {
-        const hit = supplierIdNameMap?.get(didNum)
-        if (hit) return hit
-      }
-    }
-
-    if (
+      dtLabelUp.includes('供方')
+    const isCollaboration =
       dtUp.startsWith('K2') ||
       dtUp === 'C' ||
       dtUp.startsWith('COL') ||
       dtLabelUp.includes('协作') ||
-      dtLabelUp.includes('合作') ||
-      collaborationIdNameMap?.has(didNum)
-    ) {
+      dtLabelUp.includes('合作')
+
+    if (isSupplier && !isCollaboration) {
+      if (Number.isFinite(didNum) && didNum > 0) {
+        const hit = supplierIdNameMap?.get(didNum)
+        if (hit) return hit
+      }
+      return ''
+    }
+
+    if (isCollaboration && !isSupplier) {
       if (Number.isFinite(didNum) && didNum > 0) {
         const hit = collaborationIdNameMap?.get(didNum)
         if (hit) return hit
       }
+      return ''
     }
 
-    if (Number.isFinite(didNum) && didNum > 0) {
-      const s = supplierIdNameMap?.get(didNum)
-      if (s) return s
-      const co = collaborationIdNameMap?.get(didNum)
-      if (co) return co
+    if (dtUp === 'K1' || isSupplier) {
+      if (Number.isFinite(didNum) && didNum > 0) {
+        const s = supplierIdNameMap?.get(didNum)
+        if (s) return s
+      }
+      return ''
+    }
+    if (dtUp === 'K2' || isCollaboration) {
+      if (Number.isFinite(didNum) && didNum > 0) {
+        const co = collaborationIdNameMap?.get(didNum)
+        if (co) return co
+      }
+      return ''
     }
 
     return ''
