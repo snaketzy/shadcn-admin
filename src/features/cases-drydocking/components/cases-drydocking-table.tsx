@@ -54,6 +54,12 @@ import {
   type CaseMemo,
   type CaseInquiry,
 } from '@/features/cases/api/client'
+import {
+  fetchContactAll,
+  fetchDivisionCollaborations,
+  type Contact,
+  type DivisionCollaborationRow,
+} from '@/features/contacts/api/client'
 import { type Case } from '@/features/cases/data/schema'
 import { getCasesDrydockingColumns } from './cases-drydocking-columns'
 import { DataTableBulkActions } from '@/features/cases/components/data-table-bulk-actions'
@@ -409,6 +415,71 @@ export function CasesDrydockingTable(_: DataTableProps) {
     return m
   }, [progressROptions])
 
+  const { data: serviceContactAllRows = [] } = useQuery({
+    queryKey: ['contact-all-for-case-drydocking-list'],
+    queryFn: fetchContactAll,
+    staleTime: 60000,
+  })
+  const serviceContactIdMap = useMemo<Map<string, Contact>>(() => {
+    const m = new Map<string, Contact>()
+    const list = (serviceContactAllRows as Contact[]) ?? []
+    for (const c of list) {
+      const idRaw = (c as any).contact_id
+      const idStr = idRaw != null && idRaw !== '' ? String(idRaw) : ''
+      if (idStr) m.set(idStr, c)
+    }
+    return m
+  }, [serviceContactAllRows])
+  const serviceContactNameMap = useMemo<Map<string, Contact>>(() => {
+    const m = new Map<string, Contact>()
+    const list = (serviceContactAllRows as Contact[]) ?? []
+    for (const c of list) {
+      const n = c.contact_name ? String(c.contact_name).trim() : ''
+      if (n) m.set(n, c)
+    }
+    return m
+  }, [serviceContactAllRows])
+
+  const { data: divisionCollabRows = [] } = useQuery({
+    queryKey: ['division-collaborations-for-case-drydocking-list'],
+    queryFn: fetchDivisionCollaborations,
+    staleTime: 60000,
+  })
+  const collaborationIdNameMap = useMemo<Map<number, string>>(() => {
+    const m = new Map<number, string>()
+    const list = (divisionCollabRows as DivisionCollaborationRow[]) ?? []
+    for (const r of list) {
+      const idRaw = (r as any).division_collaboration_id
+      const idNum =
+        typeof idRaw === 'number'
+          ? idRaw
+          : typeof idRaw === 'string' && idRaw.trim() !== ''
+            ? Number(idRaw)
+            : Number.NaN
+      const name =
+        String((r as any).division_collaboration_name ?? '').trim() ||
+        String((r as any).name ?? '').trim()
+      if (Number.isFinite(idNum) && idNum > 0 && name) m.set(idNum, name)
+    }
+    return m
+  }, [divisionCollabRows])
+
+  const { data: divisionKRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-K-table-drydocking'],
+    queryFn: () => fetchCaseDictByKeyPrefix('K'),
+    staleTime: 60000,
+  })
+  const divisionKeyMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    const list = (divisionKRowsData as CaseDict[]) ?? []
+    for (const d of list) {
+      const v = String(d.dict_key ?? '').trim()
+      const l = String(d.dict_value ?? d.dict_key ?? '').trim()
+      if (v && l) m.set(v.toUpperCase(), l)
+    }
+    return m
+  }, [divisionKRowsData])
+
   const memoRowsRef = useRef<CaseMemo[]>([])
   const caseIdMemosMapRef = useRef<Map<number, CaseMemo[]>>(new Map())
   const [memoTick, setMemoTick] = useState(0)
@@ -434,6 +505,10 @@ export function CasesDrydockingTable(_: DataTableProps) {
         getCaseIdInquiriesMap: () => caseIdInquiriesMapRef.current,
         supplierIdNameMap,
         inquiryTypeQKeyToLabel,
+        serviceContactIdMap,
+        serviceContactNameMap,
+        collaborationIdNameMap,
+        divisionKeyMap,
       }),
     [
       urgentBMap,
@@ -450,6 +525,10 @@ export function CasesDrydockingTable(_: DataTableProps) {
       inquiryTick,
       supplierIdNameMap,
       inquiryTypeQKeyToLabel,
+      serviceContactIdMap,
+      serviceContactNameMap,
+      collaborationIdNameMap,
+      divisionKeyMap,
     ]
   )
 

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
+import type { Contact } from '@/features/contacts/api/client'
 import {
   parseAttachments,
   type CaseMemo,
@@ -149,6 +150,10 @@ export function getCasesServiceColumns(params?: {
   getCaseIdInquiriesMap?: () => Map<number, CaseInquiry[]> | undefined
   supplierIdNameMap?: Map<number, string>
   inquiryTypeQKeyToLabel?: Map<string, string>
+  serviceContactIdMap?: Map<string, Contact>
+  serviceContactNameMap?: Map<string, Contact>
+  collaborationIdNameMap?: Map<number, string>
+  divisionKeyMap?: Map<string, string>
 }): ColumnDef<Case>[] {
   const urgentBIsUrgentSet = params?.urgentBIsUrgentSet
   const handleTodayBIsYesSet = params?.handleTodayBIsYesSet
@@ -163,6 +168,141 @@ export function getCasesServiceColumns(params?: {
   const getCaseIdInquiriesMap = params?.getCaseIdInquiriesMap
   const supplierIdNameMap = params?.supplierIdNameMap
   const inquiryTypeQKeyToLabel = params?.inquiryTypeQKeyToLabel
+  const serviceContactIdMap = params?.serviceContactIdMap
+  const serviceContactNameMap = params?.serviceContactNameMap
+  const collaborationIdNameMap = params?.collaborationIdNameMap
+  const divisionKeyMap = params?.divisionKeyMap
+
+  function resolveDivisionNameByContact(c: Contact | undefined | null): string {
+    if (!c) return ''
+    const dtRaw = c.contact_division_type
+    const didRaw = c.contact_division_id
+    if (
+      dtRaw == null ||
+      String(dtRaw).trim() === '' ||
+      didRaw == null ||
+      String(didRaw).trim() === ''
+    ) {
+      return ''
+    }
+    const dt = String(dtRaw).trim()
+    const dtUp = dt.toUpperCase()
+    const didStr = String(didRaw).trim()
+    const didNum = Number(didStr)
+    const dtLabel = divisionKeyMap?.get(dtUp) || dt
+    const dtLabelUp = dtLabel.toUpperCase()
+
+    if (
+      dtUp.startsWith('K1') ||
+      dtUp === 'S' ||
+      dtUp.startsWith('SUP') ||
+      dtLabelUp.includes('供应') ||
+      dtLabelUp.includes('供方') ||
+      supplierIdNameMap?.has(didNum)
+    ) {
+      if (Number.isFinite(didNum) && didNum > 0) {
+        const hit = supplierIdNameMap?.get(didNum)
+        if (hit) return hit
+      }
+    }
+
+    if (
+      dtUp.startsWith('K2') ||
+      dtUp === 'C' ||
+      dtUp.startsWith('COL') ||
+      dtLabelUp.includes('协作') ||
+      dtLabelUp.includes('合作') ||
+      collaborationIdNameMap?.has(didNum)
+    ) {
+      if (Number.isFinite(didNum) && didNum > 0) {
+        const hit = collaborationIdNameMap?.get(didNum)
+        if (hit) return hit
+      }
+    }
+
+    if (Number.isFinite(didNum) && didNum > 0) {
+      const s = supplierIdNameMap?.get(didNum)
+      if (s) return s
+      const co = collaborationIdNameMap?.get(didNum)
+      if (co) return co
+    }
+
+    return ''
+  }
+
+  function buildServiceInchargeSegments(row: Case): {
+    items: { name: string; company: string }[]
+    fallback: string
+  } {
+    const idRaw = (row as any).case_delivery_or_service_incharge_id as
+      string | null | undefined
+    const nameRaw = row.case_delivery_or_service_incharge
+    const items: { name: string; company: string }[] = []
+    const seen = new Set<string>()
+
+    if (idRaw != null && String(idRaw).trim() !== '' && serviceContactIdMap) {
+      const ids = String(idRaw)
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
+      for (const id of ids) {
+        const c = serviceContactIdMap.get(id)
+        if (!c) continue
+        const n = c.contact_name ? String(c.contact_name).trim() : ''
+        if (!n) continue
+        if (seen.has(n)) continue
+        seen.add(n)
+        items.push({ name: n, company: resolveDivisionNameByContact(c) })
+      }
+    }
+
+    if (
+      (items.length === 0 || seen.size === 0) &&
+      nameRaw &&
+      String(nameRaw).trim() !== ''
+    ) {
+      const names = String(nameRaw)
+        .split(/[,，]\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+      for (const n of names) {
+        const c = serviceContactNameMap?.get(n)
+        if (c) {
+          if (seen.has(n)) continue
+          seen.add(n)
+          items.push({
+            name: c.contact_name ? String(c.contact_name).trim() : n,
+            company: resolveDivisionNameByContact(c),
+          })
+        } else {
+          if (seen.has(n)) continue
+          seen.add(n)
+          items.push({ name: n, company: '' })
+        }
+      }
+    }
+
+    let fallback = ''
+    if (nameRaw && String(nameRaw).trim() !== '') {
+      fallback = String(nameRaw).trim()
+    }
+    return { items, fallback }
+  }
+
+  function renderServiceInchargeText(row: Case): string {
+    const { items, fallback } = buildServiceInchargeSegments(row)
+    if (items.length === 0) {
+      const resolved = resolveInchargeELabel(fallback)
+      return resolved || '-'
+    }
+    return items
+      .map((s) => {
+        if (!s.company) return s.name
+        return `${s.name}-${s.company}`
+      })
+      .join('，')
+  }
+
   const isUrgentRow = (raw: unknown): boolean => {
     if (!urgentBIsUrgentSet) return false
     if (raw === null || raw === undefined || raw === '') return false
@@ -773,18 +913,15 @@ export function getCasesServiceColumns(params?: {
                     )}
                     {kvRow(
                       '承运人｜服务负责人',
-                      (resolveDict(
-                        inchargeEMap,
-                        rowData.case_delivery_or_service_incharge
-                      ) ||
-                        s(rowData.case_delivery_or_service_incharge)) && (
+                      (() => {
+                        const text = renderServiceInchargeText(rowData)
+                        if (!text || text === '-') return null
+                        return (
                           <LongText className='max-w-[480px] truncate'>
-                            {resolveDict(
-                              inchargeEMap,
-                              rowData.case_delivery_or_service_incharge
-                            ) || s(rowData.case_delivery_or_service_incharge)}
+                            {text}
                           </LongText>
                         )
+                      })()
                     )}
                     {kvRow(
                       '运输｜服务截止日',
@@ -1165,15 +1302,16 @@ export function getCasesServiceColumns(params?: {
         <DataTableColumnHeader column={column} title='承运人｜服务负责人' />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('case_delivery_or_service_incharge') as
-          | string
-          | null
-        return <LongText className='max-w-40'>{value ?? '-'}</LongText>
+        return (
+          <LongText className='max-w-[180px]'>
+            {renderServiceInchargeText(row.original)}
+          </LongText>
+        )
       },
       meta: {
         label: '承运人｜服务负责人',
-        className: 'w-[160px] min-w-[160px]',
-        thClassName: 'w-[160px] min-w-[160px]',
+        className: 'w-[200px] min-w-[200px]',
+        thClassName: 'w-[200px] min-w-[200px]',
       },
       enableSorting: false,
     },

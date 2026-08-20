@@ -51,6 +51,12 @@ import {
 } from '@/features/cases/api/client'
 import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import { fetchSupplierAll, type Supplier } from '@/features/suppliers/api/client'
+import {
+  fetchContactAll,
+  fetchDivisionCollaborations,
+  type Contact,
+  type DivisionCollaborationRow,
+} from '@/features/contacts/api/client'
 import { type Case } from '@/features/cases/data/schema'
 import { getCasesServiceColumns } from './cases-service-columns'
 import { DataTableBulkActions } from '@/features/cases/components/data-table-bulk-actions'
@@ -357,6 +363,65 @@ export function CasesServiceTable(_: DataTableProps) {
     return m
   }, [progressROptions])
 
+  const { data: serviceContactAllRows = [] } = useQuery({
+    queryKey: ['contact-all-for-case-service-table'],
+    queryFn: fetchContactAll,
+    staleTime: 60000,
+  })
+  const serviceContactIdMap = useMemo<Map<string, Contact>>(() => {
+    const m = new Map<string, Contact>()
+    const list = (serviceContactAllRows as Contact[]) ?? []
+    for (const c of list) {
+      if (c.contact_id != null) {
+        m.set(String(c.contact_id), c)
+      }
+    }
+    return m
+  }, [serviceContactAllRows])
+  const serviceContactNameMap = useMemo<Map<string, Contact>>(() => {
+    const m = new Map<string, Contact>()
+    const list = (serviceContactAllRows as Contact[]) ?? []
+    for (const c of list) {
+      const n = (c.contact_name ?? '').trim()
+      if (n) m.set(n, c)
+    }
+    return m
+  }, [serviceContactAllRows])
+
+  const { data: divisionCollabRows = [] } = useQuery({
+    queryKey: ['division-collaborations-for-case-service-table'],
+    queryFn: fetchDivisionCollaborations,
+    staleTime: 60000,
+  })
+  const collaborationIdNameMap = useMemo<Map<number, string>>(() => {
+    const m = new Map<number, string>()
+    const list = (divisionCollabRows as DivisionCollaborationRow[]) ?? []
+    for (const s of list) {
+      const id = Number((s as any).collaboration_id)
+      const name =
+        String((s as any).collaboration_name ?? '').trim() ||
+        String((s as any).name ?? '').trim()
+      if (Number.isFinite(id) && id > 0 && name) m.set(id, name)
+    }
+    return m
+  }, [divisionCollabRows])
+
+  const { data: divisionKRowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-K-service-table'],
+    queryFn: () => fetchCaseDictByKeyPrefix('K'),
+    staleTime: 60000,
+  })
+  const divisionKeyMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    const list = (divisionKRowsData as CaseDict[]) ?? []
+    for (const d of list) {
+      const v = String(d.dict_key ?? '').trim()
+      const l = String(d.dict_value ?? d.dict_key ?? '').trim()
+      if (v && l) m.set(v.toUpperCase(), l)
+    }
+    return m
+  }, [divisionKRowsData])
+
   const { data: supplierAllRows = [] } = useQuery({
     queryKey: ['supplier-all-for-case-service-list'],
     queryFn: fetchSupplierAll,
@@ -424,6 +489,10 @@ export function CasesServiceTable(_: DataTableProps) {
         getCaseIdInquiriesMap: () => caseIdInquiriesMapRef.current,
         supplierIdNameMap,
         inquiryTypeQKeyToLabel,
+        serviceContactIdMap,
+        serviceContactNameMap,
+        collaborationIdNameMap,
+        divisionKeyMap,
       }),
     [
       urgentBMap,
@@ -440,6 +509,10 @@ export function CasesServiceTable(_: DataTableProps) {
       inquiryTick,
       supplierIdNameMap,
       inquiryTypeQKeyToLabel,
+      serviceContactIdMap,
+      serviceContactNameMap,
+      collaborationIdNameMap,
+      divisionKeyMap,
     ]
   )
 
