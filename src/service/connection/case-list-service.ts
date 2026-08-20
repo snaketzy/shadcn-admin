@@ -41,6 +41,10 @@ export interface CaseListRow {
   case_etd_cargo_delivery_date: string | null
   vessel_position: string | null
   case_settlement_done: string | null
+  case_personal_register_completed: string | null
+  case_business_register_completed: string | null
+  case_e_filing_completed: string | null
+  case_paper_based_filing_completed: string | null
   case_epd: string | null
   case_spd: string | null
   case_incharge: string | null
@@ -56,8 +60,9 @@ const SELECT_COLS = `
   owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent, case_superintendent_id,
   case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_incharge_id, case_delivery_or_service_deadline,
   case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
-  vessel_position, case_settlement_done, case_epd, case_spd,
-  case_incharge, case_memo_name, case_memo_address, case_rank
+  vessel_position, case_settlement_done,
+  case_personal_register_completed, case_business_register_completed, case_e_filing_completed, case_paper_based_filing_completed,
+  case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_rank
 `
 
 export async function getAllCaseList(): Promise<CaseListRow[]> {
@@ -377,6 +382,10 @@ export async function createCaseList(data: {
   case_etd_cargo_delivery_date?: string | null
   vessel_position?: string | null
   case_settlement_done?: string | null
+  case_personal_register_completed?: string | null
+  case_business_register_completed?: string | null
+  case_e_filing_completed?: string | null
+  case_paper_based_filing_completed?: string | null
   case_epd?: string | null
   case_spd?: string | null
   case_incharge?: string | null
@@ -392,11 +401,11 @@ export async function createCaseList(data: {
        owner_following, owner_following_id, shipyard_business, case_agent, case_superintendent, case_superintendent_id,
        case_surveyor, case_delivery_or_service_incharge, case_delivery_or_service_incharge_id, case_delivery_or_service_deadline,
        case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
-       vessel_position, case_settlement_done, case_epd, case_spd,
-       case_incharge, case_memo_name, case_memo_address, case_rank)
+       vessel_position, case_settlement_done,
+       case_personal_register_completed, case_business_register_completed, case_e_filing_completed, case_paper_based_filing_completed,
+       case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_rank)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name ?? null,
       data.invoice_number ?? null,
@@ -435,6 +444,10 @@ export async function createCaseList(data: {
       data.case_etd_cargo_delivery_date ?? null,
       data.vessel_position ?? null,
       data.case_settlement_done ?? null,
+      data.case_personal_register_completed ?? null,
+      data.case_business_register_completed ?? null,
+      data.case_e_filing_completed ?? null,
+      data.case_paper_based_filing_completed ?? null,
       data.case_epd ?? null,
       data.case_spd ?? null,
       data.case_incharge ?? null,
@@ -483,6 +496,10 @@ export async function updateCaseList(
     case_etd_cargo_delivery_date?: string | null
     vessel_position?: string | null
     case_settlement_done?: string | null
+    case_personal_register_completed?: string | null
+    case_business_register_completed?: string | null
+    case_e_filing_completed?: string | null
+    case_paper_based_filing_completed?: string | null
     case_epd?: string | null
     case_spd?: string | null
     case_incharge?: string | null
@@ -521,6 +538,10 @@ export async function updateCaseList(
     'case_etd_cargo_delivery_date',
     'vessel_position',
     'case_settlement_done',
+    'case_personal_register_completed',
+    'case_business_register_completed',
+    'case_e_filing_completed',
+    'case_paper_based_filing_completed',
     'case_epd',
     'case_spd',
     'case_incharge',
@@ -671,6 +692,18 @@ function normalizeRow(row: any): CaseListRow {
     case_settlement_done: row.case_settlement_done
       ? String(row.case_settlement_done)
       : null,
+    case_personal_register_completed: row.case_personal_register_completed
+      ? String(row.case_personal_register_completed)
+      : null,
+    case_business_register_completed: row.case_business_register_completed
+      ? String(row.case_business_register_completed)
+      : null,
+    case_e_filing_completed: row.case_e_filing_completed
+      ? String(row.case_e_filing_completed)
+      : null,
+    case_paper_based_filing_completed: row.case_paper_based_filing_completed
+      ? String(row.case_paper_based_filing_completed)
+      : null,
     case_epd: row.case_epd ? String(row.case_epd) : null,
     case_spd: row.case_spd ? String(row.case_spd) : null,
     case_incharge: row.case_incharge ? String(row.case_incharge) : null,
@@ -778,6 +811,10 @@ export async function ensureCaseListSchema(): Promise<void> {
             \`case_etd_cargo_delivery_date\` DATE NULL COMMENT 'ETD货物交付日期',
             \`vessel_position\` VARCHAR(16) NULL COMMENT '船舶位置',
             \`case_settlement_done\` VARCHAR(16) NULL COMMENT '结算是否完成',
+            \`case_personal_register_completed\` VARCHAR(16) NULL COMMENT '已完成个人表登记',
+            \`case_business_register_completed\` VARCHAR(16) NULL COMMENT '完成经营表登记',
+            \`case_e_filing_completed\` VARCHAR(16) NULL COMMENT '已完成电子归档',
+            \`case_paper_based_filing_completed\` VARCHAR(16) NULL COMMENT '已完成纸质归档',
             \`case_epd\` VARCHAR(32) NULL COMMENT 'EPD',
             \`case_spd\` VARCHAR(32) NULL COMMENT 'SPD',
             \`case_incharge\` VARCHAR(16) NULL COMMENT '案件负责人代码',
@@ -930,9 +967,29 @@ export async function ensureCaseListSchema(): Promise<void> {
           after: 'AFTER vessel_position',
         },
         {
+          col: 'case_personal_register_completed',
+          def: "VARCHAR(16) NULL COMMENT '已完成个人表登记'",
+          after: 'AFTER case_settlement_done',
+        },
+        {
+          col: 'case_business_register_completed',
+          def: "VARCHAR(16) NULL COMMENT '完成经营表登记'",
+          after: 'AFTER case_personal_register_completed',
+        },
+        {
+          col: 'case_e_filing_completed',
+          def: "VARCHAR(16) NULL COMMENT '已完成电子归档'",
+          after: 'AFTER case_business_register_completed',
+        },
+        {
+          col: 'case_paper_based_filing_completed',
+          def: "VARCHAR(16) NULL COMMENT '已完成纸质归档'",
+          after: 'AFTER case_e_filing_completed',
+        },
+        {
           col: 'case_epd',
           def: "VARCHAR(32) NULL COMMENT 'EPD'",
-          after: 'AFTER case_settlement_done',
+          after: 'AFTER case_paper_based_filing_completed',
         },
         {
           col: 'case_spd',

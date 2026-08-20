@@ -1,4 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
+import { Cross2Icon } from '@radix-ui/react-icons'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import {
   type SortingState,
   type VisibilityState,
@@ -11,10 +14,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { SearchIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   TableBody,
   TableCell,
@@ -25,15 +30,10 @@ import {
 import { DataTablePagination } from '@/components/data-table'
 import { DataTableFacetedFilter } from '@/components/data-table/faceted-filter'
 import { DataTableViewOptions } from '@/components/data-table/view-options'
-import { Cross2Icon } from '@radix-ui/react-icons'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { SearchIcon } from 'lucide-react'
+import { fetchVesselAll, fetchVesselGroups } from '../api/client'
 import { type Vessel } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getUsersColumns } from './users-columns'
-import { fetchVesselAll, fetchVesselGroups } from '../api/client'
-import { Skeleton } from '@/components/ui/skeleton'
 
 const route = getRouteApi('/_authenticated/vessel_list/')
 
@@ -148,14 +148,81 @@ export function UsersTable(_: DataTableProps) {
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
-    navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
+    navigate: navigate as unknown as Parameters<
+      typeof useTableUrlState
+    >[0]['navigate'],
     pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
-      { columnId: 'vessel_team', searchKey: 'vesselTeam', type: 'array' },
-      { columnId: 'vessel_flag', searchKey: 'vesselFlag', type: 'array' },
-      { columnId: 'vessel_class', searchKey: 'vesselClass', type: 'array' },
-      { columnId: 'vessel_incharge', searchKey: 'vesselIncharge', type: 'array' },
-      { columnId: 'vessel_fleet_manager', searchKey: 'vesselFleetManager', type: 'array' },
+      {
+        columnId: 'vessel_team',
+        searchKey: 'vesselTeam',
+        type: 'array',
+        serialize: (v: unknown) =>
+          Array.isArray(v) ? (v as unknown[]).join(',') : '',
+        deserialize: (raw: unknown) => {
+          if (Array.isArray(raw))
+            return raw.map((x) => String(x)).filter(Boolean)
+          if (typeof raw === 'string' && raw !== '')
+            return raw.split(',').filter(Boolean)
+          return []
+        },
+      },
+      {
+        columnId: 'vessel_flag',
+        searchKey: 'vesselFlag',
+        type: 'array',
+        serialize: (v: unknown) =>
+          Array.isArray(v) ? (v as unknown[]).join(',') : '',
+        deserialize: (raw: unknown) => {
+          if (Array.isArray(raw))
+            return raw.map((x) => String(x)).filter(Boolean)
+          if (typeof raw === 'string' && raw !== '')
+            return raw.split(',').filter(Boolean)
+          return []
+        },
+      },
+      {
+        columnId: 'vessel_class',
+        searchKey: 'vesselClass',
+        type: 'array',
+        serialize: (v: unknown) =>
+          Array.isArray(v) ? (v as unknown[]).join(',') : '',
+        deserialize: (raw: unknown) => {
+          if (Array.isArray(raw))
+            return raw.map((x) => String(x)).filter(Boolean)
+          if (typeof raw === 'string' && raw !== '')
+            return raw.split(',').filter(Boolean)
+          return []
+        },
+      },
+      {
+        columnId: 'vessel_incharge',
+        searchKey: 'vesselIncharge',
+        type: 'array',
+        serialize: (v: unknown) =>
+          Array.isArray(v) ? (v as unknown[]).join(',') : '',
+        deserialize: (raw: unknown) => {
+          if (Array.isArray(raw))
+            return raw.map((x) => String(x)).filter(Boolean)
+          if (typeof raw === 'string' && raw !== '')
+            return raw.split(',').filter(Boolean)
+          return []
+        },
+      },
+      {
+        columnId: 'vessel_fleet_manager',
+        searchKey: 'vesselFleetManager',
+        type: 'array',
+        serialize: (v: unknown) =>
+          Array.isArray(v) ? (v as unknown[]).join(',') : '',
+        deserialize: (raw: unknown) => {
+          if (Array.isArray(raw))
+            return raw.map((x) => String(x)).filter(Boolean)
+          if (typeof raw === 'string' && raw !== '')
+            return raw.split(',').filter(Boolean)
+          return []
+        },
+      },
     ],
   })
   const {
@@ -169,39 +236,30 @@ export function UsersTable(_: DataTableProps) {
   const vesselName: string =
     (search as unknown as { vesselName?: string }).vesselName ?? ''
 
+  const asStringArray = (v: unknown): string[] => {
+    if (Array.isArray(v)) return v.map((x) => String(x)).filter(Boolean)
+    if (typeof v === 'string' && v !== '') return v.split(',').filter(Boolean)
+    return []
+  }
+
   const vesselTeamFilter = useMemo(
-    () =>
-      Array.isArray((search as any).vesselTeam)
-        ? ((search as any).vesselTeam as string[])
-        : [],
+    () => asStringArray((search as any).vesselTeam),
     [search]
   )
   const vesselFlagFilter = useMemo(
-    () =>
-      Array.isArray((search as any).vesselFlag)
-        ? ((search as any).vesselFlag as string[])
-        : [],
+    () => asStringArray((search as any).vesselFlag),
     [search]
   )
   const vesselClassFilter = useMemo(
-    () =>
-      Array.isArray((search as any).vesselClass)
-        ? ((search as any).vesselClass as string[])
-        : [],
+    () => asStringArray((search as any).vesselClass),
     [search]
   )
   const vesselInchargeFilter = useMemo(
-    () =>
-      Array.isArray((search as any).vesselIncharge)
-        ? ((search as any).vesselIncharge as string[])
-        : [],
+    () => asStringArray((search as any).vesselIncharge),
     [search]
   )
   const vesselFleetManagerFilter = useMemo(
-    () =>
-      Array.isArray((search as any).vesselFleetManager)
-        ? ((search as any).vesselFleetManager as string[])
-        : [],
+    () => asStringArray((search as any).vesselFleetManager),
     [search]
   )
 
@@ -249,10 +307,7 @@ export function UsersTable(_: DataTableProps) {
     vesselFleetManagerFilter,
   ])
 
-  const handleTextFilterChange = (
-    type: 'vesselName',
-    value: string
-  ) => {
+  const handleTextFilterChange = (type: 'vesselName', value: string) => {
     navigate({
       search: (prev: any) => ({
         ...(prev ?? {}),
@@ -308,9 +363,7 @@ export function UsersTable(_: DataTableProps) {
     ensurePageInRange(pageCount)
   }, [pageCount, ensurePageInRange])
 
-  const isFiltered =
-    columnFilters.length > 0 ||
-    vesselName.trim() !== ''
+  const isFiltered = columnFilters.length > 0 || vesselName.trim() !== ''
 
   if (isLoading) {
     return (
@@ -339,7 +392,7 @@ export function UsersTable(_: DataTableProps) {
     <div
       className={cn(
         'max-sm:has-[div[role="toolbar"]]:mb-16',
-        'flex flex-1 flex-col gap-4 overflow-hidden w-full min-w-0'
+        'flex w-full min-w-0 flex-1 flex-col gap-4 overflow-hidden'
       )}
     >
       <div className='flex items-center justify-between gap-2'>
@@ -347,7 +400,9 @@ export function UsersTable(_: DataTableProps) {
           <Input
             placeholder='按船名筛选...'
             value={vesselName}
-            onChange={(e) => handleTextFilterChange('vesselName', e.target.value)}
+            onChange={(e) =>
+              handleTextFilterChange('vesselName', e.target.value)
+            }
             className='h-8 w-37.5 lg:w-62.5'
           />
           <div className='flex gap-x-2'>
@@ -368,16 +423,17 @@ export function UsersTable(_: DataTableProps) {
                 options={teams.map((t) => ({ label: t, value: t }))}
               />
             )}
-            {fleetManagerDict.length > 0 && table.getColumn('vessel_fleet_manager') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('vessel_fleet_manager')!}
-                title='管理公司'
-                options={fleetManagerDict.map((d) => ({
-                  label: d.dict_value,
-                  value: d.dict_key,
-                }))}
-              />
-            )}
+            {fleetManagerDict.length > 0 &&
+              table.getColumn('vessel_fleet_manager') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('vessel_fleet_manager')!}
+                  title='管理公司'
+                  options={fleetManagerDict.map((d) => ({
+                    label: d.dict_value,
+                    value: d.dict_key,
+                  }))}
+                />
+              )}
             {flags.length > 0 && table.getColumn('vessel_flag') && (
               <DataTableFacetedFilter
                 column={table.getColumn('vessel_flag')!}
@@ -411,7 +467,9 @@ export function UsersTable(_: DataTableProps) {
             className='h-8 gap-1'
             onClick={async () => {
               await queryClient.refetchQueries({ queryKey: ['vessel-list'] })
-              await queryClient.refetchQueries({ queryKey: ['vessel-list-groups'] })
+              await queryClient.refetchQueries({
+                queryKey: ['vessel-list-groups'],
+              })
             }}
           >
             <SearchIcon className='size-4' />
@@ -420,7 +478,7 @@ export function UsersTable(_: DataTableProps) {
           <DataTableViewOptions table={table} />
         </div>
       </div>
-      <div className='flex flex-1 flex-col overflow-hidden rounded-md border w-full min-w-0'>
+      <div className='flex w-full min-w-0 flex-1 flex-col overflow-hidden rounded-md border'>
         <div className='relative w-full flex-1 overflow-auto'>
           <table className='w-full min-w-[1200px] table-auto caption-bottom text-sm'>
             <TableHeader className='bg-background'>

@@ -62,6 +62,10 @@ export interface Case {
   case_etd_cargo_delivery_date: string | null
   vessel_position: string | null
   case_settlement_done: string | null
+  case_personal_register_completed: string | null
+  case_business_register_completed: string | null
+  case_e_filing_completed: string | null
+  case_paper_based_filing_completed: string | null
   case_epd: string | null
   case_spd: string | null
   case_incharge: string | null
@@ -225,6 +229,10 @@ export async function createCase(payload: {
   case_etd_cargo_delivery_date?: string | null
   vessel_position?: string | null
   case_settlement_done?: string | null
+  case_personal_register_completed?: string | null
+  case_business_register_completed?: string | null
+  case_e_filing_completed?: string | null
+  case_paper_based_filing_completed?: string | null
   case_epd?: string | null
   case_spd?: string | null
   case_incharge?: string | null
@@ -262,6 +270,10 @@ export async function updateCase(
     case_etd_cargo_delivery_date?: string | null
     vessel_position?: string | null
     case_settlement_done?: string | null
+    case_personal_register_completed?: string | null
+    case_business_register_completed?: string | null
+    case_e_filing_completed?: string | null
+    case_paper_based_filing_completed?: string | null
     case_epd?: string | null
     case_spd?: string | null
     case_incharge?: string | null

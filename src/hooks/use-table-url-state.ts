@@ -98,7 +98,17 @@ export function useTableUrlState(
         }
       } else {
         // default to array type
-        const value = (deserialize(raw) as unknown[]) ?? []
+        const deserialized = (deserialize(raw) as unknown) ?? []
+        let value: unknown[] = []
+        if (Array.isArray(deserialized)) {
+          value = deserialized
+        } else if (
+          deserialized !== null &&
+          deserialized !== undefined &&
+          deserialized !== ''
+        ) {
+          value = [deserialized]
+        }
         if (Array.isArray(value) && value.length > 0) {
           collected.push({ id: cfg.columnId, value })
         }
@@ -131,10 +141,7 @@ export function useTableUrlState(
   const pagination: PaginationState = useMemo(() => {
     const rawPage = (search as SearchRecord)[pageKey]
     const rawPageSize = (search as SearchRecord)[pageSizeKey]
-    const parsePositiveInt = (
-      v: unknown,
-      fallback: number
-    ): number => {
+    const parsePositiveInt = (v: unknown, fallback: number): number => {
       if (typeof v === 'number' && Number.isFinite(v)) {
         return Math.max(1, Math.floor(v))
       }
@@ -174,7 +181,15 @@ export function useTableUrlState(
         }),
       })
     },
-    [navigate, pagination, search, pageKey, defaultPage, pageSizeKey, defaultPageSize]
+    [
+      navigate,
+      pagination,
+      search,
+      pageKey,
+      defaultPage,
+      pageSizeKey,
+      defaultPageSize,
+    ]
   )
 
   const [globalFilter, setGlobalFilter] = useState<string | undefined>(() => {
@@ -215,17 +230,23 @@ export function useTableUrlState(
 
       for (const cfg of columnFiltersCfg) {
         const found = next.find((f) => f.id === cfg.columnId)
-        const serialize = cfg.serialize ?? ((v: unknown) => v)
         if (cfg.type === 'string') {
+          const serialize = cfg.serialize ?? ((v: unknown) => v)
           const value =
             typeof found?.value === 'string' ? (found.value as string) : ''
           patch[cfg.searchKey] =
             value.trim() !== '' ? serialize(value) : undefined
         } else {
-          const value = Array.isArray(found?.value)
+          const serialize = cfg.serialize ?? ((v: unknown) => v)
+          const arr = Array.isArray(found?.value)
             ? (found!.value as unknown[])
             : []
-          patch[cfg.searchKey] = value.length > 0 ? serialize(value) : undefined
+          if (arr.length === 0) {
+            patch[cfg.searchKey] = undefined
+            continue
+          }
+          const serialized = serialize(arr)
+          patch[cfg.searchKey] = serialized
         }
       }
 

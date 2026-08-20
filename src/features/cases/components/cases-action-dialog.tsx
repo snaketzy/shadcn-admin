@@ -347,6 +347,10 @@ const formSchema = z.object({
     )
     .optional()
     .catch(''),
+  case_personal_register_completed: z.string().optional().catch(''),
+  case_business_register_completed: z.string().optional().catch(''),
+  case_e_filing_completed: z.string().optional().catch(''),
+  case_paper_based_filing_completed: z.string().optional().catch(''),
   case_epd: z
     .preprocess(
       (v) => (v === undefined ? '' : formatDateAsHyphen(v)),
@@ -1484,6 +1488,13 @@ export function CasesActionDialog({
             case_settlement_done: formatDateAsHyphen(
               currentRow.case_settlement_done
             ),
+            case_personal_register_completed:
+              currentRow.case_personal_register_completed ?? '',
+            case_business_register_completed:
+              currentRow.case_business_register_completed ?? '',
+            case_e_filing_completed: currentRow.case_e_filing_completed ?? '',
+            case_paper_based_filing_completed:
+              currentRow.case_paper_based_filing_completed ?? '',
             case_epd: formatDateAsHyphen(currentRow.case_epd),
             case_spd: formatDateAsHyphen(currentRow.case_spd),
             case_incharge: currentRow.case_incharge ?? '',
@@ -1518,6 +1529,10 @@ export function CasesActionDialog({
             case_etd_cargo_delivery_date: '',
             vessel_position: '',
             case_settlement_done: '',
+            case_personal_register_completed: defaultUrgentBNoKey,
+            case_business_register_completed: defaultUrgentBNoKey,
+            case_e_filing_completed: defaultUrgentBNoKey,
+            case_paper_based_filing_completed: defaultUrgentBNoKey,
             case_epd: '',
             case_spd: '',
             case_incharge: defaultInchargeEKey,
@@ -1937,6 +1952,13 @@ export function CasesActionDialog({
       ),
       vessel_position: row.vessel_position ?? '',
       case_settlement_done: formatDateAsHyphen(row.case_settlement_done),
+      case_personal_register_completed:
+        row.case_personal_register_completed ?? '',
+      case_business_register_completed:
+        row.case_business_register_completed ?? '',
+      case_e_filing_completed: row.case_e_filing_completed ?? '',
+      case_paper_based_filing_completed:
+        row.case_paper_based_filing_completed ?? '',
       case_epd: formatDateAsHyphen(row.case_epd),
       case_spd: formatDateAsHyphen(row.case_spd),
       case_incharge: row.case_incharge ?? '',
@@ -2000,6 +2022,54 @@ export function CasesActionDialog({
     const cur = form.getValues('case_should_handle_today')
     if (cur && String(cur).trim() !== '') return
     form.setValue('case_should_handle_today', defaultUrgentBNoKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultUrgentBNoKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_personal_register_completed')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_personal_register_completed', defaultUrgentBNoKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultUrgentBNoKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_business_register_completed')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_business_register_completed', defaultUrgentBNoKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultUrgentBNoKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_e_filing_completed')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_e_filing_completed', defaultUrgentBNoKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultUrgentBNoKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultUrgentBNoKey) return
+    const cur = form.getValues('case_paper_based_filing_completed')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_paper_based_filing_completed', defaultUrgentBNoKey, {
       shouldDirty: false,
       shouldValidate: false,
     })
@@ -2491,6 +2561,16 @@ export function CasesActionDialog({
         ),
         vessel_position: toOptStr(values.vessel_position),
         case_settlement_done: toOptStr(values.case_settlement_done),
+        case_personal_register_completed: toOptStr(
+          values.case_personal_register_completed
+        ),
+        case_business_register_completed: toOptStr(
+          values.case_business_register_completed
+        ),
+        case_e_filing_completed: toOptStr(values.case_e_filing_completed),
+        case_paper_based_filing_completed: toOptStr(
+          values.case_paper_based_filing_completed
+        ),
         case_epd: toOptStr(values.case_epd),
         case_spd: toOptStr(values.case_spd),
         case_incharge: toOptStr(values.case_incharge),
@@ -3987,6 +4067,178 @@ export function CasesActionDialog({
                         selected={parseDateOnly(field.value)}
                         onSelect={(d) => field.onChange(toISODateOnly(d))}
                       />
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_personal_register_completed'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    完成个人表登记
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {urgentBOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          urgentBOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_personal_register_completed_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_personal_register_completed_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_business_register_completed'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    完成经营表登记
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {urgentBOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          urgentBOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_business_register_completed_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_business_register_completed_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_e_filing_completed'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    已完成电子归档
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {urgentBOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          urgentBOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_e_filing_completed_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_e_filing_completed_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </FormControl>
+                  </div>
+                  <FormMessage className='col-span-4 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_paper_based_filing_completed'
+              render={({ field }) => (
+                <FormItem className='col-span-1 grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-1 text-end'>
+                    已完成纸质归档
+                  </FormLabel>
+                  <div className='col-span-4'>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value ?? ''}
+                        className='flex flex-wrap items-center gap-4'
+                      >
+                        {urgentBOptions.length === 0 ? (
+                          <div className='text-sm text-muted-foreground'>-</div>
+                        ) : (
+                          urgentBOptions.map((o) => (
+                            <div
+                              key={o.value}
+                              className='flex items-center gap-2'
+                            >
+                              <RadioGroupItem
+                                value={o.value}
+                                id={`case_paper_based_filing_completed_${o.value}`}
+                              />
+                              <Label
+                                htmlFor={`case_paper_based_filing_completed_${o.value}`}
+                                className='cursor-pointer font-normal select-none'
+                              >
+                                {o.label}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
                     </FormControl>
                   </div>
                   <FormMessage className='col-span-4 col-start-3' />
