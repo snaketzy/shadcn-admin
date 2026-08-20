@@ -295,8 +295,10 @@ export async function getCaseListPaginated(params: {
     if (opts?.splitComma) {
       const ors: string[] = []
       for (const val of arr) {
-        ors.push(`(',' || REPLACE(${col}, ', ', ',') || ',' LIKE ?)`)
-        whereParams.push(`%,${val},%`)
+        ors.push(
+          `(UPPER(CONCAT(',', REPLACE(${col}, ', ', ','), ',')) LIKE ?)`
+        )
+        whereParams.push(`%,${String(val).toUpperCase()},%`)
       }
       whereClauses.push(`(${ors.join(' OR ')})`)
     } else {

@@ -63,24 +63,26 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: '当天处理案件列表',
-          url: '/case_today_list',
-          icon: ListChecks,
-        },
-        {
-          title: '成交案件列表',
-          url: '/case_deal_list',
-          icon: Handshake,
-        },
-        {
-          title: '坞修案件列表',
-          url: '/case_drydocking_list',
-          icon: Anchor,
-        },
-        {
           title: '案件列表',
-          url: '/case_list',
           icon: FileText,
+          items: [
+            {
+              title: '全部案件列表',
+              url: '/case_list',
+            },
+            {
+              title: '当天处理案件列表',
+              url: '/case_today_list',
+            },
+            {
+              title: '成交案件列表',
+              url: '/case_deal_list',
+            },
+            {
+              title: '坞修案件列表',
+              url: '/case_drydocking_list',
+            },
+          ],
         },
         {
           title: '供应商列表',

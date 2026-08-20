@@ -9,7 +9,7 @@ export type CaseListFromKey = keyof typeof CASE_LIST_FROM
 export type CaseListFromPath = (typeof CASE_LIST_FROM)[CaseListFromKey]
 
 export const CASE_LIST_TO_LABEL: Record<CaseListFromPath, string> = {
-  '/case_list': '案件列表',
+  '/case_list': '全部案件列表',
   '/case_today_list': '今日待办',
   '/case_deal_list': '我处理的',
   '/case_drydocking_list': '坞修案件列表',
@@ -121,7 +121,7 @@ export function resolveCaseNavFromSearch(
 
   return {
     fromPath,
-    fromLabel: CASE_LIST_TO_LABEL[fromPath] ?? '案件列表',
+    fromLabel: CASE_LIST_TO_LABEL[fromPath] ?? '全部案件列表',
     listSearch,
   }
 }

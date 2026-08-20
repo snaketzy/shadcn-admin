@@ -124,9 +124,7 @@ export async function ensureCaseMemoTable(): Promise<void> {
           >(
             `SHOW INDEX FROM \`${TABLE_NAME}\` WHERE COLUMN_NAME = 'case_id' AND Non_unique = 0`
           )
-          const idxNames = Array.from(
-            new Set(idxRows.map((r) => r.INDEX_NAME))
-          )
+          const idxNames = Array.from(new Set(idxRows.map((r) => r.INDEX_NAME)))
           for (const idx of idxNames) {
             try {
               await execute(
@@ -247,7 +245,9 @@ export async function ensureCaseMemoTable(): Promise<void> {
             for (const k of info.primaryKeys) {
               if (k !== 'case_memo_id') {
                 try {
-                  await execute(`ALTER TABLE \`${TABLE_NAME}\` DROP PRIMARY KEY`)
+                  await execute(
+                    `ALTER TABLE \`${TABLE_NAME}\` DROP PRIMARY KEY`
+                  )
                 } catch {
                   // ignore
                 }
@@ -291,6 +291,25 @@ export async function getCaseMemoListByCaseId(
     `SELECT ${MEMO_SELECT_COLS} FROM \`${TABLE_NAME}\`
      WHERE case_id = ? ORDER BY case_memo_date DESC, case_memo_id DESC`,
     [Number(caseId)]
+  )
+  return rows.map(normalizeMemoRow)
+}
+
+export async function getCaseMemoListByCaseIds(
+  caseIds: number[]
+): Promise<CaseMemoListRow[]> {
+  await ensureCaseMemoTable()
+  const ids = Array.isArray(caseIds)
+    ? caseIds
+        .map((n) => Number(n))
+        .filter((n) => Number.isFinite(n) && n > 0)
+    : []
+  if (ids.length === 0) return []
+  const placeholders = ids.map(() => '?').join(',')
+  const rows = await query<any[]>(
+    `SELECT ${MEMO_SELECT_COLS} FROM \`${TABLE_NAME}\`
+     WHERE case_id IN (${placeholders}) ORDER BY case_memo_date DESC, case_memo_id DESC`,
+    ids as ExecuteValues[]
   )
   return rows.map(normalizeMemoRow)
 }

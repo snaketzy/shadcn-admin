@@ -12,7 +12,7 @@ import { CasesTable } from './components/cases-table'
 export function Cases() {
   useEffect(() => {
     const originalTitle = document.title
-    document.title = `${originalTitle} - 案件列表`
+    document.title = `${originalTitle} - 全部案件列表`
     return () => {
       document.title = originalTitle
     }
