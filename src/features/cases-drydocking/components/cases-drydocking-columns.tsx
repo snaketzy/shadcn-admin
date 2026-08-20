@@ -796,8 +796,8 @@ export function getCasesDrydockingColumns(params?: {
           const hasContent =
             typeof content === 'string' ? content.length > 0 : !!content
           return (
-            <div className='grid grid-cols-[92px_1fr] items-start gap-2 text-sm'>
-              <div className='ps-1 pt-0.5 text-right text-muted-foreground/80'>
+            <div className='grid grid-cols-[144px_1fr] items-start gap-2 text-sm'>
+              <div className='w-full whitespace-nowrap overflow-hidden text-ellipsis ps-1 pt-0.5 text-right text-muted-foreground/80'>
                 {label}
               </div>
               <div className='min-w-0 text-foreground'>
@@ -895,7 +895,7 @@ export function getCasesDrydockingColumns(params?: {
               sideOffset={8}
               onOpenAutoFocus={(e) => e.preventDefault()}
               onCloseAutoFocus={(e) => e.preventDefault()}
-              className='z-[100] flex h-[90vh] w-[620px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95'
+              className='z-[100] flex h-[90vh] w-[668px] max-w-[92vw] flex-col overflow-hidden border border-border/80 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95'
             >
               <div className='flex shrink-0 items-center gap-2 border-b border-border/80 bg-muted/40 px-3.5 py-2.5'>
                 <div className='min-w-0 flex-1'>
