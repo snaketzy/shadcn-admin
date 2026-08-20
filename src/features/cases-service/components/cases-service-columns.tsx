@@ -8,6 +8,7 @@ import {
   StickyNote,
   Pencil,
   FileText,
+  HandFist,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +30,6 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import type { Contact } from '@/features/contacts/api/client'
 import {
   parseAttachments,
   type CaseMemo,
@@ -38,6 +38,7 @@ import {
 import { buildCaseNavSearch } from '@/features/cases/api/nav-helpers'
 import { getBadgeColor } from '@/features/cases/data/data'
 import { type Case } from '@/features/cases/data/schema'
+import type { Contact } from '@/features/contacts/api/client'
 import { DataTableRowActionsService } from './data-table-row-actions-service'
 
 const route = getRouteApi('/_authenticated/case_service_list/')
@@ -242,13 +243,17 @@ export function getCasesServiceColumns(params?: {
   }
 
   function buildServiceInchargeSegments(row: Case): {
-    items: { name: string; company: string }[]
+    items: { name: string; company: string; contactType: string | null }[]
     fallback: string
   } {
     const idRaw = (row as any).case_delivery_or_service_incharge_id as
       string | null | undefined
     const nameRaw = row.case_delivery_or_service_incharge
-    const items: { name: string; company: string }[] = []
+    const items: {
+      name: string
+      company: string
+      contactType: string | null
+    }[] = []
     const seen = new Set<string>()
 
     if (idRaw != null && String(idRaw).trim() !== '' && serviceContactIdMap) {
@@ -263,7 +268,11 @@ export function getCasesServiceColumns(params?: {
         if (!n) continue
         if (seen.has(n)) continue
         seen.add(n)
-        items.push({ name: n, company: resolveDivisionNameByContact(c) })
+        items.push({
+          name: n,
+          company: resolveDivisionNameByContact(c),
+          contactType: c.contact_type ? String(c.contact_type).trim() : null,
+        })
       }
     }
 
@@ -284,11 +293,12 @@ export function getCasesServiceColumns(params?: {
           items.push({
             name: c.contact_name ? String(c.contact_name).trim() : n,
             company: resolveDivisionNameByContact(c),
+            contactType: c.contact_type ? String(c.contact_type).trim() : null,
           })
         } else {
           if (seen.has(n)) continue
           seen.add(n)
-          items.push({ name: n, company: '' })
+          items.push({ name: n, company: '', contactType: null })
         }
       }
     }
@@ -312,6 +322,40 @@ export function getCasesServiceColumns(params?: {
         return `${s.name}-${s.company}`
       })
       .join('，')
+  }
+
+  const J_HAND_SET = new Set(['J1', 'J2', 'J3', 'J10'])
+
+  function renderServiceInchargeNode(row: Case): React.ReactNode {
+    const { items, fallback } = buildServiceInchargeSegments(row)
+    if (items.length === 0) {
+      const resolved = resolveInchargeELabel(fallback)
+      return resolved || '-'
+    }
+    return (
+      <span className='inline-flex max-w-full flex-wrap items-center gap-x-1'>
+        {items.map((s, idx) => {
+          const showHand =
+            s.contactType != null && J_HAND_SET.has(s.contactType.toUpperCase())
+          const label = s.company ? `${s.name}-${s.company}` : s.name
+          return (
+            <span key={`${s.name}-${idx}`} className='inline-flex items-center'>
+              {showHand ? (
+                <HandFist
+                  size={13}
+                  className='me-1 shrink-0 text-muted-foreground/70'
+                  aria-hidden
+                />
+              ) : null}
+              <span className='truncate'>{label}</span>
+              {idx < items.length - 1 ? (
+                <span className='mx-0.5 shrink-0'>，</span>
+              ) : null}
+            </span>
+          )
+        })}
+      </span>
+    )
   }
 
   const isUrgentRow = (raw: unknown): boolean => {
@@ -526,52 +570,52 @@ export function getCasesServiceColumns(params?: {
                           </div>
                           {safeMemoStr((memo as any).case_memo_content) +
                             safeMemoStr((memo as any).case_memo_remark) && (
-                              <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
-                                {safeMemoStr((memo as any).case_memo_content) && (
-                                  <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
-                                    <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
-                                      内容
-                                    </div>
-                                    <div className='max-w-none text-[13px] leading-7'>
-                                      {safeMemoStr(
-                                        (memo as any).case_memo_content
-                                      )}
-                                    </div>
+                            <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
+                              {safeMemoStr((memo as any).case_memo_content) && (
+                                <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
+                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    内容
                                   </div>
-                                )}
-                                {safeMemoStr((memo as any).case_memo_remark) && (
-                                  <div className='rounded-md bg-white/60 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/40'>
-                                    <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
-                                      备注
-                                    </div>
-                                    <div className='max-w-none text-[13px] leading-7'>
-                                      {safeMemoStr(
-                                        (memo as any).case_memo_remark
-                                      )}
-                                    </div>
+                                  <div className='max-w-none text-[13px] leading-7'>
+                                    {safeMemoStr(
+                                      (memo as any).case_memo_content
+                                    )}
                                   </div>
-                                )}
-                                {attach.length > 0 && (
-                                  <div className='rounded-md bg-white/50 p-2 ring-1 ring-amber-200/40'>
-                                    <div className='mb-1 text-[11px] tracking-wide text-amber-700/80 uppercase'>
-                                      附件（{attach.length}）
-                                    </div>
-                                    <ul className='list-inside list-disc space-y-0.5 text-[12px] text-amber-900/90'>
-                                      {attach.map((a, ai) => (
-                                        <li key={ai} className='truncate'>
-                                          <LongText className='max-w-[420px] truncate'>
-                                            {String(a.name ?? '未命名文件')}
-                                          </LongText>
-                                          {typeof a.size === 'number'
-                                            ? ` | ${a.size} B`
-                                            : ''}
-                                        </li>
-                                      ))}
-                                    </ul>
+                                </div>
+                              )}
+                              {safeMemoStr((memo as any).case_memo_remark) && (
+                                <div className='rounded-md bg-white/60 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/40'>
+                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    备注
                                   </div>
-                                )}
-                              </div>
-                            )}
+                                  <div className='max-w-none text-[13px] leading-7'>
+                                    {safeMemoStr(
+                                      (memo as any).case_memo_remark
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              {attach.length > 0 && (
+                                <div className='rounded-md bg-white/50 p-2 ring-1 ring-amber-200/40'>
+                                  <div className='mb-1 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                    附件（{attach.length}）
+                                  </div>
+                                  <ul className='list-inside list-disc space-y-0.5 text-[12px] text-amber-900/90'>
+                                    {attach.map((a, ai) => (
+                                      <li key={ai} className='truncate'>
+                                        <LongText className='max-w-[420px] truncate'>
+                                          {String(a.name ?? '未命名文件')}
+                                        </LongText>
+                                        {typeof a.size === 'number'
+                                          ? ` | ${a.size} B`
+                                          : ''}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -874,35 +918,35 @@ export function getCasesServiceColumns(params?: {
                     inquiryGroups.报价.length > 0 ||
                     inquiryGroups.竞标.length > 0 ||
                     inquiryGroups.中标.length > 0) && (
-                      <>
-                        <Separator className='my-0.5' />
-                        <div className='flex flex-col gap-2.5'>
-                          <div className='text-[11px] tracking-wider text-muted-foreground/70 uppercase'>
-                            询价记录
-                          </div>
-                          {buildInquirySection(
-                            '询价单位',
-                            inquiryGroups.询价,
-                            'slate'
-                          )}
-                          {buildInquirySection(
-                            '报价单位',
-                            inquiryGroups.报价,
-                            'amber'
-                          )}
-                          {buildInquirySection(
-                            '竞标单位',
-                            inquiryGroups.竞标,
-                            'blue'
-                          )}
-                          {buildInquirySection(
-                            '中标单位',
-                            inquiryGroups.中标,
-                            'emerald'
-                          )}
+                    <>
+                      <Separator className='my-0.5' />
+                      <div className='flex flex-col gap-2.5'>
+                        <div className='text-[11px] tracking-wider text-muted-foreground/70 uppercase'>
+                          询价记录
                         </div>
-                      </>
-                    )}
+                        {buildInquirySection(
+                          '询价单位',
+                          inquiryGroups.询价,
+                          'slate'
+                        )}
+                        {buildInquirySection(
+                          '报价单位',
+                          inquiryGroups.报价,
+                          'amber'
+                        )}
+                        {buildInquirySection(
+                          '竞标单位',
+                          inquiryGroups.竞标,
+                          'blue'
+                        )}
+                        {buildInquirySection(
+                          '中标单位',
+                          inquiryGroups.中标,
+                          'emerald'
+                        )}
+                      </div>
+                    </>
+                  )}
                   <Separator className='my-0.5' />
                   <div className='grid grid-cols-1 gap-y-2.5'>
                     {kvRow(
@@ -934,11 +978,11 @@ export function getCasesServiceColumns(params?: {
                     {kvRow(
                       '承运人｜服务负责人',
                       (() => {
-                        const text = renderServiceInchargeText(rowData)
-                        if (!text || text === '-') return null
+                        const node = renderServiceInchargeNode(rowData)
+                        if (node == null) return null
                         return (
                           <LongText className='max-w-[480px] truncate'>
-                            {text}
+                            {node}
                           </LongText>
                         )
                       })()
@@ -965,11 +1009,11 @@ export function getCasesServiceColumns(params?: {
                       '案件负责人',
                       (resolveDict(inchargeEMap, rowData.case_incharge) ||
                         s(rowData.case_incharge)) && (
-                          <LongText className='max-w-[480px] truncate'>
-                            {resolveDict(inchargeEMap, rowData.case_incharge) ||
-                              s(rowData.case_incharge)}
-                          </LongText>
-                        )
+                        <LongText className='max-w-[480px] truncate'>
+                          {resolveDict(inchargeEMap, rowData.case_incharge) ||
+                            s(rowData.case_incharge)}
+                        </LongText>
+                      )
                     )}
                   </div>
                 </div>
@@ -1332,7 +1376,7 @@ export function getCasesServiceColumns(params?: {
       cell: ({ row }) => {
         return (
           <LongText className='max-w-[180px]'>
-            {renderServiceInchargeText(row.original)}
+            {renderServiceInchargeNode(row.original)}
           </LongText>
         )
       },
@@ -1350,8 +1394,7 @@ export function getCasesServiceColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_delivery_or_service_deadline') as
-          | string
-          | null
+          string | null
         const formatted = formatDateAsHyphen(value)
         return <div>{formatted || '-'}</div>
       },
@@ -1386,8 +1429,7 @@ export function getCasesServiceColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_etb_cargo_departure_date') as
-          | string
-          | null
+          string | null
         const formatted = formatDateAsHyphen(value)
         return <div>{formatted || '-'}</div>
       },
@@ -1403,8 +1445,7 @@ export function getCasesServiceColumns(params?: {
       ),
       cell: ({ row }) => {
         const value = row.getValue('case_etd_cargo_delivery_date') as
-          | string
-          | null
+          string | null
         const formatted = formatDateAsHyphen(value)
         return <div>{formatted || '-'}</div>
       },

@@ -8,6 +8,7 @@ import {
   StickyNote,
   Pencil,
   FileText,
+  HandFist,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -242,13 +243,17 @@ export function getCasesDealColumns(params?: {
   }
 
   function buildServiceInchargeSegments(row: Case): {
-    items: { name: string; company: string }[]
+    items: { name: string; company: string; contactType: string | null }[]
     fallback: string
   } {
     const idRaw = (row as any).case_delivery_or_service_incharge_id as
       string | null | undefined
     const nameRaw = row.case_delivery_or_service_incharge
-    const items: { name: string; company: string }[] = []
+    const items: {
+      name: string
+      company: string
+      contactType: string | null
+    }[] = []
     const seen = new Set<string>()
 
     if (idRaw != null && String(idRaw).trim() !== '' && serviceContactIdMap) {
@@ -263,7 +268,11 @@ export function getCasesDealColumns(params?: {
         if (!n) continue
         if (seen.has(n)) continue
         seen.add(n)
-        items.push({ name: n, company: resolveDivisionNameByContact(c) })
+        items.push({
+          name: n,
+          company: resolveDivisionNameByContact(c),
+          contactType: c.contact_type ? String(c.contact_type).trim() : null,
+        })
       }
     }
 
@@ -284,11 +293,12 @@ export function getCasesDealColumns(params?: {
           items.push({
             name: c.contact_name ? String(c.contact_name).trim() : n,
             company: resolveDivisionNameByContact(c),
+            contactType: c.contact_type ? String(c.contact_type).trim() : null,
           })
         } else {
           if (seen.has(n)) continue
           seen.add(n)
-          items.push({ name: n, company: '' })
+          items.push({ name: n, company: '', contactType: null })
         }
       }
     }
@@ -312,6 +322,40 @@ export function getCasesDealColumns(params?: {
         return `${s.name}-${s.company}`
       })
       .join('，')
+  }
+
+  const J_HAND_SET = new Set(['J1', 'J2', 'J3', 'J10'])
+
+  function renderServiceInchargeNode(row: Case): React.ReactNode {
+    const { items, fallback } = buildServiceInchargeSegments(row)
+    if (items.length === 0) {
+      const resolved = resolveInchargeELabel(fallback)
+      return resolved || '-'
+    }
+    return (
+      <span className='inline-flex max-w-full flex-wrap items-center gap-x-1'>
+        {items.map((s, idx) => {
+          const showHand =
+            s.contactType != null && J_HAND_SET.has(s.contactType.toUpperCase())
+          const label = s.company ? `${s.name}-${s.company}` : s.name
+          return (
+            <span key={`${s.name}-${idx}`} className='inline-flex items-center'>
+              {showHand ? (
+                <HandFist
+                  size={13}
+                  className='me-1 shrink-0 text-muted-foreground/70'
+                  aria-hidden
+                />
+              ) : null}
+              <span className='truncate'>{label}</span>
+              {idx < items.length - 1 ? (
+                <span className='mx-0.5 shrink-0'>，</span>
+              ) : null}
+            </span>
+          )
+        })}
+      </span>
+    )
   }
 
   const isUrgentRow = (raw: unknown): boolean => {
@@ -934,11 +978,11 @@ export function getCasesDealColumns(params?: {
                     {kvRow(
                       '承运人｜服务负责人',
                       (() => {
-                        const text = renderServiceInchargeText(rowData)
-                        if (!text || text === '-') return null
+                        const node = renderServiceInchargeNode(rowData)
+                        if (node == null) return null
                         return (
                           <LongText className='max-w-[480px] truncate'>
-                            {text}
+                            {node}
                           </LongText>
                         )
                       })()
@@ -1332,7 +1376,7 @@ export function getCasesDealColumns(params?: {
       cell: ({ row }) => {
         return (
           <LongText className='max-w-[180px]'>
-            {renderServiceInchargeText(row.original)}
+            {renderServiceInchargeNode(row.original)}
           </LongText>
         )
       },
