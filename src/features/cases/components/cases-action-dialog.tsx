@@ -472,6 +472,14 @@ export function CasesActionDialog({
     staleTime: 60000,
   })
 
+  const todayStr = useMemo<string>(() => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = d.getMonth() + 1
+    const day = d.getDate()
+    return `${y}-${pad2(m)}-${pad2(day)}`
+  }, [])
+
   const urgentBOptions = useMemo<{ value: string; label: string }[]>(() => {
     const list = (urgentBRows as CaseDict[]) ?? []
     return list.map((d) => ({
@@ -540,6 +548,16 @@ export function CasesActionDialog({
     }))
   }, [inchargeERows])
 
+  const defaultInchargeEKey = useMemo<string>(() => {
+    const list = (inchargeERows as CaseDict[]) ?? []
+    const jerryHit = list.find((d) => {
+      const v = String(d.dict_value ?? '').trim()
+      return v.toUpperCase() === 'JERRY' || v === 'Jerry' || v === 'jerry'
+    })
+    if (jerryHit) return String(jerryHit.dict_key ?? '')
+    return ''
+  }, [inchargeERows])
+
   const { data: rankDRows = [] } = useQuery({
     queryKey: ['case-dict-prefix-D'],
     queryFn: () => fetchCaseDictByKeyPrefix('D'),
@@ -588,6 +606,26 @@ export function CasesActionDialog({
       value: String(d.dict_key ?? ''),
       label: String(d.dict_value ?? d.dict_key ?? ''),
     }))
+  }, [progressRRows])
+
+  const defaultProgressRInquiryKey = useMemo<string>(() => {
+    const list = (progressRRows as CaseDict[]) ?? []
+    const inquiryHit = list.find((d) => {
+      const k = String(d.dict_key ?? '').trim()
+      const v = String(d.dict_value ?? '')
+        .trim()
+        .toUpperCase()
+      return (
+        k === '0' ||
+        v === 'INQUIRY' ||
+        v.includes('INQUIRY') ||
+        v === '询价' ||
+        v.includes('询价')
+      )
+    })
+    if (inquiryHit) return String(inquiryHit.dict_key ?? '')
+    const first = list[0]
+    return first ? String(first.dict_key ?? '') : ''
   }, [progressRRows])
 
   const progressRKeyToLabel = useMemo(() => {
@@ -1458,12 +1496,12 @@ export function CasesActionDialog({
             invoice_number: '',
             order_number: '',
             case_inquiry_keyword: '',
-            case_progress: '',
+            case_progress: defaultProgressRInquiryKey,
             case_urgent: defaultUrgentBNoKey,
             case_inquiry_type: '',
-            case_inquiry_date: '',
-            case_follow_date: '',
-            case_uptodate_date: '',
+            case_inquiry_date: todayStr,
+            case_follow_date: todayStr,
+            case_uptodate_date: todayStr,
             case_should_handle_today: defaultUrgentBNoKey,
             owner_following: '',
             owner_following_id: '',
@@ -1482,12 +1520,19 @@ export function CasesActionDialog({
             case_settlement_done: '',
             case_epd: '',
             case_spd: '',
-            case_incharge: '',
+            case_incharge: defaultInchargeEKey,
             case_memo_name: '',
             case_memo_address: '',
             case_rank: '',
           },
-    [isEdit, currentRow, defaultUrgentBNoKey]
+    [
+      isEdit,
+      currentRow,
+      defaultUrgentBNoKey,
+      todayStr,
+      defaultProgressRInquiryKey,
+      defaultInchargeEKey,
+    ]
   )
 
   const form = useForm<CaseForm>({
@@ -1959,6 +2004,57 @@ export function CasesActionDialog({
       shouldValidate: false,
     })
   }, [open, isEdit, defaultUrgentBNoKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultProgressRInquiryKey) return
+    const cur = form.getValues('case_progress')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_progress', defaultProgressRInquiryKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultProgressRInquiryKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!defaultInchargeEKey) return
+    const cur = form.getValues('case_incharge')
+    if (cur && String(cur).trim() !== '') return
+    form.setValue('case_incharge', defaultInchargeEKey, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, defaultInchargeEKey, form])
+
+  useEffect(() => {
+    if (!open) return
+    if (isEdit) return
+    if (!todayStr) return
+    const curInq = form.getValues('case_inquiry_date')
+    if (!curInq || String(curInq).trim() === '') {
+      form.setValue('case_inquiry_date', todayStr, {
+        shouldDirty: false,
+        shouldValidate: false,
+      })
+    }
+    const curFollow = form.getValues('case_follow_date')
+    if (!curFollow || String(curFollow).trim() === '') {
+      form.setValue('case_follow_date', todayStr, {
+        shouldDirty: false,
+        shouldValidate: false,
+      })
+    }
+    const curUpd = form.getValues('case_uptodate_date')
+    if (!curUpd || String(curUpd).trim() === '') {
+      form.setValue('case_uptodate_date', todayStr, {
+        shouldDirty: false,
+        shouldValidate: false,
+      })
+    }
+  }, [open, isEdit, todayStr, form])
 
   const handleVesselPicked = useCallback(
     (r: VesselPickerResult) => {
