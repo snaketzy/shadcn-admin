@@ -753,9 +753,18 @@ export function getCasesDrydockingColumns(params?: {
           : []
         const groupInquirySuppliers = (
           matcher: (label: string) => boolean
-        ): { supplier: string; date: string; typeLabel: string }[] => {
-          const out: { supplier: string; date: string; typeLabel: string }[] =
-            []
+        ): {
+          supplier: string
+          date: string
+          typeLabel: string
+          remark: string | null
+        }[] => {
+          const out: {
+            supplier: string
+            date: string
+            typeLabel: string
+            remark: string | null
+          }[] = []
           for (const r of inquiries) {
             const typeLabel = resolveInquiryQLabel(r.case_inquiry_type)
             if (!matcher(typeLabel)) continue
@@ -764,6 +773,7 @@ export function getCasesDrydockingColumns(params?: {
               supplier: supplier || '未指定供应商',
               date: s(r.case_inquired_date),
               typeLabel,
+              remark: s((r as any).remark) || null,
             })
           }
           return out
@@ -797,7 +807,7 @@ export function getCasesDrydockingColumns(params?: {
             typeof content === 'string' ? content.length > 0 : !!content
           return (
             <div className='grid grid-cols-[144px_1fr] items-start gap-2 text-sm'>
-              <div className='w-full whitespace-nowrap overflow-hidden text-ellipsis ps-1 pt-0.5 text-right text-muted-foreground/80'>
+              <div className='w-full overflow-hidden ps-1 pt-0.5 text-right text-ellipsis whitespace-nowrap text-muted-foreground/80'>
                 {label}
               </div>
               <div className='min-w-0 text-foreground'>
@@ -812,7 +822,12 @@ export function getCasesDrydockingColumns(params?: {
         }
         const buildInquirySection = (
           title: string,
-          rows: { supplier: string; date: string; typeLabel: string }[],
+          rows: {
+            supplier: string
+            date: string
+            typeLabel: string
+            remark: string | null
+          }[],
           accent: string
         ) => {
           if (rows.length === 0) return null
@@ -859,8 +874,13 @@ export function getCasesDrydockingColumns(params?: {
                     <LongText className='max-w-[420px] truncate font-medium text-slate-900'>
                       {r.supplier}
                     </LongText>
-                    <span className='shrink-0 text-xs text-slate-600'>
-                      {r.date}
+                    <span className='inline-flex shrink-0 items-center gap-x-1.5 text-xs'>
+                      {r.remark && r.remark.trim() !== '' ? (
+                        <LongText className='max-w-[220px] truncate text-slate-500'>
+                          {r.remark}
+                        </LongText>
+                      ) : null}
+                      <span className='text-slate-600'>{r.date}</span>
                     </span>
                   </li>
                 ))}
