@@ -427,6 +427,7 @@ export interface CaseMemoAttachment {
   name: string
   size?: number
   type?: string
+  data?: string
 }
 
 export function parseAttachments(
@@ -439,6 +440,65 @@ export function parseAttachments(
     return arr
   } catch {
     return []
+  }
+}
+
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp']
+const TEXT_EXTS = ['txt', 'csv', 'md']
+const PDF_EXT = 'pdf'
+
+export function getAttachmentExt(name: string): string {
+  const i = name.lastIndexOf('.')
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
+}
+export function isImageAttachment(name: string): boolean {
+  return IMAGE_EXTS.includes(getAttachmentExt(name))
+}
+export function isTextAttachment(name: string): boolean {
+  return TEXT_EXTS.includes(getAttachmentExt(name))
+}
+export function isPdfAttachment(name: string): boolean {
+  return getAttachmentExt(name) === PDF_EXT
+}
+export function isPreviewableAttachment(name: string): boolean {
+  return (
+    isImageAttachment(name) ||
+    isTextAttachment(name) ||
+    isPdfAttachment(name)
+  )
+}
+
+export function formatAttachmentSize(bytes: number | undefined): string {
+  if (bytes === undefined) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+export function triggerAttachmentDownload(att: CaseMemoAttachment): void {
+  const url = att.data ?? ''
+  if (!url) return
+  const a = document.createElement('a')
+  a.href = url
+  a.download = att.name
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
+export function openAttachmentInNewTab(att: CaseMemoAttachment): void {
+  const url = att.data ?? ''
+  if (!url) return
+  const w = window.open(url, '_blank', 'noopener,noreferrer')
+  if (w) w.focus()
+}
+
+export function handleAttachmentQuickAction(att: CaseMemoAttachment): void {
+  if (!att.data) return
+  if (isPreviewableAttachment(att.name)) {
+    openAttachmentInNewTab(att)
+  } else {
+    triggerAttachmentDownload(att)
   }
 }
 

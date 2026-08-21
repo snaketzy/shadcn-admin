@@ -33,6 +33,8 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import {
   parseAttachments,
+  handleAttachmentQuickAction,
+  formatAttachmentSize,
   type CaseMemo,
   type CaseInquiry,
 } from '@/features/cases/api/client'
@@ -660,21 +662,38 @@ export function getCasesDrydockingColumns(params?: {
                               )}
                               {attach.length > 0 && (
                                 <div className='rounded-md bg-white/50 p-2 ring-1 ring-amber-200/40'>
-                                  <div className='mb-1 text-[11px] tracking-wide text-amber-700/80 uppercase'>
+                                  <div className='mb-1.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
                                     附件（{attach.length}）
+                                    <span className='ml-2 text-[10px] text-amber-800/60 normal-case'>
+                                      · 点击附件可预览/下载
+                                    </span>
                                   </div>
-                                  <ul className='list-inside list-disc space-y-0.5 text-[12px] text-amber-900/90'>
+                                  <div className='flex flex-wrap gap-1.5'>
                                     {attach.map((a, ai) => (
-                                      <li key={ai} className='truncate'>
-                                        <LongText className='max-w-[420px] truncate'>
+                                      <Badge
+                                        key={ai}
+                                        variant='outline'
+                                        className={cn(
+                                          'gap-1 rounded-full border-amber-200/80 bg-white/70 px-2.5 py-0.5 text-[11px] font-normal text-amber-900 transition-colors',
+                                          a.data
+                                            ? 'cursor-pointer hover:bg-amber-100/80'
+                                            : 'opacity-80'
+                                        )}
+                                        onClick={() =>
+                                          handleAttachmentQuickAction(a)
+                                        }
+                                      >
+                                        <span className='max-w-[16rem] truncate'>
                                           {String(a.name ?? '未命名文件')}
-                                        </LongText>
-                                        {typeof a.size === 'number'
-                                          ? ` · ${a.size} B`
-                                          : ''}
-                                      </li>
+                                        </span>
+                                        {typeof a.size === 'number' && (
+                                          <span className='opacity-60'>
+                                            ({formatAttachmentSize(a.size)})
+                                          </span>
+                                        )}
+                                      </Badge>
                                     ))}
-                                  </ul>
+                                  </div>
                                 </div>
                               )}
                             </div>

@@ -10,6 +10,10 @@ import {
   Trash2 as Trash2Icon,
   StickyNote as StickyNoteIcon,
   Pencil as PencilIcon,
+  Download as DownloadIcon,
+  ExternalLink as ExternalLinkIcon,
+  FileText as FileTextIcon,
+  Image as ImageIcon,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -31,9 +35,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogClose,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { DateTimePicker } from '@/components/date-picker'
@@ -120,6 +127,63 @@ function filenameAllowed(name: string): boolean {
   return ALLOWED_ATTACHMENT_EXTS.includes(ext)
 }
 
+function getExt(name: string): string {
+  const i = name.lastIndexOf('.')
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
+}
+
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp']
+const TEXT_EXTS = ['txt', 'csv', 'md']
+const PDF_EXT = 'pdf'
+
+function isImageExt(name: string): boolean {
+  return IMAGE_EXTS.includes(getExt(name))
+}
+function isTextExt(name: string): boolean {
+  return TEXT_EXTS.includes(getExt(name))
+}
+function isPdfExt(name: string): boolean {
+  return getExt(name) === PDF_EXT
+}
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error ?? new Error('文件读取失败'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function dataUrlFromAttachment(att: CaseMemoAttachment): string {
+  if (att.data) return att.data
+  return ''
+}
+
+function triggerDownload(att: CaseMemoAttachment) {
+  const url = dataUrlFromAttachment(att)
+  if (!url) {
+    toast.warning('该附件未包含文件内容，无法下载')
+    return
+  }
+  const a = document.createElement('a')
+  a.href = url
+  a.download = att.name
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
+function openInNewTab(att: CaseMemoAttachment) {
+  const url = dataUrlFromAttachment(att)
+  if (!url) {
+    toast.warning('该附件未包含文件内容，无法预览')
+    return
+  }
+  const w = window.open(url, '_blank', 'noopener,noreferrer')
+  if (w) w.focus()
+}
+
 export function CasesMemoDialog({
   open = true,
   onOpenChange,
@@ -135,6 +199,7 @@ export function CasesMemoDialog({
   const [memoContent, setMemoContent] = useState<string>('')
   const [memoRemark, setMemoRemark] = useState<string>('')
   const [attachments, setAttachments] = useState<CaseMemoAttachment[]>([])
+  const [previewAtt, setPreviewAtt] = useState<CaseMemoAttachment | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const isEditMode = Boolean(editingMemo)
@@ -339,10 +404,11 @@ export function CasesMemoDialog({
     },
   })
 
-  const handleAttachmentsPick = (files: FileList | null) => {
+  const handleAttachmentsPick = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     const accepted: CaseMemoAttachment[] = []
     const rejected: string[] = []
+    const toRead: Array<{ f: File; a: CaseMemoAttachment }> = []
     for (let i = 0; i < files.length; i++) {
       const f = files[i]
       if (f.size > MAX_ATTACHMENT_SIZE) {
@@ -353,11 +419,28 @@ export function CasesMemoDialog({
         rejected.push(`${f.name}：不支持该类型`)
         continue
       }
-      accepted.push({
+      const a: CaseMemoAttachment = {
         name: f.name,
         size: f.size,
         type: f.type || undefined,
-      })
+      }
+      accepted.push(a)
+      toRead.push({ f, a })
+    }
+    if (toRead.length > 0) {
+      try {
+        await Promise.all(
+          toRead.map(async ({ f, a }) => {
+            try {
+              a.data = await readFileAsDataURL(f)
+            } catch {
+              // 读取失败则跳过 data 字段
+            }
+          })
+        )
+      } catch {
+        // ignore
+      }
     }
     if (rejected.length > 0) {
       toast.warning(`以下文件未添加：${rejected.join('；')}`)
@@ -506,7 +589,11 @@ export function CasesMemoDialog({
                   <Badge
                     key={`${a.name}-${idx}`}
                     variant='secondary'
-                    className='h-8 gap-1 rounded-full px-3 py-0 text-xs font-normal'
+                    className='h-8 cursor-pointer gap-1 rounded-full px-3 py-0 text-xs font-normal transition-colors hover:bg-secondary/80'
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPreviewAtt(a)
+                    }}
                   >
                     <PaperclipIcon size={12} className='opacity-70' />
                     <span className='max-w-[16rem] truncate'>{a.name}</span>
@@ -518,11 +605,12 @@ export function CasesMemoDialog({
                     <button
                       type='button'
                       aria-label={`移除附件 ${a.name}`}
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation()
                         setAttachments((prev) =>
                           prev.filter((_, i) => i !== idx)
                         )
-                      }
+                      }}
                       className='ms-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-foreground/10'
                     >
                       <XIcon size={12} />
@@ -581,6 +669,7 @@ export function CasesMemoDialog({
                         deleteMutation.mutate(m.case_memo_id)
                       }
                     }}
+                    onPreviewAttachment={(att) => setPreviewAtt(att)}
                   />
                 ))}
               </div>
@@ -671,7 +760,199 @@ export function CasesMemoDialog({
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog
+        open={previewAtt !== null}
+        onOpenChange={(s) => {
+          if (!s) setPreviewAtt(null)
+        }}
+      >
+        <DialogContent
+          showCloseButton={true}
+          className='flex h-[90vh] max-h-[90vh] w-[92vw] flex-col overflow-hidden p-0 sm:max-w-5xl'
+        >
+          {previewAtt && (
+            <>
+              <DialogHeader className='shrink-0 flex-row items-center justify-between gap-3 border-b px-6 py-4 text-start'>
+                <div className='flex min-w-0 flex-col gap-1'>
+                  <DialogTitle className='flex flex-wrap items-center gap-2 text-base leading-6'>
+                    {isImageExt(previewAtt.name) ? (
+                      <ImageIcon size={18} className='text-primary' />
+                    ) : (
+                      <FileTextIcon size={18} className='text-primary' />
+                    )}
+                    <span className='break-all'>{previewAtt.name}</span>
+                  </DialogTitle>
+                  <DialogDescription className='text-xs'>
+                    {previewAtt.size != null && formatBytes(previewAtt.size)}
+                    {previewAtt.type && (
+                      <>
+                        <span className='mx-1.5 opacity-40'>·</span>
+                        <span className='font-mono'>{previewAtt.type}</span>
+                      </>
+                    )}
+                  </DialogDescription>
+                </div>
+                <div className='flex shrink-0 items-center gap-2'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='h-9 gap-1.5'
+                    onClick={() => triggerDownload(previewAtt)}
+                  >
+                    <DownloadIcon size={15} />
+                    <span>下载</span>
+                  </Button>
+                  {(isPdfExt(previewAtt.name) ||
+                    isImageExt(previewAtt.name) ||
+                    isTextExt(previewAtt.name)) && (
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      className='h-9 gap-1.5'
+                      onClick={() => openInNewTab(previewAtt)}
+                    >
+                      <ExternalLinkIcon size={15} />
+                      <span>新标签页</span>
+                    </Button>
+                  )}
+                </div>
+              </DialogHeader>
+              <AttachmentPreviewBody att={previewAtt} />
+              <DialogFooter className='shrink-0 border-t px-6 py-3'>
+                <DialogClose asChild>
+                  <Button variant='outline' size='sm' className='h-9'>
+                    关闭
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
+  )
+}
+
+function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
+  const url = dataUrlFromAttachment(att)
+  const ext = getExt(att.name)
+
+  if (!url) {
+    return (
+      <div className='flex flex-1 items-center justify-center p-10'>
+        <Card className='w-full max-w-md border-dashed shadow-none'>
+          <CardContent className='space-y-3 py-8 text-center'>
+            <FileTextIcon
+              size={36}
+              className='mx-auto text-muted-foreground/70'
+            />
+            <div className='text-sm font-medium text-foreground/90'>
+              暂无预览内容
+            </div>
+            <div className='text-xs text-muted-foreground'>
+              该附件由旧数据导入，未包含文件内容，无法在线预览。
+              <br />
+              请在编辑时重新上传以启用预览。
+            </div>
+            <div className='pt-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-9 gap-1.5'
+                onClick={() => triggerDownload(att)}
+              >
+                <DownloadIcon size={15} />
+                <span>尝试下载</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (isImageExt(att.name)) {
+    return (
+      <ScrollArea className='min-h-0 flex-1'>
+        <div className='flex min-h-full items-start justify-center bg-muted/20 p-6'>
+          <img
+            src={url}
+            alt={att.name}
+            className='h-auto max-w-full rounded-md border border-border/60 bg-white shadow-sm'
+            style={{ imageRendering: 'auto' }}
+          />
+        </div>
+      </ScrollArea>
+    )
+  }
+
+  if (isTextExt(att.name)) {
+    const [text, setText] = useState<string>('')
+    useEffect(() => {
+      let cancelled = false
+      const run = async () => {
+        try {
+          const resp = await fetch(url)
+          const t = await resp.text()
+          if (!cancelled) setText(t)
+        } catch {
+          if (!cancelled) setText('')
+        }
+      }
+      void run()
+      return () => {
+        cancelled = true
+      }
+    }, [url])
+    return (
+      <ScrollArea className='min-h-0 flex-1'>
+        <pre className='min-h-full bg-muted/20 p-6 font-mono text-[13px] leading-6 break-words whitespace-pre-wrap text-foreground/90'>
+          {text || '（加载中...）'}
+        </pre>
+      </ScrollArea>
+    )
+  }
+
+  if (isPdfExt(att.name)) {
+    return (
+      <div className='min-h-0 flex-1 bg-muted/20 p-3'>
+        <iframe
+          src={url}
+          title={att.name}
+          className='h-full w-full rounded-md border border-border/60 bg-white'
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className='flex flex-1 items-center justify-center p-10'>
+      <Card className='w-full max-w-md border-dashed shadow-none'>
+        <CardContent className='space-y-3 py-8 text-center'>
+          <FileTextIcon
+            size={36}
+            className='mx-auto text-muted-foreground/70'
+          />
+          <div className='text-sm font-medium text-foreground/90'>
+            .{ext.toUpperCase()} 文件不支持在线预览
+          </div>
+          <div className='text-xs text-muted-foreground'>
+            该类型需要 Office / WPS 等本地软件打开，请先下载。
+          </div>
+          <div className='pt-2'>
+            <Button
+              size='sm'
+              className='h-9 gap-1.5'
+              onClick={() => triggerDownload(att)}
+            >
+              <DownloadIcon size={15} />
+              <span>下载附件</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -681,12 +962,14 @@ function MemoHistoryItem({
   isEditing,
   onEdit,
   onDelete,
+  onPreviewAttachment,
 }: {
   memo: CaseMemo
   isDeleting: boolean
   isEditing?: boolean
   onEdit?: () => void
   onDelete: () => void
+  onPreviewAttachment?: (att: CaseMemoAttachment) => void
 }) {
   const atts = useMemo(
     () => parseAttachments(memo.case_memo_attachment),
@@ -805,7 +1088,12 @@ function MemoHistoryItem({
                 <Badge
                   key={`${a.name}-${i}`}
                   variant='secondary'
-                  className='gap-1 rounded-full px-2.5 py-0.5 text-xs font-normal'
+                  className={cn(
+                    'gap-1 rounded-full px-2.5 py-0.5 text-xs font-normal transition-colors',
+                    onPreviewAttachment &&
+                      'cursor-pointer hover:bg-secondary/80'
+                  )}
+                  onClick={() => onPreviewAttachment?.(a)}
                 >
                   <PaperclipIcon size={11} className='opacity-70' />
                   <span className='max-w-[14rem] truncate'>{a.name}</span>
