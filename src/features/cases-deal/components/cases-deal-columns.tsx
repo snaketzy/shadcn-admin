@@ -9,6 +9,7 @@ import {
   Pencil,
   FileText,
   HandFist,
+  Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -517,18 +518,21 @@ export function getCasesDealColumns(params?: {
         const hasOrderNumber = Boolean(
           String(row.original.order_number ?? '').trim()
         )
+        const rankKey = String(row.original.case_rank ?? '').trim()
+        const isStar = rankKey.length > 0 && rankKey.toUpperCase() === 'D2'
         const caseId = Number((row.original as any)?.case_id)
         const memos: CaseMemo[] =
           (Number.isFinite(caseId)
             ? getCaseIdMemosMap?.()?.get(caseId)
             : undefined) ?? []
         const hasMemo = memos.length > 0
-        if (!urgent && !handleToday && !hasOrderNumber && !hasMemo)
+        if (!urgent && !handleToday && !hasOrderNumber && !isStar && !hasMemo)
           return <div className='h-full w-full' aria-hidden />
         const basicTooltip: string[] = []
         if (urgent) basicTooltip.push('紧急案件')
         if (handleToday) basicTooltip.push('当日需处理')
         if (hasOrderNumber) basicTooltip.push('已成交')
+        if (isStar) basicTooltip.push('重要评级')
         if (hasMemo) basicTooltip.push(`含 ${memos.length} 条案件备忘`)
         const trigger = (
           <div
@@ -550,6 +554,12 @@ export function getCasesDealColumns(params?: {
             {hasOrderNumber && (
               <Handshake
                 className='size-4 shrink-0 fill-emerald-100 text-emerald-600'
+                aria-hidden
+              />
+            )}
+            {isStar && (
+              <Star
+                className='size-4 shrink-0 fill-yellow-200 text-yellow-600'
                 aria-hidden
               />
             )}
@@ -753,18 +763,9 @@ export function getCasesDealColumns(params?: {
           : []
         const groupInquirySuppliers = (
           matcher: (label: string) => boolean
-        ): {
-          supplier: string
-          date: string
-          typeLabel: string
-          remark: string | null
-        }[] => {
-          const out: {
-            supplier: string
-            date: string
-            typeLabel: string
-            remark: string | null
-          }[] = []
+        ): { supplier: string; date: string; typeLabel: string }[] => {
+          const out: { supplier: string; date: string; typeLabel: string }[] =
+            []
           for (const r of inquiries) {
             const typeLabel = resolveInquiryQLabel(r.case_inquiry_type)
             if (!matcher(typeLabel)) continue
@@ -773,7 +774,6 @@ export function getCasesDealColumns(params?: {
               supplier: supplier || '未指定供应商',
               date: s(r.case_inquired_date),
               typeLabel,
-              remark: s((r as any).remark) || null,
             })
           }
           return out
@@ -822,12 +822,7 @@ export function getCasesDealColumns(params?: {
         }
         const buildInquirySection = (
           title: string,
-          rows: {
-            supplier: string
-            date: string
-            typeLabel: string
-            remark: string | null
-          }[],
+          rows: { supplier: string; date: string; typeLabel: string }[],
           accent: string
         ) => {
           if (rows.length === 0) return null
@@ -874,13 +869,8 @@ export function getCasesDealColumns(params?: {
                     <LongText className='max-w-[420px] truncate font-medium text-slate-900'>
                       {r.supplier}
                     </LongText>
-                    <span className='inline-flex shrink-0 items-center gap-x-1.5 text-xs'>
-                      {r.remark && r.remark.trim() !== '' ? (
-                        <LongText className='max-w-[220px] truncate text-slate-500'>
-                          {r.remark}
-                        </LongText>
-                      ) : null}
-                      <span className='text-slate-600'>{r.date}</span>
+                    <span className='shrink-0 text-xs text-slate-600'>
+                      {r.date}
                     </span>
                   </li>
                 ))}
