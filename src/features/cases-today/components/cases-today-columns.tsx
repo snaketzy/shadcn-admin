@@ -536,7 +536,7 @@ export function getCasesTodayColumns(params?: {
         if (hasMemo) basicTooltip.push(`含 ${memos.length} 条案件备忘`)
         const trigger = (
           <div
-            className='flex w-full items-center justify-center gap-1'
+            className='flex w-full flex-wrap items-center justify-center gap-1 py-0.5'
             title={basicTooltip.join(' / ')}
           >
             {urgent && (
