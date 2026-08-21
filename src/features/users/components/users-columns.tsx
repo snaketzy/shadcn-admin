@@ -11,7 +11,9 @@ import { type VesselDictEntry } from '../api/client'
 
 export function getUsersColumns(
   inchargeDict: VesselDictEntry[] = [],
-  fleetManagerDict: VesselDictEntry[] = []
+  fleetManagerDict: VesselDictEntry[] = [],
+  flagDict: VesselDictEntry[] = [],
+  classDict: VesselDictEntry[] = []
 ): ColumnDef<Vessel>[] {
   const inchargeMap = new Map<string, string>(
     inchargeDict.map((d) => [String(d.dict_key).toUpperCase(), d.dict_value])
@@ -24,6 +26,18 @@ export function getUsersColumns(
   )
   const fleetValueToLabel = new Map<string, string>(
     fleetManagerDict.map((d) => [d.dict_value, d.dict_value])
+  )
+  const flagMap = new Map<string, string>(
+    flagDict.map((d) => [String(d.dict_key).toUpperCase(), d.dict_value])
+  )
+  const flagValueToLabel = new Map<string, string>(
+    flagDict.map((d) => [d.dict_value, d.dict_value])
+  )
+  const classMap = new Map<string, string>(
+    classDict.map((d) => [String(d.dict_key).toUpperCase(), d.dict_value])
+  )
+  const classValueToLabel = new Map<string, string>(
+    classDict.map((d) => [d.dict_value, d.dict_value])
   )
 
   return [
@@ -180,11 +194,17 @@ export function getUsersColumns(
       <DataTableColumnHeader column={column} title='Class' />
     ),
     cell: ({ row }) => {
-      const value = row.original.vessel_class
-      if (!value) return <div>-</div>
+      const raw = row.getValue('vessel_class') as string | number | null
+      if (raw === null || raw === undefined || raw === '') {
+        return <div>-</div>
+      }
+      const rawStr = String(raw)
+      const byKey = classMap.get(rawStr.toUpperCase())
+      const byValue = classValueToLabel.get(rawStr)
+      const label = byKey ?? byValue ?? rawStr
       return (
-        <Badge variant='outline' className={cn(getBadgeColor(value))}>
-          {value}
+        <Badge variant='outline' className={cn(getBadgeColor(label))}>
+          {label}
         </Badge>
       )
     },
@@ -201,11 +221,17 @@ export function getUsersColumns(
       <DataTableColumnHeader column={column} title='Flag' />
     ),
     cell: ({ row }) => {
-      const value = row.original.vessel_flag
-      if (!value) return <div>-</div>
+      const raw = row.getValue('vessel_flag') as string | number | null
+      if (raw === null || raw === undefined || raw === '') {
+        return <div>-</div>
+      }
+      const rawStr = String(raw)
+      const byKey = flagMap.get(rawStr.toUpperCase())
+      const byValue = flagValueToLabel.get(rawStr)
+      const label = byKey ?? byValue ?? rawStr
       return (
-        <Badge variant='outline' className={cn(getBadgeColor(value))}>
-          {value}
+        <Badge variant='outline' className={cn(getBadgeColor(label))}>
+          {label}
         </Badge>
       )
     },

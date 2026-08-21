@@ -63,6 +63,8 @@ export interface VesselGroupsResponse {
   classes: string[]
   inchargeDict: VesselDictEntry[]
   fleetManagerDict: VesselDictEntry[]
+  flagDict: VesselDictEntry[]
+  classDict: VesselDictEntry[]
 }
 
 export interface PaginatedResponse {
@@ -99,7 +101,7 @@ export async function fetchVesselPaginated(params: {
 
 export async function fetchVesselGroups(): Promise<VesselGroupsResponse> {
   const res = await api.get<ApiEnvelope<VesselGroupsResponse>>('/vessel-list/groups')
-  return res.data.data ?? { teams: [], flags: [], classes: [], inchargeDict: [], fleetManagerDict: [] }
+  return res.data.data ?? { teams: [], flags: [], classes: [], inchargeDict: [], fleetManagerDict: [], flagDict: [], classDict: [] }
 }
 
 export async function createVessel(payload: {

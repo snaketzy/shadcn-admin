@@ -141,9 +141,11 @@ export function UsersTable(_: DataTableProps) {
   const classes = groupsData?.classes ?? []
   const inchargeDict = groupsData?.inchargeDict ?? []
   const fleetManagerDict = groupsData?.fleetManagerDict ?? []
+  const flagDict = groupsData?.flagDict ?? []
+  const classDict = groupsData?.classDict ?? []
   const columns = useMemo(
-    () => getUsersColumns(inchargeDict, fleetManagerDict),
-    [inchargeDict, fleetManagerDict]
+    () => getUsersColumns(inchargeDict, fleetManagerDict, flagDict, classDict),
+    [inchargeDict, fleetManagerDict, flagDict, classDict]
   )
 
   const urlState = useTableUrlState({
@@ -434,20 +436,36 @@ export function UsersTable(_: DataTableProps) {
                   }))}
                 />
               )}
-            {flags.length > 0 && table.getColumn('vessel_flag') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('vessel_flag')!}
-                title='Flag'
-                options={flags.map((f) => ({ label: f, value: f }))}
-              />
-            )}
-            {classes.length > 0 && table.getColumn('vessel_class') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('vessel_class')!}
-                title='Class'
-                options={classes.map((c) => ({ label: c, value: c }))}
-              />
-            )}
+            {(flagDict.length > 0 || flags.length > 0) &&
+              table.getColumn('vessel_flag') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('vessel_flag')!}
+                  title='Flag'
+                  options={
+                    flagDict.length > 0
+                      ? flagDict.map((d) => ({
+                          label: d.dict_value,
+                          value: d.dict_key,
+                        }))
+                      : flags.map((f) => ({ label: f, value: f }))
+                  }
+                />
+              )}
+            {(classDict.length > 0 || classes.length > 0) &&
+              table.getColumn('vessel_class') && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('vessel_class')!}
+                  title='Class'
+                  options={
+                    classDict.length > 0
+                      ? classDict.map((d) => ({
+                          label: d.dict_value,
+                          value: d.dict_key,
+                        }))
+                      : classes.map((c) => ({ label: c, value: c }))
+                  }
+                />
+              )}
           </div>
           {isFiltered && (
             <Button

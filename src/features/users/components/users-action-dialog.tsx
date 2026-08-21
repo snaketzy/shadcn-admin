@@ -417,19 +417,23 @@ export function UsersActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       Class
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='船级社 (如: NK, DNV)'
-                        className='col-span-4'
-                        list='vessel-class-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='vessel-class-options'>
-                      {(groups?.classes ?? []).map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择船级社' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.classDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
@@ -442,19 +446,23 @@ export function UsersActionDialog({
                     <FormLabel className='col-span-2 text-end'>
                       Flag
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='船旗 (如: Panama)'
-                        className='col-span-4'
-                        list='vessel-flag-options'
-                        {...field}
-                      />
-                    </FormControl>
-                    <datalist id='vessel-flag-options'>
-                      {(groups?.flags ?? []).map((f) => (
-                        <option key={f} value={f} />
-                      ))}
-                    </datalist>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl className='col-span-4'>
+                        <SelectTrigger className='col-span-4 w-full'>
+                          <SelectValue placeholder='请选择船旗国' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(groups?.flagDict ?? []).map((d) => (
+                          <SelectItem key={d.dict_key} value={d.dict_key}>
+                            {d.dict_value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}

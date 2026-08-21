@@ -52,8 +52,10 @@ export async function getVesselListGroups(): Promise<{
   classes: string[]
   inchargeDict: VesselDictEntry[]
   fleetManagerDict: VesselDictEntry[]
+  flagDict: VesselDictEntry[]
+  classDict: VesselDictEntry[]
 }> {
-  const [teams, flags, classes, inchargeRows, fleetRows] = await Promise.all([
+  const [teams, flags, classes, inchargeRows, fleetRows, flagRows, classRows] = await Promise.all([
     query<{ vessel_team: string | null }[]>(
       'SELECT DISTINCT vessel_team FROM `vessel_list` WHERE vessel_team IS NOT NULL AND vessel_team <> \'\' ORDER BY vessel_team'
     ),
@@ -65,6 +67,8 @@ export async function getVesselListGroups(): Promise<{
     ),
     getCaseDictByKeyPrefix('E'),
     getCaseDictByKeyPrefix('N'),
+    getCaseDictByKeyPrefix('S'),
+    getCaseDictByKeyPrefix('T'),
   ])
   return {
     teams: teams.map((r) => r.vessel_team!).filter(Boolean),
@@ -75,6 +79,14 @@ export async function getVesselListGroups(): Promise<{
       dict_value: r.dict_value,
     })),
     fleetManagerDict: fleetRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    flagDict: flagRows.map((r) => ({
+      dict_key: String(r.dict_key),
+      dict_value: r.dict_value,
+    })),
+    classDict: classRows.map((r) => ({
       dict_key: String(r.dict_key),
       dict_value: r.dict_value,
     })),
