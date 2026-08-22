@@ -156,9 +156,11 @@ import {
   isImageAttachment,
   isTextAttachment,
   isPdfAttachment,
+  isOfficeAttachment,
   uploadInquiryAttachmentToCos,
   readAttachmentTextContent,
   normalizeAttachmentUrl,
+  getAttachmentPreviewUrl,
   type CaseMemoAttachment,
 } from '../api/client'
 import type { Case } from '../data/schema'
@@ -4809,7 +4811,10 @@ export function CasesActionDialog({
                       <div className='flex flex-wrap gap-2 pt-1'>
                         {inquiryAttachments.map((a, idx) => {
                           const previewable =
-                            isImageAttachment(a.name) || isPdfAttachment(a.name)
+                            isImageAttachment(a.name) ||
+                            isPdfAttachment(a.name) ||
+                            isOfficeAttachment(a.name) ||
+                            isTextAttachment(a.name)
                           return (
                             <div
                               key={`${a.name}-${idx}`}
@@ -4831,7 +4836,8 @@ export function CasesActionDialog({
                                     size={12}
                                     className='text-primary opacity-80'
                                   />
-                                ) : isPdfAttachment(a.name) ? (
+                                ) : isPdfAttachment(a.name) ||
+                                  isOfficeAttachment(a.name) ? (
                                   <FileTextIcon
                                     size={12}
                                     className='text-primary opacity-80'
@@ -5497,6 +5503,30 @@ export function CasesActionDialog({
                       title={previewInquiryAtt.name}
                       className='h-[75vh] w-full rounded-lg border bg-white'
                     />
+                  ) : isOfficeAttachment(previewInquiryAtt.name) ? (
+                    <div className='flex w-full flex-col gap-2'>
+                      <p className='text-xs text-muted-foreground'>
+                        通过微软 Office Online 在线预览：
+                      </p>
+                      <iframe
+                        src={getAttachmentPreviewUrl(previewInquiryAtt)}
+                        title={previewInquiryAtt.name}
+                        className='h-[75vh] w-full rounded-lg border bg-white'
+                      />
+                      <div className='flex justify-end'>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          type='button'
+                          onClick={() =>
+                            openAttachmentInNewTab(previewInquiryAtt)
+                          }
+                        >
+                          <ExternalLinkIcon size={14} className='me-1' />
+                          在新标签页打开预览
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <Card className='w-full max-w-md'>
                       <CardHeader>
@@ -5686,6 +5716,30 @@ export function CasesActionDialog({
                       title={previewSettlementAtt.name}
                       className='h-[75vh] w-full rounded-lg border bg-white'
                     />
+                  ) : isOfficeAttachment(previewSettlementAtt.name) ? (
+                    <div className='flex w-full flex-col gap-2'>
+                      <p className='text-xs text-muted-foreground'>
+                        通过微软 Office Online 在线预览：
+                      </p>
+                      <iframe
+                        src={getAttachmentPreviewUrl(previewSettlementAtt)}
+                        title={previewSettlementAtt.name}
+                        className='h-[75vh] w-full rounded-lg border bg-white'
+                      />
+                      <div className='flex justify-end'>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          type='button'
+                          onClick={() =>
+                            openAttachmentInNewTab(previewSettlementAtt)
+                          }
+                        >
+                          <ExternalLinkIcon size={14} className='me-1' />
+                          在新标签页打开预览
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <Card className='w-full max-w-md'>
                       <CardHeader>

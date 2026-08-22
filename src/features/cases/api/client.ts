@@ -551,6 +551,26 @@ export function parseAttachments(
 const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp']
 const TEXT_EXTS = ['txt', 'csv', 'md']
 const PDF_EXT = 'pdf'
+const OFFICE_EXTS = [
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'ods',
+  'odp',
+  'odt',
+  'rtf',
+  'wps',
+  'et',
+  'dps',
+  'vsd',
+  'vss',
+  'vst',
+  'pub',
+  'mpp',
+]
 
 export function getAttachmentExt(name: string): string {
   const i = name.lastIndexOf('.')
@@ -565,10 +585,31 @@ export function isTextAttachment(name: string): boolean {
 export function isPdfAttachment(name: string): boolean {
   return getAttachmentExt(name) === PDF_EXT
 }
+export function isOfficeAttachment(name: string): boolean {
+  return OFFICE_EXTS.includes(getAttachmentExt(name))
+}
 export function isPreviewableAttachment(name: string): boolean {
   return (
-    isImageAttachment(name) || isTextAttachment(name) || isPdfAttachment(name)
+    isImageAttachment(name) ||
+    isTextAttachment(name) ||
+    isPdfAttachment(name) ||
+    isOfficeAttachment(name)
   )
+}
+export function getMsOfficeViewerUrl(url: string): string {
+  const absUrl = normalizeAttachmentUrl(url)
+  if (!absUrl) return ''
+  return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(
+    absUrl
+  )}`
+}
+export function getAttachmentPreviewUrl(
+  att: CaseMemoAttachment | undefined | null
+): string {
+  if (!att?.data) return ''
+  const normSrc = normalizeAttachmentUrl(att.data)
+  if (isOfficeAttachment(att.name)) return getMsOfficeViewerUrl(normSrc)
+  return normSrc
 }
 
 export function formatAttachmentSize(bytes: number | undefined): string {
