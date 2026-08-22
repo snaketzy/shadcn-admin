@@ -155,6 +155,8 @@ import {
   isImageAttachment,
   isTextAttachment,
   isPdfAttachment,
+  uploadInquiryAttachmentToCos,
+  readAttachmentTextContent,
   type CaseMemoAttachment,
 } from '../api/client'
 import type { Case } from '../data/schema'
@@ -1863,6 +1865,12 @@ export function CasesActionDialog({
   const inquiryFileInputRef = useRef<HTMLInputElement | null>(null)
   const [previewInquiryAtt, setPreviewInquiryAtt] =
     useState<CaseMemoAttachment | null>(null)
+  const [inquiryUploadingCount, setInquiryUploadingCount] = useState(0)
+  const [inquiryPreviewText, setInquiryPreviewText] = useState<
+    string | null | undefined
+  >(undefined)
+  const [inquiryPreviewTextLoading, setInquiryPreviewTextLoading] =
+    useState(false)
 
   const [settlementAttachments, setSettlementAttachments] = useState<
     CaseMemoAttachment[]
@@ -1870,6 +1878,11 @@ export function CasesActionDialog({
   const settlementFileInputRef = useRef<HTMLInputElement | null>(null)
   const [previewSettlementAtt, setPreviewSettlementAtt] =
     useState<CaseMemoAttachment | null>(null)
+  const [settlementPreviewText, setSettlementPreviewText] = useState<
+    string | null | undefined
+  >(undefined)
+  const [settlementPreviewTextLoading, setSettlementPreviewTextLoading] =
+    useState(false)
 
   const keywordDuplicateCheckRef = useRef<{
     lastCheckedNormalized: string
@@ -2226,6 +2239,58 @@ export function CasesActionDialog({
       /* ignore */
     }
   }, [settlementAttachments, open, form])
+
+  useEffect(() => {
+    if (!previewInquiryAtt || !isTextAttachment(previewInquiryAtt.name)) {
+      setInquiryPreviewText(undefined)
+      return
+    }
+    let cancelled = false
+    setInquiryPreviewText(undefined)
+    setInquiryPreviewTextLoading(true)
+    readAttachmentTextContent(previewInquiryAtt)
+      .then((txt) => {
+        if (cancelled) return
+        setInquiryPreviewText(txt)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setInquiryPreviewText(null)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setInquiryPreviewTextLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [previewInquiryAtt])
+
+  useEffect(() => {
+    if (!previewSettlementAtt || !isTextAttachment(previewSettlementAtt.name)) {
+      setSettlementPreviewText(undefined)
+      return
+    }
+    let cancelled = false
+    setSettlementPreviewText(undefined)
+    setSettlementPreviewTextLoading(true)
+    readAttachmentTextContent(previewSettlementAtt)
+      .then((txt) => {
+        if (cancelled) return
+        setSettlementPreviewText(txt)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSettlementPreviewText(null)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setSettlementPreviewTextLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [previewSettlementAtt])
 
   useEffect(() => {
     if (!open) return
@@ -2710,9 +2775,8 @@ export function CasesActionDialog({
   const handleInquiryAttachmentsPick = useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return
-      const accepted: CaseMemoAttachment[] = []
+      const accepted: { f: File; a: CaseMemoAttachment }[] = []
       const rejected: string[] = []
-      const toRead: Array<{ f: File; a: CaseMemoAttachment }> = []
       for (let i = 0; i < files.length; i++) {
         const f = files[i]
         if (f.size > MAX_ATTACHMENT_SIZE) {
@@ -2728,15 +2792,14 @@ export function CasesActionDialog({
           size: f.size,
           type: f.type || undefined,
         }
-        accepted.push(a)
-        toRead.push({ f, a })
+        accepted.push({ f, a })
       }
       if (accepted.length > 0) {
         const curTotal = inquiryAttachments.reduce(
           (s, x) => s + (x.size || 0),
           0
         )
-        const addTotal = accepted.reduce((s, x) => s + (x.size || 0), 0)
+        const addTotal = accepted.reduce((s, x) => s + (x.a.size || 0), 0)
         if (curTotal + addTotal > MAX_TOTAL_ATTACHMENT_SIZE) {
           const curMB = (curTotal / 1024 / 1024).toFixed(1)
           const addMB = (addTotal / 1024 / 1024).toFixed(1)
@@ -2747,36 +2810,70 @@ export function CasesActionDialog({
           return
         }
       }
-      if (toRead.length > 0) {
-        try {
-          await Promise.all(
-            toRead.map(async ({ f, a }) => {
-              try {
-                a.data = await readInquiryFileAsDataURL(f)
-              } catch {
-                // 读取失败则跳过 data 字段
-              }
-            })
-          )
-        } catch {
-          // ignore
-        }
-      }
       if (rejected.length > 0) {
         toast.warning(`以下文件未添加：${rejected.join('；')}`)
       }
-      if (accepted.length > 0) {
+      if (accepted.length === 0) return
+      const toUpload = accepted.filter(
+        ({ a }) => !inquiryAttachments.some((p) => p.name === a.name)
+      )
+      if (toUpload.length === 0) {
+        if (accepted.length > 0) {
+          toast.info('所选文件均已存在于附件列表中')
+        }
+        return
+      }
+      setInquiryUploadingCount((c) => c + toUpload.length)
+      const results: CaseMemoAttachment[] = []
+      const failed: string[] = []
+      try {
+        await Promise.all(
+          toUpload.map(async ({ f, a }) => {
+            try {
+              const up = await uploadInquiryAttachmentToCos({
+                file: f,
+                vesselName: formVesselName,
+                inquiryKeyword: formInquiryKeyword,
+                inquiryDate: formInquiryDate,
+              })
+              results.push({
+                ...a,
+                data: up.url,
+              })
+            } catch (err: any) {
+              failed.push(
+                `${a.name}：${err?.message || String(err) || '上传失败'}`
+              )
+            }
+          })
+        )
+      } catch {
+        // ignore outer errors
+      } finally {
+        setInquiryUploadingCount((c) => Math.max(0, c - toUpload.length))
+      }
+      if (failed.length > 0) {
+        toast.error(`以下文件上传失败：${failed.join('；')}`)
+      }
+      if (results.length > 0) {
         setInquiryAttachments((prev) => {
           const merged = [...prev]
-          for (const a of accepted) {
+          for (const a of results) {
             if (merged.some((p) => p.name === a.name)) continue
             merged.push(a)
           }
           return merged
         })
+        toast.success(
+          `成功上传 ${results.length} 个文件${
+            toUpload.length > results.length
+              ? `，${toUpload.length - results.length} 个失败`
+              : ''
+          }`
+        )
       }
     },
-    []
+    [inquiryAttachments, formVesselName, formInquiryKeyword, formInquiryDate]
   )
 
   const handleSettlementAttachmentsPick = useCallback(
@@ -4692,9 +4789,14 @@ export function CasesActionDialog({
                         type='button'
                         onClick={() => inquiryFileInputRef.current?.click()}
                         className='h-10 gap-2 px-4'
+                        disabled={inquiryUploadingCount > 0}
                       >
                         <PaperclipIcon size={16} />
-                        <span>选择文件</span>
+                        <span>
+                          {inquiryUploadingCount > 0
+                            ? `上传中(${inquiryUploadingCount})...`
+                            : '选择文件'}
+                        </span>
                       </Button>
                       <p className='text-sm text-muted-foreground'>
                         支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV
@@ -5282,13 +5384,39 @@ export function CasesActionDialog({
                     />
                   ) : isTextAttachment(previewInquiryAtt.name) ? (
                     <div className='w-full max-w-4xl'>
-                      <pre className='max-h-[70vh] overflow-auto rounded-lg border bg-slate-50 p-4 text-xs leading-6 text-slate-800 dark:bg-slate-900/40 dark:text-slate-100'>
-                        {decodeURIComponent(
-                          escape(
-                            atob(previewInquiryAtt.data.split(',')[1] ?? '')
-                          )
-                        ) || '（空文件）'}
-                      </pre>
+                      {inquiryPreviewTextLoading ? (
+                        <div className='flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground'>
+                          <span className='inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent align-middle' />
+                          正在加载文本内容...
+                        </div>
+                      ) : inquiryPreviewText === null ? (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className='text-sm'>
+                              文本加载失败
+                            </CardTitle>
+                            <CardDescription className='text-xs'>
+                              无法加载该文本文件的内容，请下载后查看。
+                            </CardDescription>
+                          </CardHeader>
+                          <CardFooter className='justify-end'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              type='button'
+                              onClick={() =>
+                                triggerAttachmentDownload(previewInquiryAtt)
+                              }
+                            >
+                              下载文件
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      ) : (
+                        <pre className='max-h-[70vh] overflow-auto rounded-lg border bg-slate-50 p-4 text-xs leading-6 text-slate-800 dark:bg-slate-900/40 dark:text-slate-100'>
+                          {inquiryPreviewText || '（空文件）'}
+                        </pre>
+                      )}
                     </div>
                   ) : isPdfAttachment(previewInquiryAtt.name) ? (
                     <iframe
@@ -5445,13 +5573,39 @@ export function CasesActionDialog({
                     />
                   ) : isTextAttachment(previewSettlementAtt.name) ? (
                     <div className='w-full max-w-4xl'>
-                      <pre className='max-h-[70vh] overflow-auto rounded-lg border bg-slate-50 p-4 text-xs leading-6 text-slate-800 dark:bg-slate-900/40 dark:text-slate-100'>
-                        {decodeURIComponent(
-                          escape(
-                            atob(previewSettlementAtt.data.split(',')[1] ?? '')
-                          )
-                        ) || '（空文件）'}
-                      </pre>
+                      {settlementPreviewTextLoading ? (
+                        <div className='flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground'>
+                          <span className='inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent align-middle' />
+                          正在加载文本内容...
+                        </div>
+                      ) : settlementPreviewText === null ? (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className='text-sm'>
+                              文本加载失败
+                            </CardTitle>
+                            <CardDescription className='text-xs'>
+                              无法加载该文本文件的内容，请下载后查看。
+                            </CardDescription>
+                          </CardHeader>
+                          <CardFooter className='justify-end'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              type='button'
+                              onClick={() =>
+                                triggerAttachmentDownload(previewSettlementAtt)
+                              }
+                            >
+                              下载文件
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      ) : (
+                        <pre className='max-h-[70vh] overflow-auto rounded-lg border bg-slate-50 p-4 text-xs leading-6 text-slate-800 dark:bg-slate-900/40 dark:text-slate-100'>
+                          {settlementPreviewText || '（空文件）'}
+                        </pre>
+                      )}
                     </div>
                   ) : isPdfAttachment(previewSettlementAtt.name) ? (
                     <iframe

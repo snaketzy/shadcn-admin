@@ -90,7 +90,79 @@ import {
   deleteCaseMemo,
   deleteCaseMemoByCaseId,
 } from './src/service/connection/case-memo-list-service'
+import {
+  uploadInquiryAttachmentToCos,
+} from './src/service/connection/cos-service'
 import type { IncomingMessage, ServerResponse } from 'http'
+
+interface MultipartPart {
+  name: string
+  filename?: string
+  contentType?: string
+  data: Buffer
+}
+
+function parseMultipart(
+  req: IncomingMessage,
+  boundary: string
+): Promise<MultipartPart[]> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+    req.on('end', () => {
+      try {
+        const body = Buffer.concat(chunks)
+        const delim = Buffer.from('--' + boundary)
+        const closingDelim = Buffer.from('--' + boundary + '--')
+        const parts: MultipartPart[] = []
+        let idx = 0
+        while (idx < body.length) {
+          const delimStart = body.indexOf(delim, idx)
+          if (delimStart < 0) break
+          idx = delimStart + delim.length
+          if (
+            delimStart + closingDelim.length <= body.length &&
+            body.subarray(delimStart, delimStart + closingDelim.length).equals(closingDelim)
+          )
+            break
+          if (body[idx] === 0x0d && body[idx + 1] === 0x0a) idx += 2
+          const headerEnd = body.indexOf('\r\n\r\n', idx)
+          if (headerEnd < 0) break
+          const headersRaw = body.slice(idx, headerEnd).toString('utf-8')
+          idx = headerEnd + 4
+          const nextDelim = body.indexOf(delim, idx)
+          if (nextDelim < 0) break
+          let dataEnd = nextDelim
+          if (body[dataEnd - 2] === 0x0d && body[dataEnd - 1] === 0x0a) dataEnd -= 2
+          const data = body.slice(idx, dataEnd)
+          const headerLines = headersRaw.split('\r\n')
+          let name = ''
+          let filename: string | undefined
+          let contentType: string | undefined
+          for (const line of headerLines) {
+            const [hName, hValue] = line.split(':', 2)
+            if (!hName || !hValue) continue
+            if (hName.toLowerCase().trim() === 'content-disposition') {
+              const nameMatch = hValue.match(/name="([^"]*)"/)
+              if (nameMatch) name = nameMatch[1]
+              const fileMatch = hValue.match(/filename="([^"]*)"/)
+              if (fileMatch) filename = fileMatch[1]
+            }
+            if (hName.toLowerCase().trim() === 'content-type') {
+              contentType = hValue.trim()
+            }
+          }
+          parts.push({ name, filename, contentType, data })
+          idx = nextDelim
+        }
+        resolve(parts)
+      } catch (err) {
+        reject(err)
+      }
+    })
+    req.on('error', reject)
+  })
+}
 
 function sendJson(res: ServerResponse, status: number, data: unknown) {
   res.statusCode = status
@@ -1505,6 +1577,78 @@ async function handleCaseMemoListApi(
   }
 }
 
+async function handleCosApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const method = req.method ?? 'GET'
+  const { pathname } = parseUrl(req)
+
+  if (!pathname.startsWith('/api/cos')) {
+    return false
+  }
+
+  const subPath = pathname.slice('/api/cos'.length) || '/'
+
+  try {
+    if (subPath === '/upload-inquiry-attachment') {
+      if (method !== 'POST') {
+        sendJson(res, 405, { success: false, message: 'Method not allowed' })
+        return true
+      }
+      const contentType = req.headers['content-type'] ?? ''
+      const boundaryMatch = contentType.match(/boundary=([^;]+)/)
+      if (!boundaryMatch) {
+        sendJson(res, 400, { success: false, message: '缺少 multipart boundary' })
+        return true
+      }
+      const boundary = boundaryMatch[1].trim().replace(/^"|"$/g, '')
+      const parts = await parseMultipart(req, boundary)
+      const filePart = parts.find((p) => p.name === 'file')
+      if (!filePart || !filePart.filename) {
+        sendJson(res, 400, { success: false, message: '缺少文件字段 file' })
+        return true
+      }
+      const getStr = (n: string): string | null => {
+        const p = parts.find((x) => x.name === n)
+        if (!p) return null
+        const v = p.data.toString('utf-8').trim()
+        return v === '' ? null : v
+      }
+      const result = await uploadInquiryAttachmentToCos({
+        fileBuffer: filePart.data,
+        filename: filePart.filename,
+        contentType: filePart.contentType,
+        vesselName: getStr('vessel_name'),
+        inquiryKeyword: getStr('inquiry_keyword'),
+        inquiryDate: getStr('inquiry_date'),
+      })
+      if (result.success && result.url) {
+        sendJson(res, 200, {
+          success: true,
+          data: { url: result.url, key: result.key, name: filePart.filename },
+        })
+      } else {
+        sendJson(res, 500, {
+          success: false,
+          message: result.message || 'COS上传失败',
+        })
+      }
+      return true
+    }
+
+    sendJson(res, 404, { success: false, message: 'Route not found' })
+    return true
+  } catch (err) {
+    console.error('[COS API error]', err)
+    sendJson(res, 500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return true
+  }
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -1550,6 +1694,10 @@ export function vitePluginCaseDictApi(): Plugin {
           }
           if (url.startsWith('/api/case-memo-list')) {
             const handled = await handleCaseMemoListApi(req, res)
+            if (handled) return
+          }
+          if (url.startsWith('/api/cos')) {
+            const handled = await handleCosApi(req, res)
             if (handled) return
           }
           next()

@@ -578,12 +578,55 @@ export function formatAttachmentSize(bytes: number | undefined): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+export function isCosUrl(data: string | undefined | null): boolean {
+  if (!data) return false
+  return /^https?:\/\//i.test(data)
+}
+
+async function fetchTextFromUrl(url: string): Promise<string> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const buf = await res.arrayBuffer()
+  const bytes = new Uint8Array(buf)
+  let s = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    const sub = bytes.subarray(i, i + chunk)
+    s += String.fromCharCode.apply(null, Array.from(sub) as any)
+  }
+  try {
+    return decodeURIComponent(escape(s))
+  } catch {
+    return s
+  }
+}
+
+export async function readAttachmentTextContent(
+  att: CaseMemoAttachment
+): Promise<string> {
+  if (!att.data) return ''
+  if (isCosUrl(att.data)) {
+    return await fetchTextFromUrl(att.data)
+  }
+  const base64 = att.data.split(',')[1] ?? ''
+  if (!base64) return ''
+  try {
+    return decodeURIComponent(escape(atob(base64)))
+  } catch {
+    return ''
+  }
+}
+
 export function triggerAttachmentDownload(att: CaseMemoAttachment): void {
   const url = att.data ?? ''
   if (!url) return
   const a = document.createElement('a')
   a.href = url
   a.download = att.name
+  if (isCosUrl(url)) {
+    a.target = '_blank'
+    a.rel = 'noopener,noreferrer'
+  }
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -704,4 +747,35 @@ export async function deleteCaseMemo(memoId: number): Promise<boolean> {
     `/case-memo-list/${memoId}`
   )
   return res.data.success && (res.data.data?.deleted ?? 0) > 0
+}
+
+export interface CosUploadInquiryAttachmentResult {
+  url: string
+  key: string
+  name: string
+}
+
+export async function uploadInquiryAttachmentToCos(params: {
+  file: File
+  vesselName?: string | null
+  inquiryKeyword?: string | null
+  inquiryDate?: string | null
+}): Promise<CosUploadInquiryAttachmentResult> {
+  const formData = new FormData()
+  formData.append('file', params.file)
+  if (params.vesselName) formData.append('vessel_name', params.vesselName)
+  if (params.inquiryKeyword)
+    formData.append('inquiry_keyword', params.inquiryKeyword)
+  if (params.inquiryDate) formData.append('inquiry_date', params.inquiryDate)
+  const res = await api.post<ApiEnvelope<CosUploadInquiryAttachmentResult>>(
+    '/cos/upload-inquiry-attachment',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120000,
+    }
+  )
+  return res.data.data
 }
