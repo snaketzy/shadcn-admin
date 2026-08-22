@@ -583,8 +583,37 @@ export function isCosUrl(data: string | undefined | null): boolean {
   return /^https?:\/\//i.test(data)
 }
 
+const COS_PUBLIC_DOMAIN = 'www.jvecloud.com'
+const COS_ORIGINAL_DOMAIN_RE = /^https?:\/\/store-barrel-1387238226\.cos\.[^/]+\.myqcloud\.com\//i
+
+export function normalizeAttachmentUrl(
+  data: string | undefined | null
+): string {
+  if (!data) return ''
+  if (!isCosUrl(data)) return data
+  try {
+    const u = new URL(data)
+    let key = u.pathname.replace(/^\//, '')
+    if (COS_ORIGINAL_DOMAIN_RE.test(data)) {
+      const m = data.match(COS_ORIGINAL_DOMAIN_RE)
+      if (m) {
+        key = data.slice(m[0].length)
+      }
+    }
+    return `http://${COS_PUBLIC_DOMAIN}/${key}`
+  } catch {
+    return data
+  }
+}
+
+function getAttachmentAccessUrl(
+  att: CaseMemoAttachment | undefined | null
+): string {
+  return normalizeAttachmentUrl(att?.data ?? '')
+}
+
 async function fetchTextFromUrl(url: string): Promise<string> {
-  const res = await fetch(url)
+  const res = await fetch(normalizeAttachmentUrl(url))
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const buf = await res.arrayBuffer()
   const bytes = new Uint8Array(buf)
@@ -618,7 +647,7 @@ export async function readAttachmentTextContent(
 }
 
 export function triggerAttachmentDownload(att: CaseMemoAttachment): void {
-  const url = att.data ?? ''
+  const url = getAttachmentAccessUrl(att)
   if (!url) return
   const a = document.createElement('a')
   a.href = url
@@ -633,7 +662,7 @@ export function triggerAttachmentDownload(att: CaseMemoAttachment): void {
 }
 
 export function openAttachmentInNewTab(att: CaseMemoAttachment): void {
-  const url = att.data ?? ''
+  const url = getAttachmentAccessUrl(att)
   if (!url) return
   const w = window.open(url, '_blank', 'noopener,noreferrer')
   if (w) w.focus()

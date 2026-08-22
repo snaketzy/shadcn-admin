@@ -1,6 +1,6 @@
+import * as path from 'path'
 import COS from 'cos-nodejs-sdk-v5'
 import * as fs from 'fs'
-import * as path from 'path'
 import * as os from 'os'
 
 let cosClient: COS | null = null
@@ -65,7 +65,13 @@ export function getCosConfig(): {
     console.warn('[COS] Cannot parse Bucket/Region from HOST:', host)
     return null
   }
-  cosConfig = { SecretId: secretId, SecretKey: secretKey, Bucket: bucket, Region: region, Host: host }
+  cosConfig = {
+    SecretId: secretId,
+    SecretKey: secretKey,
+    Bucket: bucket,
+    Region: region,
+    Host: host,
+  }
   return cosConfig
 }
 
@@ -117,10 +123,12 @@ export async function uploadInquiryAttachmentToCos(
   const timestamp = Date.now()
   const finalFilename = timestamp + '_' + safeFilename
   const key = `jiehong/${vesselSeg}/${keywordDateSeg}/attachments/${finalFilename}`
+  const PUBLIC_DOMAIN = 'http://www.jvecloud.com'
   try {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cos_upload_'))
     const tmpPath = path.join(tmpDir, finalFilename)
     fs.writeFileSync(tmpPath, params.fileBuffer)
+    const inlineDisposition = `inline; filename*=UTF-8''${encodeURIComponent(params.filename || safeFilename)}`
     const result = await cos.putObject({
       Bucket: cfg.Bucket,
       Region: cfg.Region,
@@ -128,6 +136,9 @@ export async function uploadInquiryAttachmentToCos(
       Body: fs.createReadStream(tmpPath),
       ContentLength: params.fileBuffer.length,
       ContentType: params.contentType || 'application/octet-stream',
+      Headers: {
+        'Content-Disposition': inlineDisposition,
+      },
     })
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -135,10 +146,13 @@ export async function uploadInquiryAttachmentToCos(
       /* ignore cleanup errors */
     }
     if (result && result.statusCode === 200) {
-      const url = `https://${cfg.Host}/${key}`
+      const url = `${PUBLIC_DOMAIN}/${key}`
       return { success: true, url, key }
     }
-    return { success: false, message: result ? `HTTP ${result.statusCode}` : '上传失败' }
+    return {
+      success: false,
+      message: result ? `HTTP ${result.statusCode}` : '上传失败',
+    }
   } catch (err: any) {
     console.error('[COS] Upload failed:', err)
     return { success: false, message: err?.message || String(err) }

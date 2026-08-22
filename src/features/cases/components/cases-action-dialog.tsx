@@ -20,6 +20,7 @@ import {
   FileText as FileTextIcon,
   Image as ImageIcon,
   Download as DownloadIcon,
+  Eye as EyeIcon,
   ExternalLink as ExternalLinkIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -157,6 +158,7 @@ import {
   isPdfAttachment,
   uploadInquiryAttachmentToCos,
   readAttachmentTextContent,
+  normalizeAttachmentUrl,
   type CaseMemoAttachment,
 } from '../api/client'
 import type { Case } from '../data/schema'
@@ -4805,40 +4807,111 @@ export function CasesActionDialog({
                     </div>
                     {inquiryAttachments.length > 0 && (
                       <div className='flex flex-wrap gap-2 pt-1'>
-                        {inquiryAttachments.map((a, idx) => (
-                          <Badge
-                            key={`${a.name}-${idx}`}
-                            variant='secondary'
-                            className='h-8 cursor-pointer gap-1 rounded-full px-3 py-0 text-xs font-normal transition-colors hover:bg-secondary/80'
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setPreviewInquiryAtt(a)
-                            }}
-                          >
-                            <PaperclipIcon size={12} className='opacity-70' />
-                            <span className='max-w-[16rem] truncate'>
-                              {a.name}
-                            </span>
-                            {a.size != null && (
-                              <span className='opacity-60'>
-                                ({formatAttachmentSize(a.size)})
-                              </span>
-                            )}
-                            <button
-                              type='button'
-                              aria-label={`移除附件 ${a.name}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setInquiryAttachments((prev) =>
-                                  prev.filter((_, i) => i !== idx)
-                                )
-                              }}
-                              className='ms-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-foreground/10'
+                        {inquiryAttachments.map((a, idx) => {
+                          const previewable =
+                            isImageAttachment(a.name) || isPdfAttachment(a.name)
+                          return (
+                            <div
+                              key={`${a.name}-${idx}`}
+                              className='group inline-flex h-8 items-center gap-0 rounded-full bg-secondary text-xs text-secondary-foreground'
                             >
-                              <X size={12} />
-                            </button>
-                          </Badge>
-                        ))}
+                              <Badge
+                                variant='secondary'
+                                className={cn(
+                                  'h-8 cursor-pointer gap-1 rounded-full rounded-e-none border-0 px-3 py-0 text-xs font-normal shadow-none transition-colors hover:bg-secondary/80',
+                                  previewable ? '' : 'rounded-e-full pe-3'
+                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (previewable) setPreviewInquiryAtt(a)
+                                }}
+                              >
+                                {isImageAttachment(a.name) ? (
+                                  <ImageIcon
+                                    size={12}
+                                    className='text-primary opacity-80'
+                                  />
+                                ) : isPdfAttachment(a.name) ? (
+                                  <FileTextIcon
+                                    size={12}
+                                    className='text-primary opacity-80'
+                                  />
+                                ) : (
+                                  <PaperclipIcon
+                                    size={12}
+                                    className='opacity-70'
+                                  />
+                                )}
+                                <span className='max-w-[16rem] truncate'>
+                                  {a.name}
+                                </span>
+                                {a.size != null && (
+                                  <span className='opacity-60'>
+                                    ({formatAttachmentSize(a.size)})
+                                  </span>
+                                )}
+                              </Badge>
+                              {previewable && (
+                                <>
+                                  <button
+                                    type='button'
+                                    aria-label={`预览附件 ${a.name}`}
+                                    title='预览'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setPreviewInquiryAtt(a)
+                                    }}
+                                    className='inline-flex h-8 w-8 items-center justify-center border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                  >
+                                    <EyeIcon size={13} />
+                                  </button>
+                                  <button
+                                    type='button'
+                                    aria-label={`下载附件 ${a.name}`}
+                                    title='下载'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      triggerAttachmentDownload(a)
+                                    }}
+                                    className='inline-flex h-8 w-8 items-center justify-center border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                  >
+                                    <DownloadIcon size={13} />
+                                  </button>
+                                  <button
+                                    type='button'
+                                    aria-label={`移除附件 ${a.name}`}
+                                    title='移除'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setInquiryAttachments((prev) =>
+                                        prev.filter((_, i) => i !== idx)
+                                      )
+                                    }}
+                                    className='inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </>
+                              )}
+                              {!previewable && (
+                                <button
+                                  type='button'
+                                  aria-label={`移除附件 ${a.name}`}
+                                  title='移除'
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setInquiryAttachments((prev) =>
+                                      prev.filter((_, i) => i !== idx)
+                                    )
+                                  }}
+                                  className='ms-1 inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -5378,7 +5451,7 @@ export function CasesActionDialog({
                     </Card>
                   ) : isImageAttachment(previewInquiryAtt.name) ? (
                     <img
-                      src={previewInquiryAtt.data}
+                      src={normalizeAttachmentUrl(previewInquiryAtt.data)}
                       alt={previewInquiryAtt.name}
                       className='max-w-full rounded-lg border shadow-sm'
                     />
@@ -5420,7 +5493,7 @@ export function CasesActionDialog({
                     </div>
                   ) : isPdfAttachment(previewInquiryAtt.name) ? (
                     <iframe
-                      src={previewInquiryAtt.data}
+                      src={normalizeAttachmentUrl(previewInquiryAtt.data)}
                       title={previewInquiryAtt.name}
                       className='h-[75vh] w-full rounded-lg border bg-white'
                     />
@@ -5567,7 +5640,7 @@ export function CasesActionDialog({
                     </Card>
                   ) : isImageAttachment(previewSettlementAtt.name) ? (
                     <img
-                      src={previewSettlementAtt.data}
+                      src={normalizeAttachmentUrl(previewSettlementAtt.data)}
                       alt={previewSettlementAtt.name}
                       className='max-w-full rounded-lg border shadow-sm'
                     />
@@ -5609,7 +5682,7 @@ export function CasesActionDialog({
                     </div>
                   ) : isPdfAttachment(previewSettlementAtt.name) ? (
                     <iframe
-                      src={previewSettlementAtt.data}
+                      src={normalizeAttachmentUrl(previewSettlementAtt.data)}
                       title={previewSettlementAtt.name}
                       className='h-[75vh] w-full rounded-lg border bg-white'
                     />
