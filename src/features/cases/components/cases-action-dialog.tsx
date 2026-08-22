@@ -16,12 +16,24 @@ import {
   Compass,
   Plus,
   Pencil,
+  Paperclip as PaperclipIcon,
+  FileText as FileTextIcon,
+  Image as ImageIcon,
+  Download as DownloadIcon,
+  ExternalLink as ExternalLinkIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
@@ -33,6 +45,7 @@ import {
 } from '@/components/ui/command'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -55,6 +68,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Table,
   TableHeader,
@@ -133,6 +147,15 @@ import {
   replaceCaseInquiryByCaseId,
   fetchCaseInquiryKeywordCheck,
   fetchCaseDetail,
+  parseAttachments,
+  stringifyAttachments,
+  formatAttachmentSize,
+  triggerAttachmentDownload,
+  openAttachmentInNewTab,
+  isImageAttachment,
+  isTextAttachment,
+  isPdfAttachment,
+  type CaseMemoAttachment,
 } from '../api/client'
 import type { Case } from '../data/schema'
 
@@ -254,6 +277,42 @@ function normalizeDatetimeForStorage(raw: unknown): string | null {
   return null
 }
 
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_TOTAL_ATTACHMENT_SIZE = 12 * 1024 * 1024 // 12MB
+const ALLOWED_ATTACHMENT_EXTS = [
+  'pdf',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'bmp',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'txt',
+  'csv',
+]
+
+function filenameAllowedInquiry(name: string): boolean {
+  const i = name.lastIndexOf('.')
+  if (i < 0) return false
+  const ext = name.slice(i + 1).toLowerCase()
+  return ALLOWED_ATTACHMENT_EXTS.includes(ext)
+}
+
+function readInquiryFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error ?? new Error('文件读取失败'))
+    reader.readAsDataURL(file)
+  })
+}
+
 const formSchema = z.object({
   vessel_name: z.string().optional().catch(''),
   invoice_number: z.string().optional().catch(''),
@@ -368,6 +427,7 @@ const formSchema = z.object({
   case_incharge: z.string().optional().catch(''),
   case_memo_name: z.string().optional().catch(''),
   case_memo_address: z.string().optional().catch(''),
+  case_inquiry_attachments: z.string().optional().catch(''),
   case_rank: z.string().optional().catch(''),
 })
 type CaseForm = z.infer<typeof formSchema>
@@ -1500,6 +1560,8 @@ export function CasesActionDialog({
             case_incharge: currentRow.case_incharge ?? '',
             case_memo_name: currentRow.case_memo_name ?? '',
             case_memo_address: currentRow.case_memo_address ?? '',
+            case_inquiry_attachments:
+              (currentRow as any).case_inquiry_attachments ?? '',
             case_rank: currentRow.case_rank ?? '',
           }
         : {
@@ -1538,6 +1600,7 @@ export function CasesActionDialog({
             case_incharge: defaultInchargeEKey,
             case_memo_name: '',
             case_memo_address: '',
+            case_inquiry_attachments: '',
             case_rank: '',
           },
     [
@@ -1786,6 +1849,14 @@ export function CasesActionDialog({
   ])
 
   const memoNameEditedRef = useRef(false)
+
+  const [inquiryAttachments, setInquiryAttachments] = useState<
+    CaseMemoAttachment[]
+  >([])
+  const inquiryFileInputRef = useRef<HTMLInputElement | null>(null)
+  const [previewInquiryAtt, setPreviewInquiryAtt] =
+    useState<CaseMemoAttachment | null>(null)
+
   const keywordDuplicateCheckRef = useRef<{
     lastCheckedNormalized: string
     lastResultExists: boolean
@@ -1964,6 +2035,7 @@ export function CasesActionDialog({
       case_incharge: row.case_incharge ?? '',
       case_memo_name: row.case_memo_name ?? '',
       case_memo_address: row.case_memo_address ?? '',
+      case_inquiry_attachments: (row as any).case_inquiry_attachments ?? '',
       case_rank: row.case_rank ?? '',
     }),
     []
@@ -1975,6 +2047,7 @@ export function CasesActionDialog({
       memoNameEditedRef.current = false
       didResetRef.current = false
       setInquiryList([])
+      setInquiryAttachments([])
       localAddedInquiryIdsRef.current.clear()
       return
     }
@@ -1996,12 +2069,79 @@ export function CasesActionDialog({
             if (fullRow) {
               const fullDefaults = buildFormValuesFromCase(fullRow)
               form.reset(fullDefaults)
+              const atts = parseAttachments(
+                (fullRow as any).case_inquiry_attachments
+              )
+              setInquiryAttachments(atts)
+              try {
+                form.setValue(
+                  'case_inquiry_attachments',
+                  atts.length > 0 ? JSON.stringify(atts) : '',
+                  { shouldDirty: false, shouldValidate: false }
+                )
+              } catch {
+                /* ignore */
+              }
             }
           })
           .catch(() => {})
       }
+    } else {
+      setInquiryAttachments([])
     }
   }, [open, form, defaultValues, isEdit, currentRow, buildFormValuesFromCase])
+
+  const initedAttachmentsRef = useRef(false)
+  useEffect(() => {
+    if (!open) {
+      initedAttachmentsRef.current = false
+      return
+    }
+    if (initedAttachmentsRef.current) return
+    if (!isEdit) {
+      initedAttachmentsRef.current = true
+      return
+    }
+    const raw =
+      (currentRow as any)?.case_inquiry_attachments ??
+      form.getValues('case_inquiry_attachments') ??
+      ''
+    if (raw) {
+      const atts = parseAttachments(raw)
+      if (atts.length > 0) {
+        setInquiryAttachments(atts)
+        try {
+          form.setValue('case_inquiry_attachments', JSON.stringify(atts), {
+            shouldDirty: false,
+            shouldValidate: false,
+          })
+        } catch {
+          /* ignore */
+        }
+        initedAttachmentsRef.current = true
+      }
+    }
+  }, [open, isEdit, currentRow, form, inquiryAttachments.length])
+
+  useEffect(() => {
+    if (!open) return
+    try {
+      if (inquiryAttachments.length > 0) {
+        form.setValue(
+          'case_inquiry_attachments',
+          JSON.stringify(inquiryAttachments),
+          { shouldDirty: true, shouldValidate: false }
+        )
+      } else {
+        form.setValue('case_inquiry_attachments', '', {
+          shouldDirty: true,
+          shouldValidate: false,
+        })
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [inquiryAttachments, open, form])
 
   useEffect(() => {
     if (!open) return
@@ -2483,6 +2623,78 @@ export function CasesActionDialog({
     },
   })
 
+  const handleInquiryAttachmentsPick = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return
+      const accepted: CaseMemoAttachment[] = []
+      const rejected: string[] = []
+      const toRead: Array<{ f: File; a: CaseMemoAttachment }> = []
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i]
+        if (f.size > MAX_ATTACHMENT_SIZE) {
+          rejected.push(`${f.name}：超过 10MB`)
+          continue
+        }
+        if (!filenameAllowedInquiry(f.name)) {
+          rejected.push(`${f.name}：不支持该类型`)
+          continue
+        }
+        const a: CaseMemoAttachment = {
+          name: f.name,
+          size: f.size,
+          type: f.type || undefined,
+        }
+        accepted.push(a)
+        toRead.push({ f, a })
+      }
+      if (accepted.length > 0) {
+        const curTotal = inquiryAttachments.reduce(
+          (s, x) => s + (x.size || 0),
+          0
+        )
+        const addTotal = accepted.reduce((s, x) => s + (x.size || 0), 0)
+        if (curTotal + addTotal > MAX_TOTAL_ATTACHMENT_SIZE) {
+          const curMB = (curTotal / 1024 / 1024).toFixed(1)
+          const addMB = (addTotal / 1024 / 1024).toFixed(1)
+          const maxMB = (MAX_TOTAL_ATTACHMENT_SIZE / 1024 / 1024).toFixed(1)
+          toast.error(
+            `附件总量超限：当前已选 ${curMB}MB，本次新增 ${addMB}MB，上限 ${maxMB}MB`
+          )
+          return
+        }
+      }
+      if (toRead.length > 0) {
+        try {
+          await Promise.all(
+            toRead.map(async ({ f, a }) => {
+              try {
+                a.data = await readInquiryFileAsDataURL(f)
+              } catch {
+                // 读取失败则跳过 data 字段
+              }
+            })
+          )
+        } catch {
+          // ignore
+        }
+      }
+      if (rejected.length > 0) {
+        toast.warning(`以下文件未添加：${rejected.join('；')}`)
+      }
+      if (accepted.length > 0) {
+        setInquiryAttachments((prev) => {
+          const merged = [...prev]
+          for (const a of accepted) {
+            if (merged.some((p) => p.name === a.name)) continue
+            merged.push(a)
+          }
+          return merged
+        })
+      }
+    },
+    []
+  )
+
   const onSubmit = useCallback(
     async (values: CaseForm) => {
       const keywordRaw = toOptStr(values.case_inquiry_keyword)
@@ -2576,6 +2788,7 @@ export function CasesActionDialog({
         case_incharge: toOptStr(values.case_incharge),
         case_memo_name: toOptStr(values.case_memo_name),
         case_memo_address: toOptStr(values.case_memo_address),
+        case_inquiry_attachments: stringifyAttachments(inquiryAttachments),
         case_rank: toOptStr(values.case_rank),
       } as any
       if (isEdit && currentRow) {
@@ -2591,6 +2804,7 @@ export function CasesActionDialog({
       runKeywordDuplicateCheck,
       createMutation,
       updateMutation,
+      inquiryAttachments,
     ]
   )
 
@@ -4291,6 +4505,84 @@ export function CasesActionDialog({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name='case_inquiry_attachments'
+              render={({ field: _field }) => (
+                <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    案件需求文档
+                  </FormLabel>
+                  <div className='col-span-10 flex flex-col gap-2'>
+                    <div className='flex flex-wrap items-center gap-3'>
+                      <input
+                        ref={inquiryFileInputRef}
+                        type='file'
+                        multiple
+                        className='hidden'
+                        accept='.pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/pdf,image/*,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                        onChange={(e) => {
+                          void handleInquiryAttachmentsPick(e.target.files)
+                          e.target.value = ''
+                        }}
+                      />
+                      <Button
+                        variant='outline'
+                        type='button'
+                        onClick={() => inquiryFileInputRef.current?.click()}
+                        className='h-10 gap-2 px-4'
+                      >
+                        <PaperclipIcon size={16} />
+                        <span>选择文件</span>
+                      </Button>
+                      <p className='text-sm text-muted-foreground'>
+                        支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV
+                        等，单文件 ≤ 10MB，合计 ≤ 12MB，可多选
+                      </p>
+                    </div>
+                    {inquiryAttachments.length > 0 && (
+                      <div className='flex flex-wrap gap-2 pt-1'>
+                        {inquiryAttachments.map((a, idx) => (
+                          <Badge
+                            key={`${a.name}-${idx}`}
+                            variant='secondary'
+                            className='h-8 cursor-pointer gap-1 rounded-full px-3 py-0 text-xs font-normal transition-colors hover:bg-secondary/80'
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setPreviewInquiryAtt(a)
+                            }}
+                          >
+                            <PaperclipIcon size={12} className='opacity-70' />
+                            <span className='max-w-[16rem] truncate'>
+                              {a.name}
+                            </span>
+                            {a.size != null && (
+                              <span className='opacity-60'>
+                                ({formatAttachmentSize(a.size)})
+                              </span>
+                            )}
+                            <button
+                              type='button'
+                              aria-label={`移除附件 ${a.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setInquiryAttachments((prev) =>
+                                  prev.filter((_, i) => i !== idx)
+                                )
+                              }}
+                              className='ms-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-foreground/10'
+                            >
+                              <X size={12} />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <FormMessage className='col-span-10 col-start-3' />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
       </div>
@@ -4628,6 +4920,165 @@ export function CasesActionDialog({
               {inquiryEditingId != null ? '保存' : '添加'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={previewInquiryAtt !== null}
+        onOpenChange={(s) => {
+          if (!s) setPreviewInquiryAtt(null)
+        }}
+      >
+        <DialogContent
+          showCloseButton={true}
+          className='flex h-[90vh] max-h-[90vh] w-[92vw] flex-col overflow-hidden p-0 sm:max-w-5xl'
+        >
+          {previewInquiryAtt && (
+            <>
+              <DialogHeader className='shrink-0 flex-row items-center justify-between gap-3 border-b px-6 py-4 text-start'>
+                <div className='flex min-w-0 flex-col gap-1'>
+                  <DialogTitle className='flex flex-wrap items-center gap-2 text-base leading-6'>
+                    {isImageAttachment(previewInquiryAtt.name) ? (
+                      <ImageIcon size={18} className='text-primary' />
+                    ) : (
+                      <FileTextIcon size={18} className='text-primary' />
+                    )}
+                    <span className='break-all'>{previewInquiryAtt.name}</span>
+                  </DialogTitle>
+                  <DialogDescription className='text-xs'>
+                    {previewInquiryAtt.size != null &&
+                      formatAttachmentSize(previewInquiryAtt.size)}
+                    {previewInquiryAtt.type && (
+                      <>
+                        <span className='mx-1.5 opacity-40'>·</span>
+                        <span className='font-mono'>
+                          {previewInquiryAtt.type}
+                        </span>
+                      </>
+                    )}
+                  </DialogDescription>
+                </div>
+                <div className='flex shrink-0 items-center gap-2'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    type='button'
+                    onClick={() => triggerAttachmentDownload(previewInquiryAtt)}
+                    className='h-9 gap-1.5 px-3'
+                  >
+                    <DownloadIcon size={15} />
+                    <span className='text-sm'>下载</span>
+                  </Button>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    type='button'
+                    onClick={() => openAttachmentInNewTab(previewInquiryAtt)}
+                    className='h-9 gap-1.5 px-3'
+                  >
+                    <ExternalLinkIcon size={15} />
+                    <span className='text-sm'>新标签页打开</span>
+                  </Button>
+                  <DialogClose asChild>
+                    <Button variant='ghost' size='sm' className='h-9 px-3'>
+                      关闭
+                    </Button>
+                  </DialogClose>
+                </div>
+              </DialogHeader>
+              <ScrollArea className='min-h-0 flex-1'>
+                <div className='flex min-h-full items-center justify-center p-6'>
+                  {!previewInquiryAtt.data ? (
+                    <Card className='w-full max-w-md'>
+                      <CardHeader>
+                        <CardTitle className='flex items-center gap-2 text-base'>
+                          <FileTextIcon
+                            size={18}
+                            className='text-muted-foreground'
+                          />
+                          无预览内容
+                        </CardTitle>
+                        <CardDescription className='text-xs'>
+                          该附件为旧数据导入，未包含文件内容，无法在线预览。
+                        </CardDescription>
+                      </CardHeader>
+                      <CardFooter className='justify-end gap-2'>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          type='button'
+                          onClick={() =>
+                            triggerAttachmentDownload(previewInquiryAtt)
+                          }
+                        >
+                          下载文件
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ) : isImageAttachment(previewInquiryAtt.name) ? (
+                    <img
+                      src={previewInquiryAtt.data}
+                      alt={previewInquiryAtt.name}
+                      className='max-w-full rounded-lg border shadow-sm'
+                    />
+                  ) : isTextAttachment(previewInquiryAtt.name) ? (
+                    <div className='w-full max-w-4xl'>
+                      <pre className='max-h-[70vh] overflow-auto rounded-lg border bg-slate-50 p-4 text-xs leading-6 text-slate-800 dark:bg-slate-900/40 dark:text-slate-100'>
+                        {decodeURIComponent(
+                          escape(
+                            atob(previewInquiryAtt.data.split(',')[1] ?? '')
+                          )
+                        ) || '（空文件）'}
+                      </pre>
+                    </div>
+                  ) : isPdfAttachment(previewInquiryAtt.name) ? (
+                    <iframe
+                      src={previewInquiryAtt.data}
+                      title={previewInquiryAtt.name}
+                      className='h-[75vh] w-full rounded-lg border bg-white'
+                    />
+                  ) : (
+                    <Card className='w-full max-w-md'>
+                      <CardHeader>
+                        <CardTitle className='flex items-center gap-2 text-base'>
+                          <FileTextIcon
+                            size={18}
+                            className='text-muted-foreground'
+                          />
+                          不支持在线预览
+                        </CardTitle>
+                        <CardDescription className='text-xs'>
+                          该文件类型暂不支持在线预览，请下载后使用对应的软件打开。
+                        </CardDescription>
+                      </CardHeader>
+                      <CardFooter className='justify-end gap-2'>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          type='button'
+                          onClick={() =>
+                            triggerAttachmentDownload(previewInquiryAtt)
+                          }
+                        >
+                          下载文件
+                        </Button>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          type='button'
+                          onClick={() =>
+                            openAttachmentInNewTab(previewInquiryAtt)
+                          }
+                        >
+                          新标签页打开
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+                </div>
+              </ScrollArea>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>

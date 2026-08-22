@@ -71,6 +71,7 @@ export interface Case {
   case_incharge: string | null
   case_memo_name: string | null
   case_memo_address: string | null
+  case_inquiry_attachments: string | null
   case_rank: string | null
 }
 
@@ -117,6 +118,22 @@ export async function fetchCaseAll(): Promise<Case[]> {
 export async function fetchCaseDetail(caseId: number): Promise<Case | null> {
   try {
     const res = await api.get<ApiEnvelope<Case>>(`/case-list/${caseId}`)
+    console.log('[DEBUG fetchCaseDetail caseId=' + caseId + ']', {
+      hasCaseInquiryAttachmentsKey:
+        res &&
+        res.data &&
+        typeof res.data === 'object' &&
+        res.data.data &&
+        typeof res.data.data === 'object' &&
+        'case_inquiry_attachments' in (res.data.data as object),
+      keys:
+        res && res.data && res.data.data && typeof res.data.data === 'object'
+          ? Object.keys(res.data.data as Record<string, unknown>).filter((k) =>
+              k.includes('attachment')
+            )
+          : [],
+      value: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
+    })
     return res.data.data ?? null
   } catch (e: any) {
     if (e?.response?.status === 404) return null
@@ -238,9 +255,30 @@ export async function createCase(payload: {
   case_incharge?: string | null
   case_memo_name?: string | null
   case_memo_address?: string | null
+  case_inquiry_attachments?: CaseMemoAttachment[] | string | null
   case_rank?: string | null
 }): Promise<Case> {
-  const res = await api.post<ApiEnvelope<Case>>('/case-list/', payload)
+  const body: any = { ...payload }
+  if ('case_inquiry_attachments' in body) {
+    const raw = body.case_inquiry_attachments
+    if (typeof raw === 'string') {
+      body.case_inquiry_attachments = raw || null
+    } else {
+      body.case_inquiry_attachments = stringifyAttachments(
+        raw as CaseMemoAttachment[] | null | undefined
+      )
+    }
+  }
+  console.log('[DEBUG createCase body]', {
+    hasKey: 'case_inquiry_attachments' in body,
+    rawValue: body.case_inquiry_attachments,
+    valueType: typeof body.case_inquiry_attachments,
+    valueLen:
+      typeof body.case_inquiry_attachments === 'string'
+        ? body.case_inquiry_attachments.length
+        : null,
+  })
+  const res = await api.post<ApiEnvelope<Case>>('/case-list/', body)
   return res.data.data
 }
 
@@ -279,10 +317,40 @@ export async function updateCase(
     case_incharge?: string | null
     case_memo_name?: string | null
     case_memo_address?: string | null
+    case_inquiry_attachments?: CaseMemoAttachment[] | string | null
     case_rank?: string | null
   }
 ): Promise<Case> {
-  const res = await api.put<ApiEnvelope<Case>>(`/case-list/${caseId}`, payload)
+  const body: any = { ...payload }
+  if ('case_inquiry_attachments' in body) {
+    const raw = body.case_inquiry_attachments
+    if (typeof raw === 'string') {
+      body.case_inquiry_attachments = raw || null
+    } else {
+      body.case_inquiry_attachments = stringifyAttachments(
+        raw as CaseMemoAttachment[] | null | undefined
+      )
+    }
+  }
+  console.log('[DEBUG updateCase caseId=' + caseId + ' body]', {
+    hasKey: 'case_inquiry_attachments' in body,
+    rawValue: body.case_inquiry_attachments,
+    valueType: typeof body.case_inquiry_attachments,
+    valueLen:
+      typeof body.case_inquiry_attachments === 'string'
+        ? body.case_inquiry_attachments.length
+        : null,
+  })
+  const res = await api.put<ApiEnvelope<Case>>(`/case-list/${caseId}`, body)
+  console.log('[DEBUG updateCase caseId=' + caseId + ' response]', {
+    hasCaseInquiryAttachmentsKey:
+      res &&
+      res.data &&
+      res.data.data &&
+      typeof res.data.data === 'object' &&
+      'case_inquiry_attachments' in (res.data.data as object),
+    value: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
+  })
   return res.data.data
 }
 
@@ -462,9 +530,7 @@ export function isPdfAttachment(name: string): boolean {
 }
 export function isPreviewableAttachment(name: string): boolean {
   return (
-    isImageAttachment(name) ||
-    isTextAttachment(name) ||
-    isPdfAttachment(name)
+    isImageAttachment(name) || isTextAttachment(name) || isPdfAttachment(name)
   )
 }
 
@@ -502,7 +568,7 @@ export function handleAttachmentQuickAction(att: CaseMemoAttachment): void {
   }
 }
 
-function stringifyAttachments(
+export function stringifyAttachments(
   arr: CaseMemoAttachment[] | undefined | null
 ): string | null {
   if (!arr || arr.length === 0) return null

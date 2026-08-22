@@ -1083,6 +1083,11 @@ async function handleCaseListApi(
           case_incharge: toOptStr(body.case_incharge),
           case_memo_name: toOptStr(body.case_memo_name),
           case_memo_address: toOptStr(body.case_memo_address),
+          case_inquiry_attachments:
+            body.case_inquiry_attachments == null ||
+            body.case_inquiry_attachments === ''
+              ? null
+              : String(body.case_inquiry_attachments),
           case_rank: toOptStr(body.case_rank),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -1192,6 +1197,11 @@ async function handleCaseListApi(
           case_incharge: toOptStr(body.case_incharge),
           case_memo_name: toOptStr(body.case_memo_name),
           case_memo_address: toOptStr(body.case_memo_address),
+          case_inquiry_attachments:
+            body.case_inquiry_attachments == null ||
+            body.case_inquiry_attachments === ''
+              ? null
+              : String(body.case_inquiry_attachments),
           case_rank: toOptStr(body.case_rank),
         })
         sendJson(res, 200, { success: true, data: updated })

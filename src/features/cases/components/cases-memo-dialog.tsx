@@ -101,7 +101,8 @@ function formatBytes(bytes: number | undefined): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024 // 20MB
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_TOTAL_ATTACHMENT_SIZE = 12 * 1024 * 1024 // 12MB
 const ALLOWED_ATTACHMENT_EXTS = [
   'pdf',
   'png',
@@ -412,7 +413,7 @@ export function CasesMemoDialog({
     for (let i = 0; i < files.length; i++) {
       const f = files[i]
       if (f.size > MAX_ATTACHMENT_SIZE) {
-        rejected.push(`${f.name}：超过 20MB`)
+        rejected.push(`${f.name}：超过 10MB`)
         continue
       }
       if (!filenameAllowed(f.name)) {
@@ -426,6 +427,19 @@ export function CasesMemoDialog({
       }
       accepted.push(a)
       toRead.push({ f, a })
+    }
+    if (accepted.length > 0) {
+      const curTotal = attachments.reduce((s, x) => s + (x.size || 0), 0)
+      const addTotal = accepted.reduce((s, x) => s + (x.size || 0), 0)
+      if (curTotal + addTotal > MAX_TOTAL_ATTACHMENT_SIZE) {
+        const curMB = (curTotal / 1024 / 1024).toFixed(1)
+        const addMB = (addTotal / 1024 / 1024).toFixed(1)
+        const maxMB = (MAX_TOTAL_ATTACHMENT_SIZE / 1024 / 1024).toFixed(1)
+        toast.error(
+          `附件总量超限：当前已选 ${curMB}MB，本次新增 ${addMB}MB，上限 ${maxMB}MB`
+        )
+        return
+      }
     }
     if (toRead.length > 0) {
       try {
@@ -580,7 +594,7 @@ export function CasesMemoDialog({
               </Button>
               <p className='text-sm text-muted-foreground'>
                 支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV 等，单文件 ≤
-                20MB，可多选
+                10MB，合计 ≤ 12MB，可多选
               </p>
             </div>
             {attachments.length > 0 && (
