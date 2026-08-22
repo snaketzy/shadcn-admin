@@ -411,7 +411,7 @@ export async function createCaseList(data: {
        case_personal_register_completed, case_business_register_completed, case_e_filing_completed, case_paper_based_filing_completed,
        case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_inquiry_attachments, case_settlement_attachments, case_remark, case_rank)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name ?? null,
       data.invoice_number ?? null,
@@ -842,6 +842,9 @@ export async function ensureCaseListSchema(): Promise<void> {
             \`case_incharge\` VARCHAR(16) NULL COMMENT '案件负责人代码',
             \`case_memo_name\` VARCHAR(1024) NULL COMMENT '案件备忘名称',
             \`case_memo_address\` VARCHAR(1024) NULL COMMENT '案件备忘地址',
+            \`case_inquiry_attachments\` MEDIUMTEXT NULL COMMENT '案件需求文档附件(JSON array)',
+            \`case_settlement_attachments\` MEDIUMTEXT NULL COMMENT '案件结算文档附件(JSON array)',
+            \`case_remark\` TEXT NULL COMMENT '案件备注',
             \`case_rank\` VARCHAR(16) NULL COMMENT '案件等级',
             PRIMARY KEY (\`case_id\`),
             KEY \`idx_case_inquiry_date\` (\`case_inquiry_date\`),
@@ -1034,6 +1037,16 @@ export async function ensureCaseListSchema(): Promise<void> {
           after: 'AFTER case_memo_name',
         },
         {
+          col: 'case_inquiry_attachments',
+          def: "MEDIUMTEXT NULL COMMENT '案件需求文档附件(JSON array)'",
+          after: 'AFTER case_memo_address',
+        },
+        {
+          col: 'case_settlement_attachments',
+          def: "MEDIUMTEXT NULL COMMENT '案件结算文档附件(JSON array)'",
+          after: 'AFTER case_inquiry_attachments',
+        },
+        {
           col: 'case_remark',
           def: "TEXT NULL COMMENT '案件备注'",
           after: 'AFTER case_settlement_attachments',
@@ -1041,7 +1054,7 @@ export async function ensureCaseListSchema(): Promise<void> {
         {
           col: 'case_rank',
           def: "VARCHAR(16) NULL COMMENT '案件等级'",
-          after: 'AFTER case_memo_address',
+          after: 'AFTER case_remark',
         },
       ]
       for (const { col, def, after } of spec) {
