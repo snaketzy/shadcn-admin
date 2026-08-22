@@ -98,6 +98,7 @@ export interface UploadToCosParams {
   vesselName?: string | null
   inquiryKeyword?: string | null
   inquiryDate?: string | null
+  settlementDate?: string | null
 }
 
 export interface UploadToCosResult {
@@ -155,6 +156,58 @@ export async function uploadInquiryAttachmentToCos(
     }
   } catch (err: any) {
     console.error('[COS] Upload failed:', err)
+    return { success: false, message: err?.message || String(err) }
+  }
+}
+
+export async function uploadSettlementAttachmentToCos(
+  params: UploadToCosParams
+): Promise<UploadToCosResult> {
+  const cos = getCosClient()
+  const cfg = getCosConfig()
+  if (!cos || !cfg) {
+    return { success: false, message: 'COS服务未配置' }
+  }
+  const vesselSeg = sanitizePathSegment(params.vesselName)
+  const keywordSeg = sanitizePathSegment(params.inquiryKeyword)
+  const inquirySeg = sanitizePathSegment(params.inquiryDate)
+  const keywordInquirySeg = keywordSeg + '@' + inquirySeg
+  const safeFilename = sanitizeFilename(params.filename)
+  const timestamp = Date.now()
+  const finalFilename = timestamp + '_' + safeFilename
+  const key = `jiehong/${vesselSeg}/${keywordInquirySeg}/settlements/${finalFilename}`
+  const PUBLIC_DOMAIN = 'http://www.jvecloud.com'
+  try {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cos_upload_'))
+    const tmpPath = path.join(tmpDir, finalFilename)
+    fs.writeFileSync(tmpPath, params.fileBuffer)
+    const inlineDisposition = `inline; filename*=UTF-8''${encodeURIComponent(params.filename || safeFilename)}`
+    const result = await cos.putObject({
+      Bucket: cfg.Bucket,
+      Region: cfg.Region,
+      Key: key,
+      Body: fs.createReadStream(tmpPath),
+      ContentLength: params.fileBuffer.length,
+      ContentType: params.contentType || 'application/octet-stream',
+      Headers: {
+        'Content-Disposition': inlineDisposition,
+      },
+    })
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore cleanup errors */
+    }
+    if (result && result.statusCode === 200) {
+      const url = `${PUBLIC_DOMAIN}/${key}`
+      return { success: true, url, key }
+    }
+    return {
+      success: false,
+      message: result ? `HTTP ${result.statusCode}` : '上传失败',
+    }
+  } catch (err: any) {
+    console.error('[COS] Settlement upload failed:', err)
     return { success: false, message: err?.message || String(err) }
   }
 }

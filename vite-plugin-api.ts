@@ -92,6 +92,7 @@ import {
 } from './src/service/connection/case-memo-list-service'
 import {
   uploadInquiryAttachmentToCos,
+  uploadSettlementAttachmentToCos,
 } from './src/service/connection/cos-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
@@ -1616,6 +1617,52 @@ async function handleCosApi(
         return v === '' ? null : v
       }
       const result = await uploadInquiryAttachmentToCos({
+        fileBuffer: filePart.data,
+        filename: filePart.filename,
+        contentType: filePart.contentType,
+        vesselName: getStr('vessel_name'),
+        inquiryKeyword: getStr('inquiry_keyword'),
+        inquiryDate: getStr('inquiry_date'),
+      })
+      if (result.success && result.url) {
+        sendJson(res, 200, {
+          success: true,
+          data: { url: result.url, key: result.key, name: filePart.filename },
+        })
+      } else {
+        sendJson(res, 500, {
+          success: false,
+          message: result.message || 'COS上传失败',
+        })
+      }
+      return true
+    }
+
+    if (subPath === '/upload-settlement-attachment') {
+      if (method !== 'POST') {
+        sendJson(res, 405, { success: false, message: 'Method not allowed' })
+        return true
+      }
+      const contentType = req.headers['content-type'] ?? ''
+      const boundaryMatch = contentType.match(/boundary=([^;]+)/)
+      if (!boundaryMatch) {
+        sendJson(res, 400, { success: false, message: '缺少 multipart boundary' })
+        return true
+      }
+      const boundary = boundaryMatch[1].trim().replace(/^"|"$/g, '')
+      const parts = await parseMultipart(req, boundary)
+      const filePart = parts.find((p) => p.name === 'file')
+      if (!filePart || !filePart.filename) {
+        sendJson(res, 400, { success: false, message: '缺少文件字段 file' })
+        return true
+      }
+      const getStr = (n: string): string | null => {
+        const p = parts.find((x) => x.name === n)
+        if (!p) return null
+        const v = p.data.toString('utf-8').trim()
+        return v === '' ? null : v
+      }
+      const result = await uploadSettlementAttachmentToCos({
         fileBuffer: filePart.data,
         filename: filePart.filename,
         contentType: filePart.contentType,

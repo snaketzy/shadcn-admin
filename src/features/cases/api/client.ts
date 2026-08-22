@@ -625,7 +625,8 @@ export function isCosUrl(data: string | undefined | null): boolean {
 }
 
 const COS_PUBLIC_DOMAIN = 'www.jvecloud.com'
-const COS_ORIGINAL_DOMAIN_RE = /^https?:\/\/store-barrel-1387238226\.cos\.[^/]+\.myqcloud\.com\//i
+const COS_ORIGINAL_DOMAIN_RE =
+  /^https?:\/\/store-barrel-1387238226\.cos\.[^/]+\.myqcloud\.com\//i
 
 export function normalizeAttachmentUrl(
   data: string | undefined | null
@@ -839,6 +840,37 @@ export async function uploadInquiryAttachmentToCos(params: {
   if (params.inquiryDate) formData.append('inquiry_date', params.inquiryDate)
   const res = await api.post<ApiEnvelope<CosUploadInquiryAttachmentResult>>(
     '/cos/upload-inquiry-attachment',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120000,
+    }
+  )
+  return res.data.data
+}
+
+export interface CosUploadSettlementAttachmentResult {
+  url: string
+  key: string
+  name: string
+}
+
+export async function uploadSettlementAttachmentToCos(params: {
+  file: File
+  vesselName?: string | null
+  inquiryKeyword?: string | null
+  inquiryDate?: string | null
+}): Promise<CosUploadSettlementAttachmentResult> {
+  const formData = new FormData()
+  formData.append('file', params.file)
+  if (params.vesselName) formData.append('vessel_name', params.vesselName)
+  if (params.inquiryKeyword)
+    formData.append('inquiry_keyword', params.inquiryKeyword)
+  if (params.inquiryDate) formData.append('inquiry_date', params.inquiryDate)
+  const res = await api.post<ApiEnvelope<CosUploadSettlementAttachmentResult>>(
+    '/cos/upload-settlement-attachment',
     formData,
     {
       headers: {

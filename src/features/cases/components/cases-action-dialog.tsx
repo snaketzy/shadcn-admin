@@ -158,6 +158,7 @@ import {
   isPdfAttachment,
   isOfficeAttachment,
   uploadInquiryAttachmentToCos,
+  uploadSettlementAttachmentToCos,
   readAttachmentTextContent,
   normalizeAttachmentUrl,
   getAttachmentPreviewUrl,
@@ -308,15 +309,6 @@ function filenameAllowedInquiry(name: string): boolean {
   if (i < 0) return false
   const ext = name.slice(i + 1).toLowerCase()
   return ALLOWED_ATTACHMENT_EXTS.includes(ext)
-}
-
-function readInquiryFileAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.onerror = () => reject(reader.error ?? new Error('文件读取失败'))
-    reader.readAsDataURL(file)
-  })
 }
 
 const formSchema = z.object({
@@ -1882,6 +1874,7 @@ export function CasesActionDialog({
   const settlementFileInputRef = useRef<HTMLInputElement | null>(null)
   const [previewSettlementAtt, setPreviewSettlementAtt] =
     useState<CaseMemoAttachment | null>(null)
+  const [settlementUploadingCount, setSettlementUploadingCount] = useState(0)
   const [settlementPreviewText, setSettlementPreviewText] = useState<
     string | null | undefined
   >(undefined)
@@ -2883,9 +2876,8 @@ export function CasesActionDialog({
   const handleSettlementAttachmentsPick = useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return
-      const accepted: CaseMemoAttachment[] = []
+      const accepted: { f: File; a: CaseMemoAttachment }[] = []
       const rejected: string[] = []
-      const toRead: Array<{ f: File; a: CaseMemoAttachment }> = []
       for (let i = 0; i < files.length; i++) {
         const f = files[i]
         if (f.size > MAX_ATTACHMENT_SIZE) {
@@ -2901,15 +2893,14 @@ export function CasesActionDialog({
           size: f.size,
           type: f.type || undefined,
         }
-        accepted.push(a)
-        toRead.push({ f, a })
+        accepted.push({ f, a })
       }
       if (accepted.length > 0) {
         const curTotal = settlementAttachments.reduce(
           (s, x) => s + (x.size || 0),
           0
         )
-        const addTotal = accepted.reduce((s, x) => s + (x.size || 0), 0)
+        const addTotal = accepted.reduce((s, x) => s + (x.a.size || 0), 0)
         if (curTotal + addTotal > MAX_TOTAL_ATTACHMENT_SIZE) {
           const curMB = (curTotal / 1024 / 1024).toFixed(1)
           const addMB = (addTotal / 1024 / 1024).toFixed(1)
@@ -2920,36 +2911,70 @@ export function CasesActionDialog({
           return
         }
       }
-      if (toRead.length > 0) {
-        try {
-          await Promise.all(
-            toRead.map(async ({ f, a }) => {
-              try {
-                a.data = await readInquiryFileAsDataURL(f)
-              } catch {
-                // 读取失败则跳过 data 字段
-              }
-            })
-          )
-        } catch {
-          // ignore
-        }
-      }
       if (rejected.length > 0) {
         toast.warning(`以下文件未添加：${rejected.join('；')}`)
       }
-      if (accepted.length > 0) {
+      if (accepted.length === 0) return
+      const toUpload = accepted.filter(
+        ({ a }) => !settlementAttachments.some((p) => p.name === a.name)
+      )
+      if (toUpload.length === 0) {
+        if (accepted.length > 0) {
+          toast.info('所选文件均已存在于附件列表中')
+        }
+        return
+      }
+      setSettlementUploadingCount((c) => c + toUpload.length)
+      const results: CaseMemoAttachment[] = []
+      const failed: string[] = []
+      try {
+        await Promise.all(
+          toUpload.map(async ({ f, a }) => {
+            try {
+              const up = await uploadSettlementAttachmentToCos({
+                file: f,
+                vesselName: formVesselName,
+                inquiryKeyword: formInquiryKeyword,
+                inquiryDate: formInquiryDate,
+              })
+              results.push({
+                ...a,
+                data: up.url,
+              })
+            } catch (err: any) {
+              failed.push(
+                `${a.name}：${err?.message || String(err) || '上传失败'}`
+              )
+            }
+          })
+        )
+      } catch {
+        // ignore outer errors
+      } finally {
+        setSettlementUploadingCount((c) => Math.max(0, c - toUpload.length))
+      }
+      if (failed.length > 0) {
+        toast.error(`以下文件上传失败：${failed.join('；')}`)
+      }
+      if (results.length > 0) {
         setSettlementAttachments((prev) => {
           const merged = [...prev]
-          for (const a of accepted) {
+          for (const a of results) {
             if (merged.some((p) => p.name === a.name)) continue
             merged.push(a)
           }
           return merged
         })
+        toast.success(
+          `成功上传 ${results.length} 个文件${
+            toUpload.length > results.length
+              ? `，${toUpload.length - results.length} 个失败`
+              : ''
+          }`
+        )
       }
     },
-    []
+    [settlementAttachments, formVesselName, formInquiryKeyword, formInquiryDate]
   )
 
   const onSubmit = useCallback(
@@ -4951,9 +4976,14 @@ export function CasesActionDialog({
                         type='button'
                         onClick={() => settlementFileInputRef.current?.click()}
                         className='h-10 gap-2 px-4'
+                        disabled={settlementUploadingCount > 0}
                       >
                         <PaperclipIcon size={16} />
-                        <span>选择文件</span>
+                        <span>
+                          {settlementUploadingCount > 0
+                            ? `上传中(${settlementUploadingCount})...`
+                            : '选择文件'}
+                        </span>
                       </Button>
                       <p className='text-sm text-muted-foreground'>
                         支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV
@@ -4962,40 +4992,115 @@ export function CasesActionDialog({
                     </div>
                     {settlementAttachments.length > 0 && (
                       <div className='flex flex-wrap gap-2 pt-1'>
-                        {settlementAttachments.map((a, idx) => (
-                          <Badge
-                            key={`${a.name}-${idx}`}
-                            variant='secondary'
-                            className='h-8 cursor-pointer gap-1 rounded-full px-3 py-0 text-xs font-normal transition-colors hover:bg-secondary/80'
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setPreviewSettlementAtt(a)
-                            }}
-                          >
-                            <PaperclipIcon size={12} className='opacity-70' />
-                            <span className='max-w-[16rem] truncate'>
-                              {a.name}
-                            </span>
-                            {a.size != null && (
-                              <span className='opacity-60'>
-                                ({formatAttachmentSize(a.size)})
-                              </span>
-                            )}
-                            <button
-                              type='button'
-                              aria-label={`移除附件 ${a.name}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSettlementAttachments((prev) =>
-                                  prev.filter((_, i) => i !== idx)
-                                )
-                              }}
-                              className='ms-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-foreground/10'
+                        {settlementAttachments.map((a, idx) => {
+                          const previewable =
+                            isImageAttachment(a.name) ||
+                            isPdfAttachment(a.name) ||
+                            isOfficeAttachment(a.name) ||
+                            isTextAttachment(a.name)
+                          return (
+                            <div
+                              key={`${a.name}-${idx}`}
+                              className='group inline-flex h-8 items-center gap-0 rounded-full bg-secondary text-xs text-secondary-foreground'
                             >
-                              <X size={12} />
-                            </button>
-                          </Badge>
-                        ))}
+                              <Badge
+                                variant='secondary'
+                                className={cn(
+                                  'h-8 cursor-pointer gap-1 rounded-full rounded-e-none border-0 px-3 py-0 text-xs font-normal shadow-none transition-colors hover:bg-secondary/80',
+                                  previewable ? '' : 'rounded-e-full pe-3'
+                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (previewable) setPreviewSettlementAtt(a)
+                                }}
+                              >
+                                {isImageAttachment(a.name) ? (
+                                  <ImageIcon
+                                    size={12}
+                                    className='text-primary opacity-80'
+                                  />
+                                ) : isPdfAttachment(a.name) ||
+                                  isOfficeAttachment(a.name) ? (
+                                  <FileTextIcon
+                                    size={12}
+                                    className='text-primary opacity-80'
+                                  />
+                                ) : (
+                                  <PaperclipIcon
+                                    size={12}
+                                    className='opacity-70'
+                                  />
+                                )}
+                                <span className='max-w-[16rem] truncate'>
+                                  {a.name}
+                                </span>
+                                {a.size != null && (
+                                  <span className='opacity-60'>
+                                    ({formatAttachmentSize(a.size)})
+                                  </span>
+                                )}
+                              </Badge>
+                              {previewable && (
+                                <>
+                                  <button
+                                    type='button'
+                                    aria-label={`预览附件 ${a.name}`}
+                                    title='预览'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setPreviewSettlementAtt(a)
+                                    }}
+                                    className='inline-flex h-8 w-8 items-center justify-center border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                  >
+                                    <EyeIcon size={13} />
+                                  </button>
+                                  <button
+                                    type='button'
+                                    aria-label={`下载附件 ${a.name}`}
+                                    title='下载'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      triggerAttachmentDownload(a)
+                                    }}
+                                    className='inline-flex h-8 w-8 items-center justify-center border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                  >
+                                    <DownloadIcon size={13} />
+                                  </button>
+                                  <button
+                                    type='button'
+                                    aria-label={`移除附件 ${a.name}`}
+                                    title='移除'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSettlementAttachments((prev) =>
+                                        prev.filter((_, i) => i !== idx)
+                                      )
+                                    }}
+                                    className='inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </>
+                              )}
+                              {!previewable && (
+                                <button
+                                  type='button'
+                                  aria-label={`移除附件 ${a.name}`}
+                                  title='移除'
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSettlementAttachments((prev) =>
+                                      prev.filter((_, i) => i !== idx)
+                                    )
+                                  }}
+                                  className='ms-1 inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
