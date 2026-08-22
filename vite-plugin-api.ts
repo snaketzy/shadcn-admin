@@ -93,6 +93,8 @@ import {
 import {
   uploadInquiryAttachmentToCos,
   uploadSettlementAttachmentToCos,
+  deleteFromCos,
+  deleteFromCosByUrl,
 } from './src/service/connection/cos-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
@@ -1679,6 +1681,39 @@ async function handleCosApi(
         sendJson(res, 500, {
           success: false,
           message: result.message || 'COS上传失败',
+        })
+      }
+      return true
+    }
+
+    if (subPath === '/delete') {
+      if (method !== 'POST') {
+        sendJson(res, 405, { success: false, message: 'Method not allowed' })
+        return true
+      }
+      const body = (await readBody(req)) as
+        | { key?: string; url?: string }
+        | undefined
+      const key =
+        body && typeof body.key === 'string' ? body.key.trim() : ''
+      const url =
+        body && typeof body.url === 'string' ? body.url.trim() : ''
+      if (!key && !url) {
+        sendJson(res, 400, { success: false, message: '缺少参数 key 或 url' })
+        return true
+      }
+      const result = key
+        ? await deleteFromCos(key)
+        : await deleteFromCosByUrl(url!)
+      if (result.success) {
+        sendJson(res, 200, {
+          success: true,
+          data: { deleted: result.deleted ?? false, message: result.message },
+        })
+      } else {
+        sendJson(res, 400, {
+          success: false,
+          message: result.message || '删除失败',
         })
       }
       return true

@@ -881,3 +881,22 @@ export async function uploadSettlementAttachmentToCos(params: {
   )
   return res.data.data
 }
+
+export interface CosDeleteResult {
+  deleted: boolean
+  message?: string
+}
+
+export async function deleteCosObject(params: {
+  key?: string
+  url?: string
+}): Promise<CosDeleteResult> {
+  if (!params.key && !params.url) {
+    throw new Error('缺少参数 key 或 url')
+  }
+  const body: any = {}
+  if (params.key) body.key = params.key
+  if (params.url) body.url = params.url
+  const res = await api.post<ApiEnvelope<CosDeleteResult>>('/cos/delete', body)
+  return res.data.data
+}

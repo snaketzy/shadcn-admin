@@ -211,3 +211,70 @@ export async function uploadSettlementAttachmentToCos(
     return { success: false, message: err?.message || String(err) }
   }
 }
+
+export interface DeleteFromCosResult {
+  success: boolean
+  deleted?: boolean
+  message?: string
+}
+
+export async function deleteFromCos(key: string): Promise<DeleteFromCosResult> {
+  const cos = getCosClient()
+  const cfg = getCosConfig()
+  if (!cos || !cfg) {
+    return { success: false, message: 'COS服务未配置' }
+  }
+  if (!key || typeof key !== 'string' || !key.trim()) {
+    return { success: false, message: '缺少文件 key' }
+  }
+  const cleanKey = key.trim()
+  try {
+    const result = await cos.deleteObject({
+      Bucket: cfg.Bucket,
+      Region: cfg.Region,
+      Key: cleanKey,
+    })
+    const code = result && (result as any).statusCode
+    if (code === 200 || code === 204) {
+      return { success: true, deleted: true }
+    }
+    return {
+      success: false,
+      deleted: false,
+      message: result ? `HTTP ${code}` : '删除失败',
+    }
+  } catch (err: any) {
+    const statusCode = err?.statusCode
+    if (statusCode === 404) {
+      return { success: true, deleted: false, message: '文件不存在' }
+    }
+    console.error('[COS] Delete failed:', err)
+    return { success: false, message: err?.message || String(err) }
+  }
+}
+
+export async function deleteFromCosByUrl(
+  url: string
+): Promise<DeleteFromCosResult> {
+  if (!url) return { success: false, message: '缺少 URL' }
+  const cfg = getCosConfig()
+  let key = ''
+  try {
+    const u = new URL(url)
+    key = u.pathname.replace(/^\//, '')
+  } catch {
+    const m1 = url.match(/^https?:\/\/[^/]+\/(.+)$/)
+    if (m1) key = m1[1]
+  }
+  if (!key) {
+    if (cfg && url.startsWith(`http://www.jvecloud.com/`)) {
+      key = url.slice(`http://www.jvecloud.com/`.length)
+    } else if (cfg && url.startsWith(`http://${cfg.Host}/`)) {
+      key = url.slice(`http://${cfg.Host}/`.length)
+    } else if (cfg && url.startsWith(`https://${cfg.Host}/`)) {
+      key = url.slice(`https://${cfg.Host}/`.length)
+    }
+  }
+  if (!key) return { success: false, message: '无法从 URL 中解析文件 key' }
+  return deleteFromCos(decodeURIComponent(key))
+}
