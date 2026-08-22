@@ -38,6 +38,7 @@ export const caseSchema = z.object({
   case_memo_name: z.string().nullable(),
   case_memo_address: z.string().nullable(),
   case_inquiry_attachments: z.string().nullable(),
+  case_settlement_attachments: z.string().nullable(),
   case_rank: z.string().nullable(),
 })
 

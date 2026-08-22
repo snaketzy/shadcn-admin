@@ -1088,6 +1088,11 @@ async function handleCaseListApi(
             body.case_inquiry_attachments === ''
               ? null
               : String(body.case_inquiry_attachments),
+          case_settlement_attachments:
+            body.case_settlement_attachments == null ||
+            body.case_settlement_attachments === ''
+              ? null
+              : String(body.case_settlement_attachments),
           case_rank: toOptStr(body.case_rank),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -1202,6 +1207,11 @@ async function handleCaseListApi(
             body.case_inquiry_attachments === ''
               ? null
               : String(body.case_inquiry_attachments),
+          case_settlement_attachments:
+            body.case_settlement_attachments == null ||
+            body.case_settlement_attachments === ''
+              ? null
+              : String(body.case_settlement_attachments),
           case_rank: toOptStr(body.case_rank),
         })
         sendJson(res, 200, { success: true, data: updated })

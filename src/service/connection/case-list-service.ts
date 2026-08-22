@@ -51,6 +51,7 @@ export interface CaseListRow {
   case_memo_name: string | null
   case_memo_address: string | null
   case_inquiry_attachments: string | null
+  case_settlement_attachments: string | null
   case_rank: string | null
 }
 
@@ -63,7 +64,7 @@ const SELECT_COLS = `
   case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
   vessel_position, case_settlement_done,
   case_personal_register_completed, case_business_register_completed, case_e_filing_completed, case_paper_based_filing_completed,
-  case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_inquiry_attachments, case_rank
+  case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_inquiry_attachments, case_settlement_attachments, case_rank
 `
 
 export async function getAllCaseList(): Promise<CaseListRow[]> {
@@ -393,6 +394,7 @@ export async function createCaseList(data: {
   case_memo_name?: string | null
   case_memo_address?: string | null
   case_inquiry_attachments?: string | null
+  case_settlement_attachments?: string | null
   case_rank?: string | null
 }): Promise<CaseListRow> {
   const result = await execute(
@@ -405,9 +407,9 @@ export async function createCaseList(data: {
        case_eta_cargo_ready_date, case_etb_cargo_departure_date, case_etd_cargo_delivery_date,
        vessel_position, case_settlement_done,
        case_personal_register_completed, case_business_register_completed, case_e_filing_completed, case_paper_based_filing_completed,
-       case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_inquiry_attachments, case_rank)
+       case_epd, case_spd, case_incharge, case_memo_name, case_memo_address, case_inquiry_attachments, case_settlement_attachments, case_rank)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.vessel_name ?? null,
       data.invoice_number ?? null,
@@ -456,6 +458,7 @@ export async function createCaseList(data: {
       data.case_memo_name ?? null,
       data.case_memo_address ?? null,
       data.case_inquiry_attachments ?? null,
+      data.case_settlement_attachments ?? null,
       data.case_rank ?? null,
     ]
   )
@@ -509,6 +512,7 @@ export async function updateCaseList(
     case_memo_name?: string | null
     case_memo_address?: string | null
     case_inquiry_attachments?: string | null
+    case_settlement_attachments?: string | null
     case_rank?: string | null
   }
 ): Promise<CaseListRow> {
@@ -552,6 +556,7 @@ export async function updateCaseList(
     'case_memo_name',
     'case_memo_address',
     'case_inquiry_attachments',
+    'case_settlement_attachments',
     'case_rank',
   ]
   for (const key of keys) {
@@ -718,6 +723,9 @@ function normalizeRow(row: any): CaseListRow {
       : null,
     case_inquiry_attachments: row.case_inquiry_attachments
       ? String(row.case_inquiry_attachments)
+      : null,
+    case_settlement_attachments: row.case_settlement_attachments
+      ? String(row.case_settlement_attachments)
       : null,
     case_rank: row.case_rank ? String(row.case_rank) : null,
   }

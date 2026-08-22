@@ -72,6 +72,7 @@ export interface Case {
   case_memo_name: string | null
   case_memo_address: string | null
   case_inquiry_attachments: string | null
+  case_settlement_attachments: string | null
   case_rank: string | null
 }
 
@@ -126,13 +127,22 @@ export async function fetchCaseDetail(caseId: number): Promise<Case | null> {
         res.data.data &&
         typeof res.data.data === 'object' &&
         'case_inquiry_attachments' in (res.data.data as object),
+      hasCaseSettlementAttachmentsKey:
+        res &&
+        res.data &&
+        typeof res.data === 'object' &&
+        res.data.data &&
+        typeof res.data.data === 'object' &&
+        'case_settlement_attachments' in (res.data.data as object),
       keys:
         res && res.data && res.data.data && typeof res.data.data === 'object'
           ? Object.keys(res.data.data as Record<string, unknown>).filter((k) =>
               k.includes('attachment')
             )
           : [],
-      value: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
+      inquiryValue: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
+      settlementValue:
+        (res?.data?.data as any)?.case_settlement_attachments ?? null,
     })
     return res.data.data ?? null
   } catch (e: any) {
@@ -256,26 +266,37 @@ export async function createCase(payload: {
   case_memo_name?: string | null
   case_memo_address?: string | null
   case_inquiry_attachments?: CaseMemoAttachment[] | string | null
+  case_settlement_attachments?: CaseMemoAttachment[] | string | null
   case_rank?: string | null
 }): Promise<Case> {
   const body: any = { ...payload }
-  if ('case_inquiry_attachments' in body) {
-    const raw = body.case_inquiry_attachments
-    if (typeof raw === 'string') {
-      body.case_inquiry_attachments = raw || null
-    } else {
-      body.case_inquiry_attachments = stringifyAttachments(
-        raw as CaseMemoAttachment[] | null | undefined
-      )
+  ;(
+    [
+      'case_inquiry_attachments',
+      'case_settlement_attachments',
+    ] as const
+  ).forEach((key) => {
+    if (key in body) {
+      const raw = body[key]
+      if (typeof raw === 'string') {
+        body[key] = raw || null
+      } else {
+        body[key] = stringifyAttachments(
+          raw as CaseMemoAttachment[] | null | undefined
+        )
+      }
     }
-  }
+  })
   console.log('[DEBUG createCase body]', {
-    hasKey: 'case_inquiry_attachments' in body,
-    rawValue: body.case_inquiry_attachments,
-    valueType: typeof body.case_inquiry_attachments,
-    valueLen:
+    hasInquiryKey: 'case_inquiry_attachments' in body,
+    inquiryValueLen:
       typeof body.case_inquiry_attachments === 'string'
         ? body.case_inquiry_attachments.length
+        : null,
+    hasSettlementKey: 'case_settlement_attachments' in body,
+    settlementValueLen:
+      typeof body.case_settlement_attachments === 'string'
+        ? body.case_settlement_attachments.length
         : null,
   })
   const res = await api.post<ApiEnvelope<Case>>('/case-list/', body)
@@ -318,38 +339,56 @@ export async function updateCase(
     case_memo_name?: string | null
     case_memo_address?: string | null
     case_inquiry_attachments?: CaseMemoAttachment[] | string | null
+    case_settlement_attachments?: CaseMemoAttachment[] | string | null
     case_rank?: string | null
   }
 ): Promise<Case> {
   const body: any = { ...payload }
-  if ('case_inquiry_attachments' in body) {
-    const raw = body.case_inquiry_attachments
-    if (typeof raw === 'string') {
-      body.case_inquiry_attachments = raw || null
-    } else {
-      body.case_inquiry_attachments = stringifyAttachments(
-        raw as CaseMemoAttachment[] | null | undefined
-      )
+  ;(
+    [
+      'case_inquiry_attachments',
+      'case_settlement_attachments',
+    ] as const
+  ).forEach((key) => {
+    if (key in body) {
+      const raw = body[key]
+      if (typeof raw === 'string') {
+        body[key] = raw || null
+      } else {
+        body[key] = stringifyAttachments(
+          raw as CaseMemoAttachment[] | null | undefined
+        )
+      }
     }
-  }
+  })
   console.log('[DEBUG updateCase caseId=' + caseId + ' body]', {
-    hasKey: 'case_inquiry_attachments' in body,
-    rawValue: body.case_inquiry_attachments,
-    valueType: typeof body.case_inquiry_attachments,
-    valueLen:
+    hasInquiryKey: 'case_inquiry_attachments' in body,
+    inquiryValueLen:
       typeof body.case_inquiry_attachments === 'string'
         ? body.case_inquiry_attachments.length
+        : null,
+    hasSettlementKey: 'case_settlement_attachments' in body,
+    settlementValueLen:
+      typeof body.case_settlement_attachments === 'string'
+        ? body.case_settlement_attachments.length
         : null,
   })
   const res = await api.put<ApiEnvelope<Case>>(`/case-list/${caseId}`, body)
   console.log('[DEBUG updateCase caseId=' + caseId + ' response]', {
-    hasCaseInquiryAttachmentsKey:
+    hasInquiryKey:
       res &&
       res.data &&
       res.data.data &&
       typeof res.data.data === 'object' &&
       'case_inquiry_attachments' in (res.data.data as object),
-    value: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
+    inquiryValue: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
+    hasSettlementKey:
+      res &&
+      res.data &&
+      res.data.data &&
+      typeof res.data.data === 'object' &&
+      'case_settlement_attachments' in (res.data.data as object),
+    settlementValue: (res?.data?.data as any)?.case_settlement_attachments ?? null,
   })
   return res.data.data
 }
