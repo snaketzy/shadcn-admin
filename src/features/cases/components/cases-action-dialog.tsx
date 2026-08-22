@@ -5371,7 +5371,7 @@ export function CasesActionDialog({
       >
         <DialogContent
           showCloseButton={true}
-          className='flex h-[90vh] max-h-[90vh] w-[92vw] flex-col overflow-hidden p-0 sm:max-w-5xl'
+          className='!sm:max-w-[80vw] flex !h-[95vh] !max-h-[95vh] !w-[80vw] !max-w-[80vw] flex-col overflow-hidden p-0'
         >
           {previewInquiryAtt && (
             <>
@@ -5426,8 +5426,8 @@ export function CasesActionDialog({
                   </DialogClose>
                 </div>
               </DialogHeader>
-              <ScrollArea className='min-h-0 flex-1'>
-                <div className='flex min-h-full items-center justify-center p-6'>
+              <ScrollArea className='h-0 min-h-0 w-full flex-1'>
+                <div className='flex min-h-full min-w-full items-center justify-center p-1 sm:p-2'>
                   {!previewInquiryAtt.data ? (
                     <Card className='w-full max-w-md'>
                       <CardHeader>
@@ -5459,10 +5459,10 @@ export function CasesActionDialog({
                     <img
                       src={normalizeAttachmentUrl(previewInquiryAtt.data)}
                       alt={previewInquiryAtt.name}
-                      className='max-w-full rounded-lg border shadow-sm'
+                      className='h-auto max-h-[calc(95vh-10rem)] w-auto max-w-full rounded-lg border object-contain shadow-sm'
                     />
                   ) : isTextAttachment(previewInquiryAtt.name) ? (
-                    <div className='w-full max-w-4xl'>
+                    <div className='w-full max-w-[min(100%,1200px)]'>
                       {inquiryPreviewTextLoading ? (
                         <div className='flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground'>
                           <span className='inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent align-middle' />
@@ -5501,31 +5501,18 @@ export function CasesActionDialog({
                     <iframe
                       src={normalizeAttachmentUrl(previewInquiryAtt.data)}
                       title={previewInquiryAtt.name}
-                      className='h-[75vh] w-full rounded-lg border bg-white'
+                      className='h-[calc(95vh-8rem)] min-h-[calc(95vh-8rem)] w-[calc(80vw-2rem)] min-w-0 rounded-lg border bg-white'
                     />
                   ) : isOfficeAttachment(previewInquiryAtt.name) ? (
-                    <div className='flex w-full flex-col gap-2'>
-                      <p className='text-xs text-muted-foreground'>
-                        通过微软 Office Online 在线预览：
+                    <div className='flex h-[calc(95vh-8rem)] min-h-[calc(95vh-8rem)] w-[calc(80vw-2rem)] min-w-0 flex-col gap-1'>
+                      <p className='shrink-0 text-xs text-muted-foreground'>
+                        通过微软 Office Online 在线预览
                       </p>
                       <iframe
                         src={getAttachmentPreviewUrl(previewInquiryAtt)}
                         title={previewInquiryAtt.name}
-                        className='h-[75vh] w-full rounded-lg border bg-white'
+                        className='w-full flex-1 rounded-lg border bg-white'
                       />
-                      <div className='flex justify-end'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          type='button'
-                          onClick={() =>
-                            openAttachmentInNewTab(previewInquiryAtt)
-                          }
-                        >
-                          <ExternalLinkIcon size={14} className='me-1' />
-                          在新标签页打开预览
-                        </Button>
-                      </div>
                     </div>
                   ) : (
                     <Card className='w-full max-w-md'>
@@ -5580,7 +5567,7 @@ export function CasesActionDialog({
       >
         <DialogContent
           showCloseButton={true}
-          className='flex h-[90vh] max-h-[90vh] w-[92vw] flex-col overflow-hidden p-0 sm:max-w-5xl'
+          className='!sm:max-w-[80vw] flex !h-[95vh] !max-h-[95vh] !w-[80vw] !max-w-[80vw] flex-col overflow-hidden p-0'
         >
           {previewSettlementAtt && (
             <>
@@ -5639,8 +5626,8 @@ export function CasesActionDialog({
                   </DialogClose>
                 </div>
               </DialogHeader>
-              <ScrollArea className='min-h-0 flex-1'>
-                <div className='flex min-h-full items-center justify-center p-6'>
+              <ScrollArea className='h-0 min-h-0 w-full flex-1'>
+                <div className='flex min-h-full min-w-full items-center justify-center p-1 sm:p-2'>
                   {!previewSettlementAtt.data ? (
                     <Card className='w-full max-w-md'>
                       <CardHeader>
@@ -5672,10 +5659,10 @@ export function CasesActionDialog({
                     <img
                       src={normalizeAttachmentUrl(previewSettlementAtt.data)}
                       alt={previewSettlementAtt.name}
-                      className='max-w-full rounded-lg border shadow-sm'
+                      className='h-auto max-h-[calc(95vh-10rem)] w-auto max-w-full rounded-lg border object-contain shadow-sm'
                     />
                   ) : isTextAttachment(previewSettlementAtt.name) ? (
-                    <div className='w-full max-w-4xl'>
+                    <div className='w-full max-w-[min(100%,1200px)]'>
                       {settlementPreviewTextLoading ? (
                         <div className='flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground'>
                           <span className='inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent align-middle' />
@@ -5714,31 +5701,18 @@ export function CasesActionDialog({
                     <iframe
                       src={normalizeAttachmentUrl(previewSettlementAtt.data)}
                       title={previewSettlementAtt.name}
-                      className='h-[75vh] w-full rounded-lg border bg-white'
+                      className='h-[calc(95vh-8rem)] min-h-[calc(95vh-8rem)] w-[calc(80vw-2rem)] min-w-0 rounded-lg border bg-white'
                     />
                   ) : isOfficeAttachment(previewSettlementAtt.name) ? (
-                    <div className='flex w-full flex-col gap-2'>
-                      <p className='text-xs text-muted-foreground'>
-                        通过微软 Office Online 在线预览：
+                    <div className='flex h-[calc(95vh-8rem)] min-h-[calc(95vh-8rem)] w-[calc(80vw-2rem)] min-w-0 flex-col gap-1'>
+                      <p className='shrink-0 text-xs text-muted-foreground'>
+                        通过微软 Office Online 在线预览
                       </p>
                       <iframe
                         src={getAttachmentPreviewUrl(previewSettlementAtt)}
                         title={previewSettlementAtt.name}
-                        className='h-[75vh] w-full rounded-lg border bg-white'
+                        className='w-full flex-1 rounded-lg border bg-white'
                       />
-                      <div className='flex justify-end'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          type='button'
-                          onClick={() =>
-                            openAttachmentInNewTab(previewSettlementAtt)
-                          }
-                        >
-                          <ExternalLinkIcon size={14} className='me-1' />
-                          在新标签页打开预览
-                        </Button>
-                      </div>
                     </div>
                   ) : (
                     <Card className='w-full max-w-md'>
