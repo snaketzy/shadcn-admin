@@ -1093,6 +1093,7 @@ async function handleCaseListApi(
             body.case_settlement_attachments === ''
               ? null
               : String(body.case_settlement_attachments),
+          case_remark: toOptStr(body.case_remark),
           case_rank: toOptStr(body.case_rank),
         })
         sendJson(res, 200, { success: true, data: created })
@@ -1212,6 +1213,7 @@ async function handleCaseListApi(
             body.case_settlement_attachments === ''
               ? null
               : String(body.case_settlement_attachments),
+          case_remark: toOptStr(body.case_remark),
           case_rank: toOptStr(body.case_rank),
         })
         sendJson(res, 200, { success: true, data: updated })

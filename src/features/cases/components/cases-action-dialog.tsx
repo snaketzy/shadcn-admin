@@ -429,6 +429,7 @@ const formSchema = z.object({
   case_memo_address: z.string().optional().catch(''),
   case_inquiry_attachments: z.string().optional().catch(''),
   case_settlement_attachments: z.string().optional().catch(''),
+  case_remark: z.string().optional().catch(''),
   case_rank: z.string().optional().catch(''),
 })
 type CaseForm = z.infer<typeof formSchema>
@@ -1565,6 +1566,7 @@ export function CasesActionDialog({
               (currentRow as any).case_inquiry_attachments ?? '',
             case_settlement_attachments:
               (currentRow as any).case_settlement_attachments ?? '',
+            case_remark: (currentRow as any).case_remark ?? '',
             case_rank: currentRow.case_rank ?? '',
           }
         : {
@@ -1605,6 +1607,7 @@ export function CasesActionDialog({
             case_memo_address: '',
             case_inquiry_attachments: '',
             case_settlement_attachments: '',
+            case_remark: '',
             case_rank: '',
           },
     [
@@ -2049,6 +2052,7 @@ export function CasesActionDialog({
       case_inquiry_attachments: (row as any).case_inquiry_attachments ?? '',
       case_settlement_attachments:
         (row as any).case_settlement_attachments ?? '',
+      case_remark: (row as any).case_remark ?? '',
       case_rank: row.case_rank ?? '',
     }),
     []
@@ -2944,6 +2948,7 @@ export function CasesActionDialog({
         case_settlement_attachments: stringifyAttachments(
           settlementAttachments
         ),
+        case_remark: toOptStr(values.case_remark),
         case_rank: toOptStr(values.case_rank),
       } as any
       if (isEdit && currentRow) {
@@ -4812,6 +4817,26 @@ export function CasesActionDialog({
                         ))}
                       </div>
                     )}
+                  </div>
+                  <FormMessage className='col-span-10 col-start-3' />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='case_remark'
+              render={({ field }) => (
+                <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
+                  <FormLabel className='col-span-2 pt-2 text-end'>
+                    案件备注
+                  </FormLabel>
+                  <div className='col-span-10'>
+                    <Textarea
+                      {...field}
+                      rows={4}
+                      placeholder='请输入案件备注...'
+                      className='resize-y'
+                    />
                   </div>
                   <FormMessage className='col-span-10 col-start-3' />
                 </FormItem>

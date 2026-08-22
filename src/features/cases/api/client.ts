@@ -73,6 +73,7 @@ export interface Case {
   case_memo_address: string | null
   case_inquiry_attachments: string | null
   case_settlement_attachments: string | null
+  case_remark: string | null
   case_rank: string | null
 }
 
@@ -267,14 +268,12 @@ export async function createCase(payload: {
   case_memo_address?: string | null
   case_inquiry_attachments?: CaseMemoAttachment[] | string | null
   case_settlement_attachments?: CaseMemoAttachment[] | string | null
+  case_remark?: string | null
   case_rank?: string | null
 }): Promise<Case> {
   const body: any = { ...payload }
   ;(
-    [
-      'case_inquiry_attachments',
-      'case_settlement_attachments',
-    ] as const
+    ['case_inquiry_attachments', 'case_settlement_attachments'] as const
   ).forEach((key) => {
     if (key in body) {
       const raw = body[key]
@@ -340,15 +339,13 @@ export async function updateCase(
     case_memo_address?: string | null
     case_inquiry_attachments?: CaseMemoAttachment[] | string | null
     case_settlement_attachments?: CaseMemoAttachment[] | string | null
+    case_remark?: string | null
     case_rank?: string | null
   }
 ): Promise<Case> {
   const body: any = { ...payload }
   ;(
-    [
-      'case_inquiry_attachments',
-      'case_settlement_attachments',
-    ] as const
+    ['case_inquiry_attachments', 'case_settlement_attachments'] as const
   ).forEach((key) => {
     if (key in body) {
       const raw = body[key]
@@ -388,7 +385,8 @@ export async function updateCase(
       res.data.data &&
       typeof res.data.data === 'object' &&
       'case_settlement_attachments' in (res.data.data as object),
-    settlementValue: (res?.data?.data as any)?.case_settlement_attachments ?? null,
+    settlementValue:
+      (res?.data?.data as any)?.case_settlement_attachments ?? null,
   })
   return res.data.data
 }
