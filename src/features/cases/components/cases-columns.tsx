@@ -1150,6 +1150,12 @@ export function getCasesColumns(params?: {
                       '供应商结账日期',
                       formatDateAsHyphen(rowData.case_spd)
                     )}
+                    {kvRow(
+                      '案件备注',
+                      <span className='break-words whitespace-pre-wrap'>
+                        {(rowData as any).case_remark ?? ''}
+                      </span>
+                    )}
                   </div>
                 </div>
               </ScrollArea>
