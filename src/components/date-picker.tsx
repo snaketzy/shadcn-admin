@@ -1,6 +1,5 @@
 import { format, parseISO } from 'date-fns'
 import { Calendar as CalendarIcon, Clock, X } from 'lucide-react'
-import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
@@ -189,6 +188,101 @@ export function DateTimePicker({
           placeholder={placeholder}
           disabled={disabled}
           allowClear={allowClear}
+        />
+      </div>
+      <div className='relative w-36 shrink-0'>
+        <Input
+          type='time'
+          step={60}
+          disabled={disabled}
+          value={timeValue}
+          onChange={(e) => handleTimeChange(e.target.value)}
+          className='pr-8'
+        />
+        <Clock className='pointer-events-none absolute end-2.5 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50' />
+      </div>
+      {allowClear && hasValue && !disabled ? (
+        <button
+          type='button'
+          aria-label='清除日期时间'
+          onClick={(e) => {
+            e.stopPropagation()
+            onChange('')
+          }}
+          className='absolute end-0 top-1/2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          tabIndex={-1}
+        >
+          <X className='size-4' />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+type DateTimeInputProps = {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  className?: string
+  disabled?: boolean
+  allowClear?: boolean
+}
+
+export function DateTimeInput({
+  value,
+  onChange,
+  placeholder = '请输入日期时间',
+  className,
+  disabled = false,
+  allowClear = true,
+}: DateTimeInputProps) {
+  const dateValue = (() => {
+    if (!value) return ''
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10)
+    return ''
+  })()
+  const timeValue = (() => {
+    if (!value) return ''
+    const m =
+      typeof value === 'string'
+        ? value.match(/T(\d{2}:\d{2})/) || value.match(/ (\d{2}:\d{2})/)
+        : null
+    return m ? m[1] : ''
+  })()
+
+  const hasValue = Boolean(dateValue || timeValue)
+
+  const handleDateChange = (d: string) => {
+    if (!d && !timeValue) {
+      onChange('')
+      return
+    }
+    onChange(`${d} ${timeValue}`.trim())
+  }
+
+  const handleTimeChange = (t: string) => {
+    if (!dateValue && !t) {
+      onChange('')
+      return
+    }
+    onChange(`${dateValue} ${t}`.trim())
+  }
+
+  return (
+    <div
+      className={cn(
+        'relative flex w-full items-center gap-2',
+        allowClear && hasValue && !disabled ? 'pr-7' : '',
+        className
+      )}
+    >
+      <div className='min-w-0 flex-1'>
+        <Input
+          type='date'
+          disabled={disabled}
+          value={dateValue}
+          placeholder={placeholder}
+          onChange={(e) => handleDateChange(e.target.value)}
         />
       </div>
       <div className='relative w-36 shrink-0'>

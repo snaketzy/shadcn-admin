@@ -43,7 +43,7 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { DateTimePicker } from '@/components/date-picker'
+import { DateTimeInput } from '@/components/date-picker'
 import {
   createCaseMemo,
   deleteCaseMemo,
@@ -536,7 +536,7 @@ export function CasesMemoDialog({
             备忘日期
           </Label>
           <div>
-            <DateTimePicker value={memoDate} onChange={setMemoDate} />
+            <DateTimeInput value={memoDate} onChange={setMemoDate} />
           </div>
 
           <Label className='pt-2 text-sm font-semibold text-foreground/90'>
@@ -740,7 +740,7 @@ export function CasesMemoDialog({
   return (
     <>
       {mode === 'page' ? (
-        <div className='mx-auto flex h-[90vh] max-h-[90vh] w-full flex-col overflow-hidden p-6 sm:max-w-4xl'>
+        <div className='mx-auto flex !h-[95vh] !max-h-[95vh] w-full flex-col overflow-hidden p-6 sm:!w-[80vw] sm:!max-w-[80vw]'>
           <div className='mb-2 shrink-0 text-start'>
             <div className='text-xl leading-7 font-semibold'>{caseTitle}</div>
             {caseHeaderMeta}
@@ -759,7 +759,7 @@ export function CasesMemoDialog({
         >
           <DialogContent
             showCloseButton={true}
-            className='flex h-[90vh] max-h-[90vh] flex-col overflow-hidden p-6 sm:max-w-4xl'
+            className='flex !w-[80vw] !max-w-[80vw] !sm:max-w-[80vw] !h-[95vh] !max-h-[95vh] flex-col overflow-hidden p-6'
           >
             <DialogHeader className='shrink-0 text-start'>
               <DialogTitle className='text-xl leading-7'>

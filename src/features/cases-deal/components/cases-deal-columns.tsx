@@ -594,8 +594,8 @@ export function getCasesDealColumns(params?: {
                     案件备忘（共 {memos.length} 条）
                   </span>
                 </div>
-                <ScrollArea className='min-h-0 flex-1'>
-                  <div className='flex flex-col gap-0 p-2'>
+                <div className='min-h-0 flex-1 overflow-y-auto'>
+                  <div className='flex flex-col gap-0 p-2 pr-3'>
                     {memos.map((memo, idx) => {
                       const attach = parseAttachments(
                         (memo as any).case_memo_attachment ?? null
@@ -702,7 +702,7 @@ export function getCasesDealColumns(params?: {
                       )
                     })}
                   </div>
-                </ScrollArea>
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
