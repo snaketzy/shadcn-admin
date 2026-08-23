@@ -71,6 +71,7 @@ import {
   deleteCaseList,
   deleteCaseListBulk,
   checkDuplicateInquiryKeyword,
+  checkDuplicateOrderNumber,
   ensureCaseOwnerFollowingIdColumn,
   ensureCaseDeliveryServiceInchargeIdColumn,
   ensureCaseListSchema,
@@ -1217,6 +1218,28 @@ async function handleCaseListApi(
             : undefined
         const result = await checkDuplicateInquiryKeyword({
           keyword,
+          excludeCaseId,
+        })
+        sendJson(res, 200, { success: true, data: result })
+        return true
+      }
+    }
+
+    if (subPath === '/check-order-number') {
+      if (method === 'GET') {
+        const orderNumber = toOptStr(searchParams.get('orderNumber'))
+        if (!orderNumber) {
+          sendJson(res, 200, { success: true, data: { exists: false } })
+          return true
+        }
+        const excludeCaseIdRaw = searchParams.get('excludeCaseId')
+        const excludeCaseId =
+          excludeCaseIdRaw != null && excludeCaseIdRaw !== '' &&
+          !Number.isNaN(Number(excludeCaseIdRaw))
+            ? Number(excludeCaseIdRaw)
+            : undefined
+        const result = await checkDuplicateOrderNumber({
+          orderNumber,
           excludeCaseId,
         })
         sendJson(res, 200, { success: true, data: result })

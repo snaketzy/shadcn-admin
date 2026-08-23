@@ -148,6 +148,7 @@ import {
   fetchCaseInquiryListByCaseId,
   replaceCaseInquiryByCaseId,
   fetchCaseInquiryKeywordCheck,
+  fetchCaseOrderNumberCheck,
   fetchCaseDetail,
   parseAttachments,
   stringifyAttachments,
@@ -1922,6 +1923,19 @@ export function CasesActionDialog({
     isChecking: false,
   })
 
+  const orderNumberDuplicateCheckRef = useRef<{
+    lastCheckedNormalized: string
+    lastResultExists: boolean
+    lastMatchedCaseId?: number
+    lastMatchedOrderNumber?: string
+    isChecking: boolean
+    pendingCheckToken?: number
+  }>({
+    lastCheckedNormalized: '',
+    lastResultExists: false,
+    isChecking: false,
+  })
+
   const excludeCaseId =
     isEdit && currentRow?.case_id && !Number.isNaN(Number(currentRow.case_id))
       ? Number(currentRow.case_id)
@@ -1980,6 +1994,59 @@ export function CasesActionDialog({
     [excludeCaseId]
   )
 
+  const runOrderNumberDuplicateCheck = useCallback(
+    async (
+      raw: string
+    ): Promise<{
+      exists: boolean
+      matchedCaseId?: number
+      matchedOrderNumber?: string
+    }> => {
+      const normalized = String(raw ?? '')
+        .trim()
+        .toLowerCase()
+      const state = orderNumberDuplicateCheckRef.current
+      if (!normalized) {
+        state.lastCheckedNormalized = ''
+        state.lastResultExists = false
+        return { exists: false }
+      }
+      if (state.lastCheckedNormalized === normalized && !state.isChecking) {
+        return {
+          exists: state.lastResultExists,
+          matchedCaseId: state.lastMatchedCaseId,
+          matchedOrderNumber: state.lastMatchedOrderNumber,
+        }
+      }
+      if (state.isChecking && state.pendingCheckToken) {
+        try {
+          window.clearTimeout(state.pendingCheckToken)
+        } catch (e) {
+          // ignore
+        }
+      }
+      state.isChecking = true
+      try {
+        const result = await fetchCaseOrderNumberCheck({
+          orderNumber: normalized,
+          excludeCaseId,
+        })
+        state.lastCheckedNormalized = normalized
+        state.lastResultExists = !!result.exists
+        state.lastMatchedCaseId = result.matchedCaseId
+        state.lastMatchedOrderNumber = result.matchedOrderNumber
+        return {
+          exists: !!result.exists,
+          matchedCaseId: result.matchedCaseId,
+          matchedOrderNumber: result.matchedOrderNumber,
+        }
+      } finally {
+        state.isChecking = false
+      }
+    },
+    [excludeCaseId]
+  )
+
   const setKeywordErrorIfDuplicate = useCallback(
     async (raw: string): Promise<boolean> => {
       if (isEdit) {
@@ -2011,6 +2078,35 @@ export function CasesActionDialog({
       }
     },
     [form, isEdit, runKeywordDuplicateCheck]
+  )
+
+  const setOrderNumberErrorIfDuplicate = useCallback(
+    async (raw: string): Promise<boolean> => {
+      const normalized = String(raw ?? '').trim()
+      if (!normalized) {
+        form.clearErrors('order_number')
+        return false
+      }
+      try {
+        const result = await runOrderNumberDuplicateCheck(normalized)
+        if (result.exists) {
+          const suffix = result.matchedCaseId
+            ? `（已存在于案件 #${result.matchedCaseId}）`
+            : ''
+          form.setError('order_number', {
+            type: 'manual',
+            message: `订单编号已存在，不可重复${suffix}`,
+          })
+          return true
+        }
+        form.clearErrors('order_number')
+        return false
+      } catch (e) {
+        form.clearErrors('order_number')
+        return false
+      }
+    },
+    [form, runOrderNumberDuplicateCheck]
   )
 
   useEffect(() => {
@@ -3103,6 +3199,26 @@ export function CasesActionDialog({
           // ignore network errors and proceed without duplicate pre-check
         }
       }
+      const orderNumberRaw = toOptStr(values.order_number)
+      if (orderNumberRaw) {
+        try {
+          const orderDupResult =
+            await runOrderNumberDuplicateCheck(orderNumberRaw)
+          if (orderDupResult.exists) {
+            const suffix = orderDupResult.matchedCaseId
+              ? `（已存在于案件 #${orderDupResult.matchedCaseId}）`
+              : ''
+            form.setError('order_number', {
+              type: 'manual',
+              message: `订单编号已存在，不可重复${suffix}`,
+            })
+            toast.error(`订单编号已存在，不可保存${suffix}`)
+            return
+          }
+        } catch (e) {
+          // ignore network errors and proceed without duplicate pre-check
+        }
+      }
       const payload = {
         vessel_name: toOptStr(values.vessel_name),
         invoice_number: toOptStr(values.invoice_number),
@@ -3185,6 +3301,7 @@ export function CasesActionDialog({
       isEdit,
       currentRow,
       runKeywordDuplicateCheck,
+      runOrderNumberDuplicateCheck,
       createMutation,
       updateMutation,
       inquiryAttachments,
@@ -3357,6 +3474,18 @@ export function CasesActionDialog({
                       placeholder='请输入订单编号'
                       className='col-span-4'
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e)
+                        form.clearErrors('order_number')
+                        orderNumberDuplicateCheckRef.current.lastCheckedNormalized =
+                          ''
+                      }}
+                      onBlur={async (e) => {
+                        field.onBlur?.()
+                        await setOrderNumberErrorIfDuplicate(
+                          e.currentTarget.value ?? ''
+                        )
+                      }}
                     />
                   </FormControl>
                   <FormMessage className='col-span-4 col-start-3' />

@@ -218,12 +218,33 @@ export interface KeywordCheckResult {
   matchedKeyword?: string
 }
 
+export interface OrderNumberCheckResult {
+  exists: boolean
+  matchedCaseId?: number
+  matchedOrderNumber?: string
+}
+
 export async function fetchCaseInquiryKeywordCheck(params: {
   keyword: string
   excludeCaseId?: number
 }): Promise<KeywordCheckResult> {
   const res = await api.get<ApiEnvelope<KeywordCheckResult>>(
     '/case-list/check-keyword',
+    { params }
+  )
+  return (
+    res.data.data ?? {
+      exists: false,
+    }
+  )
+}
+
+export async function fetchCaseOrderNumberCheck(params: {
+  orderNumber: string
+  excludeCaseId?: number
+}): Promise<OrderNumberCheckResult> {
+  const res = await api.get<ApiEnvelope<OrderNumberCheckResult>>(
+    '/case-list/check-order-number',
     { params }
   )
   return (

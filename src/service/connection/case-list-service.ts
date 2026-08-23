@@ -128,6 +128,49 @@ export async function checkDuplicateInquiryKeyword(params: {
   }
 }
 
+export async function checkDuplicateOrderNumber(params: {
+  orderNumber: string
+  excludeCaseId?: number
+}): Promise<{
+  exists: boolean
+  matchedCaseId?: number
+  matchedOrderNumber?: string
+}> {
+  const raw = String(params.orderNumber ?? '')
+  const normalized = raw.trim().toLowerCase()
+  if (!normalized) {
+    return { exists: false }
+  }
+  const whereClauses: string[] = [
+    'TRIM(LOWER(CAST(order_number AS CHAR))) = ?',
+    "order_number IS NOT NULL AND TRIM(CAST(order_number AS CHAR)) <> ''",
+  ]
+  const whereParams: ExecuteValues[] = [normalized]
+  if (
+    params.excludeCaseId != null &&
+    !Number.isNaN(Number(params.excludeCaseId))
+  ) {
+    whereClauses.push('case_id <> ?')
+    whereParams.push(Number(params.excludeCaseId))
+  }
+  const whereSql = whereClauses.join(' AND ')
+  const rows = await query<
+    { case_id: number; order_number: string | null }[]
+  >(
+    `SELECT case_id, order_number FROM \`case_list\` WHERE ${whereSql} ORDER BY case_id DESC LIMIT 1`,
+    whereParams as ExecuteValues[]
+  )
+  const hit = rows[0]
+  if (!hit) return { exists: false }
+  return {
+    exists: true,
+    matchedCaseId: Number(hit.case_id),
+    matchedOrderNumber: hit.order_number
+      ? String(hit.order_number)
+      : undefined,
+  }
+}
+
 function flattenUnique(values: (string | null)[]): string[] {
   const seen = new Set<string>()
   const out: string[] = []
