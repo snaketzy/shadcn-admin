@@ -3838,9 +3838,27 @@ export function CasesActionDialog({
                     <FormControl>
                       <DatePicker
                         selected={parseDateOnly(field.value)}
-                        onSelect={(d) => field.onChange(toISODateOnly(d))}
+                        disabled={
+                          inquiryAttachments.length > 0 ||
+                          settlementAttachments.length > 0
+                        }
+                        onSelect={(d) => {
+                          if (
+                            inquiryAttachments.length > 0 ||
+                            settlementAttachments.length > 0
+                          ) {
+                            return
+                          }
+                          field.onChange(toISODateOnly(d))
+                        }}
                       />
                     </FormControl>
+                    {(inquiryAttachments.length > 0 ||
+                      settlementAttachments.length > 0) && (
+                      <p className='mt-1 text-xs text-muted-foreground'>
+                        附件已存在，不可修改询价日期
+                      </p>
+                    )}
                   </div>
                   <FormMessage className='col-span-4 col-start-3' />
                 </FormItem>
