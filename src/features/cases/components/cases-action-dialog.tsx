@@ -1883,6 +1883,24 @@ export function CasesActionDialog({
   const [settlementPreviewTextLoading, setSettlementPreviewTextLoading] =
     useState(false)
 
+  const settlementPickerDisabled = useMemo(() => {
+    const keyword = String(formInquiryKeyword ?? '').trim()
+    if (!keyword) {
+      return '请先填写「需求编号/名称」后再上传结算文档'
+    }
+    const inquiryDateISO = toISODateOnly(formInquiryDate)
+    if (inquiryDateISO && inquiryDateISO === todayStr) {
+      return '询价日期不能是当天，请调整询价日期后再上传结算文档'
+    }
+    return ''
+  }, [formInquiryDate, formInquiryKeyword, todayStr])
+
+  const inquiryPickerDisabled = useMemo(() => {
+    const keyword = String(formInquiryKeyword ?? '').trim()
+    if (!keyword) return '请先填写「需求编号/名称」后再上传案件需求文档'
+    return ''
+  }, [formInquiryKeyword])
+
   type AttachmentOwner = 'inquiry' | 'settlement'
   const [deleteConfirm, setDeleteConfirm] = useState<
     | { owner: AttachmentOwner; idx: number; att: CaseMemoAttachment }
@@ -2781,6 +2799,10 @@ export function CasesActionDialog({
 
   const handleInquiryAttachmentsPick = useCallback(
     async (files: FileList | null) => {
+      if (inquiryPickerDisabled) {
+        toast.info(inquiryPickerDisabled)
+        return
+      }
       if (!files || files.length === 0) return
       const accepted: { f: File; a: CaseMemoAttachment }[] = []
       const rejected: string[] = []
@@ -2880,11 +2902,21 @@ export function CasesActionDialog({
         )
       }
     },
-    [inquiryAttachments, formVesselName, formInquiryKeyword, formInquiryDate]
+    [
+      inquiryPickerDisabled,
+      inquiryAttachments,
+      formVesselName,
+      formInquiryKeyword,
+      formInquiryDate,
+    ]
   )
 
   const handleSettlementAttachmentsPick = useCallback(
     async (files: FileList | null) => {
+      if (settlementPickerDisabled) {
+        toast.info(settlementPickerDisabled)
+        return
+      }
       if (!files || files.length === 0) return
       const accepted: { f: File; a: CaseMemoAttachment }[] = []
       const rejected: string[] = []
@@ -2984,7 +3016,13 @@ export function CasesActionDialog({
         )
       }
     },
-    [settlementAttachments, formVesselName, formInquiryKeyword, formInquiryDate]
+    [
+      settlementPickerDisabled,
+      settlementAttachments,
+      formVesselName,
+      formInquiryKeyword,
+      formInquiryDate,
+    ]
   )
 
   const handleInquiryAttachmentRemove = useCallback(
@@ -4875,9 +4913,18 @@ export function CasesActionDialog({
                       <Button
                         variant='outline'
                         type='button'
-                        onClick={() => inquiryFileInputRef.current?.click()}
+                        onClick={() => {
+                          if (inquiryPickerDisabled) {
+                            toast.info(inquiryPickerDisabled)
+                            return
+                          }
+                          inquiryFileInputRef.current?.click()
+                        }}
                         className='h-10 gap-2 px-4'
-                        disabled={inquiryUploadingCount > 0}
+                        disabled={
+                          inquiryUploadingCount > 0 ||
+                          Boolean(inquiryPickerDisabled)
+                        }
                       >
                         <PaperclipIcon size={16} />
                         <span>
@@ -5029,9 +5076,18 @@ export function CasesActionDialog({
                       <Button
                         variant='outline'
                         type='button'
-                        onClick={() => settlementFileInputRef.current?.click()}
+                        onClick={() => {
+                          if (settlementPickerDisabled) {
+                            toast.info(settlementPickerDisabled)
+                            return
+                          }
+                          settlementFileInputRef.current?.click()
+                        }}
                         className='h-10 gap-2 px-4'
-                        disabled={settlementUploadingCount > 0}
+                        disabled={
+                          settlementUploadingCount > 0 ||
+                          Boolean(settlementPickerDisabled)
+                        }
                       >
                         <PaperclipIcon size={16} />
                         <span>
