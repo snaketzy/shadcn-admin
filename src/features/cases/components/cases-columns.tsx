@@ -1849,5 +1849,72 @@ export function getCasesColumns(params?: {
       enableHiding: false,
       enableSorting: false,
     },
+    {
+      accessorKey: 'award_supplier_ids',
+      header: () => <span>中标单位</span>,
+      accessorFn: (row) => {
+        const cidRaw = (row as any)?.case_id
+        const cid =
+          typeof cidRaw === 'number'
+            ? cidRaw
+            : typeof cidRaw === 'string' && cidRaw.trim() !== ''
+              ? Number(cidRaw)
+              : Number.NaN
+        const result: string[] = []
+        if (!Number.isFinite(cid) || cid <= 0) return result
+        const inquiries =
+          getCaseIdInquiriesMap != null
+            ? getCaseIdInquiriesMap()?.get(cid) ?? []
+            : []
+        for (const r of inquiries) {
+          const rawType = (r as any)?.case_inquiry_type
+          const typeKey = String(rawType ?? '').trim().toUpperCase()
+          const typeLabel = typeKey
+            ? (inquiryTypeQKeyToLabel?.get(typeKey) ?? String(rawType ?? ''))
+            : ''
+          if (
+            !/中标|win|award/i.test(typeLabel) &&
+            !/中标|win|award/i.test(String(rawType ?? ''))
+          ) {
+            continue
+          }
+          const divRaw = (r as any)?.case_inquiry_division_id
+          const id =
+            typeof divRaw === 'number'
+              ? divRaw
+              : typeof divRaw === 'string' && divRaw.trim() !== ''
+                ? Number(divRaw)
+                : Number.NaN
+          if (Number.isFinite(id) && id > 0) result.push(String(id))
+        }
+        return result
+      },
+      cell: () => null,
+      enableColumnFilter: true,
+      enableSorting: false,
+      enableHiding: true,
+      meta: {
+        label: '中标单位',
+        className: 'hidden',
+        thClassName: 'hidden',
+      },
+      filterFn: (row, _columnId, filterValue: unknown) => {
+        const fArr = Array.isArray(filterValue)
+          ? (filterValue as unknown[])
+              .map((v) => String(v ?? '').trim())
+              .filter(Boolean)
+          : []
+        if (fArr.length === 0) return true
+        const rowArr: string[] = Array.isArray(row.getValue('award_supplier_ids'))
+          ? (row.getValue('award_supplier_ids') as unknown[])
+              .map((v) => String(v ?? '').trim())
+              .filter(Boolean)
+          : []
+        if (rowArr.length === 0) return false
+        const fSet = new Set(fArr)
+        for (const v of rowArr) if (fSet.has(v)) return true
+        return false
+      },
+    },
   ]
 }

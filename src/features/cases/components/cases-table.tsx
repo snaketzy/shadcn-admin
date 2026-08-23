@@ -554,6 +554,11 @@ export function CasesTable(_: DataTableProps) {
         searchKey: 'vesselPosition',
         type: 'array',
       },
+      {
+        columnId: 'award_supplier_ids',
+        searchKey: 'awardSupplierIds',
+        type: 'array',
+      },
     ],
   })
   const {
@@ -781,6 +786,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const awardSupplierIdsFilter: string[] = useMemo(
+    () =>
+      Array.isArray((search as any).awardSupplierIds)
+        ? ((search as any).awardSupplierIds as string[])
+        : [],
+    [search]
+  )
 
   const invoiceNumberFilter: string[] = useMemo(
     () =>
@@ -820,6 +832,7 @@ export function CasesTable(_: DataTableProps) {
       caseInchargeFilter,
       caseRankFilter,
       vesselPositionFilter,
+      awardSupplierIdsFilter,
     ],
     queryFn: () =>
       fetchCasePaginated({
@@ -847,6 +860,8 @@ export function CasesTable(_: DataTableProps) {
         caseRank: caseRankFilter.length > 0 ? caseRankFilter : undefined,
         vesselPosition:
           vesselPositionFilter.length > 0 ? vesselPositionFilter : undefined,
+        awardSupplierIds:
+          awardSupplierIdsFilter.length > 0 ? awardSupplierIdsFilter : undefined,
       }),
     placeholderData: (prev) => prev,
   })
@@ -983,6 +998,7 @@ export function CasesTable(_: DataTableProps) {
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: true,
+    manualFiltering: true,
     pageCount,
     rowCount,
   })
@@ -1161,6 +1177,41 @@ export function CasesTable(_: DataTableProps) {
           />
         </div>
       )}
+      {(() => {
+        const list = (supplierAllRows as Supplier[]) ?? []
+        if (list.length === 0) return null
+        const options = list
+          .map((s) => ({
+            idRaw: (s as any).supplier_id,
+            name: String((s as any).supplier_name ?? '').trim(),
+          }))
+          .filter(
+            (o): o is { idRaw: number | string; name: string } =>
+              o.name !== '' &&
+              ((typeof o.idRaw === 'number' && o.idRaw > 0) ||
+                (typeof o.idRaw === 'string' &&
+                  o.idRaw.trim() !== '' &&
+                  Number.isFinite(Number(o.idRaw)) &&
+                  Number(o.idRaw) > 0))
+          )
+          .map((o) => ({
+            value: String(o.idRaw),
+            label: o.name,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
+        if (options.length === 0) return null
+        const col = table.getColumn('award_supplier_ids')
+        if (!col) return null
+        return (
+          <div className='shrink-0'>
+            <DataTableFacetedFilter
+              column={col}
+              title='中标单位'
+              options={options}
+            />
+          </div>
+        )
+      })()}
       {inqTypeAOptions.length > 0 && table.getColumn('case_inquiry_type') && (
         <div className='shrink-0'>
           <DataTableFacetedFilter

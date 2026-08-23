@@ -247,6 +247,7 @@ export async function getCaseListPaginated(params: {
   caseIncharge?: string | string[]
   caseRank?: string | string[]
   vesselPosition?: string | string[]
+  awardSupplierIds?: number[] | string[]
 }): Promise<{
   rows: CaseListRow[]
   total: number
@@ -334,6 +335,34 @@ export async function getCaseListPaginated(params: {
   pushInClauses('case_incharge', params.caseIncharge, { splitComma: true })
   pushInClauses('case_rank', params.caseRank)
   pushInClauses('vessel_position', params.vesselPosition)
+
+  if (
+    params.awardSupplierIds &&
+    Array.isArray(params.awardSupplierIds) &&
+    params.awardSupplierIds.length > 0
+  ) {
+    const ids = params.awardSupplierIds
+      .map((v) => Number(v))
+      .filter((n) => Number.isFinite(n) && n > 0)
+    if (ids.length > 0) {
+      const placeholders = ids.map(() => '?').join(', ')
+      whereClauses.push(
+        `EXISTS (
+          SELECT 1 FROM case_inquiry_list i
+          LEFT JOIN case_dict d
+            ON TRIM(UPPER(COALESCE(d.dict_key, ''))) = TRIM(UPPER(COALESCE(i.case_inquiry_type, '')))
+          WHERE i.case_id = case_list.case_id
+            AND i.case_inquiry_division_id IN (${placeholders})
+            AND (
+              UPPER(COALESCE(d.dict_value, '')) REGEXP '中标|WIN|AWARD'
+              OR UPPER(COALESCE(d.dict_value_remark, '')) REGEXP '中标|WIN|AWARD'
+              OR UPPER(COALESCE(i.case_inquiry_type, '')) REGEXP '中标|WIN|AWARD'
+            )
+        )`
+      )
+      for (const id of ids) whereParams.push(id)
+    }
+  }
 
   const whereSql =
     whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''

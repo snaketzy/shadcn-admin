@@ -170,6 +170,7 @@ export async function fetchCasePaginated(params: {
   caseIncharge?: string | string[]
   caseRank?: string | string[]
   vesselPosition?: string | string[]
+  awardSupplierIds?: number[] | string[]
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/case-list/', {
     params,

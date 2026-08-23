@@ -1112,6 +1112,16 @@ async function handleCaseListApi(
           caseIncharge: toArr('caseIncharge'),
           caseRank: toArr('caseRank'),
           vesselPosition: toArr('vesselPosition'),
+          awardSupplierIds: (() => {
+            const list = toArr('awardSupplierIds')
+            if (!list || list.length === 0) return undefined
+            const out: number[] = []
+            for (const s of list) {
+              const n = Number(s)
+              if (Number.isFinite(n) && n > 0) out.push(n)
+            }
+            return out.length > 0 ? out : undefined
+          })(),
         })
         sendJson(res, 200, { success: true, data: result })
         return true
