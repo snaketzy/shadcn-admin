@@ -882,6 +882,28 @@ export async function uploadSettlementAttachmentToCos(params: {
   return res.data.data
 }
 
+export interface CosDeleteAttachmentResult {
+  deleted: boolean
+  message?: string | null
+}
+
+export async function deleteAttachmentFromCos(params: {
+  url?: string | null
+  key?: string | null
+}): Promise<CosDeleteAttachmentResult> {
+  if (!params.url && !params.key) {
+    return { deleted: false, message: '缺少附件 URL 或 key' }
+  }
+  const body: Record<string, string> = {}
+  if (params.key) body.key = params.key
+  if (params.url) body.url = params.url
+  const res = await api.post<ApiEnvelope<CosDeleteAttachmentResult>>(
+    '/cos/delete',
+    body
+  )
+  return res.data.data
+}
+
 export interface CosDeleteResult {
   deleted: boolean
   message?: string

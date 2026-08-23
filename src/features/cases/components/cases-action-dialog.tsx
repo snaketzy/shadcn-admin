@@ -79,6 +79,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DatePicker,
   DateTimePicker,
@@ -159,6 +160,7 @@ import {
   isOfficeAttachment,
   uploadInquiryAttachmentToCos,
   uploadSettlementAttachmentToCos,
+  deleteCosObject,
   readAttachmentTextContent,
   normalizeAttachmentUrl,
   getAttachmentPreviewUrl,
@@ -1881,6 +1883,14 @@ export function CasesActionDialog({
   const [settlementPreviewTextLoading, setSettlementPreviewTextLoading] =
     useState(false)
 
+  type AttachmentOwner = 'inquiry' | 'settlement'
+  const [deleteConfirm, setDeleteConfirm] = useState<
+    | { owner: AttachmentOwner; idx: number; att: CaseMemoAttachment }
+    | null
+    | undefined
+  >(undefined)
+  const [deleteConfirmLoading, setDeleteConfirmLoading] = useState(false)
+
   const keywordDuplicateCheckRef = useRef<{
     lastCheckedNormalized: string
     lastResultExists: boolean
@@ -2976,6 +2986,55 @@ export function CasesActionDialog({
     },
     [settlementAttachments, formVesselName, formInquiryKeyword, formInquiryDate]
   )
+
+  const handleInquiryAttachmentRemove = useCallback(
+    (idx: number) => {
+      const att = inquiryAttachments[idx]
+      if (!att) return
+      setDeleteConfirm({ owner: 'inquiry', idx, att })
+    },
+    [inquiryAttachments]
+  )
+
+  const handleSettlementAttachmentRemove = useCallback(
+    (idx: number) => {
+      const att = settlementAttachments[idx]
+      if (!att) return
+      setDeleteConfirm({ owner: 'settlement', idx, att })
+    },
+    [settlementAttachments]
+  )
+
+  const handleConfirmDeleteAttach = useCallback(async () => {
+    const target = deleteConfirm
+    if (!target || deleteConfirmLoading) return
+    const { owner, idx, att } = target
+    const dataStr = att.data && typeof att.data === 'string' ? att.data : ''
+    const isCos = dataStr.startsWith('http:') || dataStr.startsWith('https:')
+    setDeleteConfirmLoading(true)
+    try {
+      if (isCos) {
+        try {
+          await deleteCosObject({ url: dataStr })
+        } catch (err: any) {
+          toast.error(
+            `删除 COS 文件失败：${att.name}（${
+              err?.message || String(err) || '请稍后重试'
+            }）`
+          )
+          return
+        }
+      }
+      if (owner === 'inquiry') {
+        setInquiryAttachments((prev) => prev.filter((_, i) => i !== idx))
+      } else {
+        setSettlementAttachments((prev) => prev.filter((_, i) => i !== idx))
+      }
+      setDeleteConfirm(null)
+    } finally {
+      setDeleteConfirmLoading(false)
+    }
+  }, [deleteConfirm, deleteConfirmLoading])
 
   const onSubmit = useCallback(
     async (values: CaseForm) => {
@@ -4914,9 +4973,7 @@ export function CasesActionDialog({
                                     title='移除'
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setInquiryAttachments((prev) =>
-                                        prev.filter((_, i) => i !== idx)
-                                      )
+                                      handleInquiryAttachmentRemove(idx)
                                     }}
                                     className='inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
                                   >
@@ -4931,9 +4988,7 @@ export function CasesActionDialog({
                                   title='移除'
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    setInquiryAttachments((prev) =>
-                                      prev.filter((_, i) => i !== idx)
-                                    )
+                                    handleInquiryAttachmentRemove(idx)
                                   }}
                                   className='ms-1 inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
                                 >
@@ -5072,9 +5127,7 @@ export function CasesActionDialog({
                                     title='移除'
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setSettlementAttachments((prev) =>
-                                        prev.filter((_, i) => i !== idx)
-                                      )
+                                      handleSettlementAttachmentRemove(idx)
                                     }}
                                     className='inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
                                   >
@@ -5089,9 +5142,7 @@ export function CasesActionDialog({
                                   title='移除'
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    setSettlementAttachments((prev) =>
-                                      prev.filter((_, i) => i !== idx)
-                                    )
+                                    handleSettlementAttachmentRemove(idx)
                                   }}
                                   className='ms-1 inline-flex h-8 w-8 items-center justify-center rounded-e-full border-0 border-l border-l-foreground/10 bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80'
                                 >
@@ -5863,6 +5914,47 @@ export function CasesActionDialog({
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={Boolean(deleteConfirm)}
+        onOpenChange={(o) => {
+          if (!o && !deleteConfirmLoading) setDeleteConfirm(null)
+        }}
+        title={
+          <span className='flex items-center gap-2'>
+            <span className='inline-flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10 text-destructive'>
+              <X size={16} />
+            </span>
+            确认删除附件
+          </span>
+        }
+        destructive
+        confirmText={deleteConfirmLoading ? '删除中...' : '确认删除'}
+        cancelBtnText='取消'
+        isLoading={deleteConfirmLoading}
+        desc={
+          <div className='flex flex-col gap-2 pt-1'>
+            <p>
+              即将删除附件：
+              <span className='mx-1 font-medium text-foreground'>
+                “{deleteConfirm?.att?.name ?? ''}”
+              </span>
+              {deleteConfirm?.att?.size != null ? (
+                <span className='text-muted-foreground'>
+                  （{(deleteConfirm.att.size / 1024 / 1024).toFixed(2)}
+                  MB）
+                </span>
+              ) : null}
+            </p>
+            <p className='text-sm text-muted-foreground'>
+              删除后将同时移除腾讯云 COS
+              上的源文件，该操作不可恢复。请谨慎确认。
+            </p>
+          </div>
+        }
+        handleConfirm={() => {
+          void handleConfirmDeleteAttach()
+        }}
+      />
     </>
   )
 }

@@ -123,7 +123,7 @@ export async function uploadInquiryAttachmentToCos(
   const safeFilename = sanitizeFilename(params.filename)
   const timestamp = Date.now()
   const finalFilename = timestamp + '_' + safeFilename
-  const key = `jiehong/${vesselSeg}/${keywordDateSeg}/attachments/${finalFilename}`
+  const key = `jiehong/cases/${vesselSeg}/${keywordDateSeg}/attachments/${finalFilename}`
   const PUBLIC_DOMAIN = 'http://www.jvecloud.com'
   try {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cos_upload_'))
@@ -175,7 +175,7 @@ export async function uploadSettlementAttachmentToCos(
   const safeFilename = sanitizeFilename(params.filename)
   const timestamp = Date.now()
   const finalFilename = timestamp + '_' + safeFilename
-  const key = `jiehong/${vesselSeg}/${keywordInquirySeg}/settlements/${finalFilename}`
+  const key = `jiehong/cases/${vesselSeg}/${keywordInquirySeg}/settlements/${finalFilename}`
   const PUBLIC_DOMAIN = 'http://www.jvecloud.com'
   try {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cos_upload_'))
