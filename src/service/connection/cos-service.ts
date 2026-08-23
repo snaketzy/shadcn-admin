@@ -234,7 +234,10 @@ export async function deleteFromCos(key: string): Promise<DeleteFromCosResult> {
       Region: cfg.Region,
       Key: cleanKey,
     })
-    const code = result && (result as any).statusCode
+    const code =
+      result && typeof result === 'object' && 'statusCode' in result
+        ? Number((result as Record<string, unknown>).statusCode)
+        : undefined
     if (code === 200 || code === 204) {
       return { success: true, deleted: true }
     }
@@ -243,13 +246,19 @@ export async function deleteFromCos(key: string): Promise<DeleteFromCosResult> {
       deleted: false,
       message: result ? `HTTP ${code}` : '删除失败',
     }
-  } catch (err: any) {
-    const statusCode = err?.statusCode
+  } catch (err: unknown) {
+    const rec = err as Record<string, unknown> | null | undefined
+    const statusCode =
+      rec && typeof rec.statusCode === 'number' ? rec.statusCode : undefined
     if (statusCode === 404) {
       return { success: true, deleted: false, message: '文件不存在' }
     }
-    console.error('[COS] Delete failed:', err)
-    return { success: false, message: err?.message || String(err) }
+    void rec
+    return {
+      success: false,
+      message:
+        rec && typeof rec.message === 'string' ? rec.message : String(err),
+    }
   }
 }
 

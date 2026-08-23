@@ -894,7 +894,7 @@ export async function deleteCosObject(params: {
   if (!params.key && !params.url) {
     throw new Error('缺少参数 key 或 url')
   }
-  const body: any = {}
+  const body: Record<string, unknown> = {}
   if (params.key) body.key = params.key
   if (params.url) body.url = params.url
   const res = await api.post<ApiEnvelope<CosDeleteResult>>('/cos/delete', body)
