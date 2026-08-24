@@ -288,8 +288,8 @@ function normalizeDatetimeForStorage(raw: unknown): string | null {
   return null
 }
 
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024 // 10MB
-const MAX_TOTAL_ATTACHMENT_SIZE = 12 * 1024 * 1024 // 12MB
+const MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024 // 50MB
+const MAX_TOTAL_ATTACHMENT_SIZE = 100 * 1024 * 1024 // 100MB
 const ALLOWED_ATTACHMENT_EXTS = [
   'pdf',
   'png',
@@ -2906,7 +2906,7 @@ export function CasesActionDialog({
       for (let i = 0; i < files.length; i++) {
         const f = files[i]
         if (f.size > MAX_ATTACHMENT_SIZE) {
-          rejected.push(`${f.name}：超过 10MB`)
+          rejected.push(`${f.name}：超过 50MB`)
           continue
         }
         if (!filenameAllowedInquiry(f.name)) {
@@ -3020,7 +3020,7 @@ export function CasesActionDialog({
       for (let i = 0; i < files.length; i++) {
         const f = files[i]
         if (f.size > MAX_ATTACHMENT_SIZE) {
-          rejected.push(`${f.name}：超过 10MB`)
+          rejected.push(`${f.name}：超过 50MB`)
           continue
         }
         if (!filenameAllowedInquiry(f.name)) {
@@ -5083,7 +5083,7 @@ export function CasesActionDialog({
                       </Button>
                       <p className='text-sm text-muted-foreground'>
                         支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV
-                        等，单文件 ≤ 10MB，合计 ≤ 12MB，可多选
+                        等，单文件 ≤ 50MB，合计 ≤ 100MB，可多选
                       </p>
                     </div>
                     {inquiryAttachments.length > 0 && (
@@ -5246,7 +5246,7 @@ export function CasesActionDialog({
                       </Button>
                       <p className='text-sm text-muted-foreground'>
                         支持 PDF / 图片 / Word / Excel / PPT / TXT / CSV
-                        等，单文件 ≤ 10MB，合计 ≤ 12MB，可多选
+                        等，单文件 ≤ 50MB，合计 ≤ 100MB，可多选
                       </p>
                     </div>
                     {settlementAttachments.length > 0 && (
