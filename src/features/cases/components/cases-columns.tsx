@@ -8,7 +8,7 @@ import {
   Handshake,
   StickyNote,
   Pencil,
-  Hand,
+  HandFist,
   Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
