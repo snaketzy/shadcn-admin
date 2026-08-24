@@ -32,6 +32,29 @@ function normalizeMemoDate(raw: unknown): string | null {
   return s.length >= 16 ? s.slice(0, 16) : s
 }
 
+export function toValidMemoDateOrNull(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null
+  let s = String(raw).trim()
+  if (!s) return null
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) {
+    const n = new Date()
+    const y = n.getFullYear()
+    const m = String(n.getMonth() + 1).padStart(2, '0')
+    const d = String(n.getDate()).padStart(2, '0')
+    s = `${y}-${m}-${d} ${s.slice(0, 5)}`
+  }
+  const d = new Date(s)
+  if (!Number.isNaN(d.getTime())) {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${day} ${hh}:${mm}`
+  }
+  return null
+}
+
 function normalizeTs(raw: unknown): string | null {
   if (raw === null || raw === undefined || raw === '') return null
   const d = new Date(String(raw))
@@ -322,15 +345,14 @@ export async function createCaseMemo(data: {
   case_memo_attachment?: string | null
 }): Promise<CaseMemoListRow> {
   await ensureCaseMemoTable()
+  const safeMemoDate = toValidMemoDateOrNull(data.case_memo_date)
   const result = await execute(
     `INSERT INTO \`${TABLE_NAME}\`
        (case_id, case_memo_date, case_memo_content, case_memo_remark, case_memo_attachment)
      VALUES (?, ?, ?, ?, ?)`,
     [
       Number(data.case_id),
-      data.case_memo_date == null || data.case_memo_date === ''
-        ? null
-        : String(data.case_memo_date),
+      safeMemoDate,
       data.case_memo_content == null || data.case_memo_content === ''
         ? null
         : String(data.case_memo_content),
@@ -353,7 +375,7 @@ export async function createCaseMemo(data: {
   return {
     case_memo_id: id,
     case_id: Number(data.case_id),
-    case_memo_date: data.case_memo_date ? String(data.case_memo_date) : null,
+    case_memo_date: safeMemoDate,
     case_memo_content: data.case_memo_content
       ? String(data.case_memo_content)
       : null,
@@ -378,6 +400,8 @@ export async function updateCaseMemo(
   }
 ): Promise<CaseMemoListRow | null> {
   await ensureCaseMemoTable()
+  const safeMemoDate =
+    data.case_memo_date === undefined ? undefined : toValidMemoDateOrNull(data.case_memo_date)
   const result = await execute(
     `UPDATE \`${TABLE_NAME}\` SET
        case_memo_date = ?,
@@ -386,11 +410,7 @@ export async function updateCaseMemo(
        case_memo_attachment = ?
      WHERE case_memo_id = ?`,
     [
-      data.case_memo_date === undefined
-        ? undefined
-        : data.case_memo_date === ''
-          ? null
-          : String(data.case_memo_date),
+      safeMemoDate,
       data.case_memo_content === undefined
         ? undefined
         : data.case_memo_content === ''

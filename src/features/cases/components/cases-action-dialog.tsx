@@ -83,6 +83,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DatePicker,
   DateTimePicker,
+  DateTimeInput,
   parseDateOnly,
   toISODateOnly,
 } from '@/components/date-picker'
@@ -5664,9 +5665,10 @@ export function CasesActionDialog({
                     </FormLabel>
                     <div className='col-span-4'>
                       <FormControl>
-                        <DateTimePicker
+                        <DateTimeInput
                           value={field.value ?? ''}
                           onChange={(v) => field.onChange(v)}
+                          placeholder='请输入询价日期时间'
                         />
                       </FormControl>
                       <FormMessage />

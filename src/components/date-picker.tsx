@@ -228,6 +228,14 @@ type DateTimeInputProps = {
   allowClear?: boolean
 }
 
+function todayStr(): string {
+  const n = new Date()
+  const y = n.getFullYear()
+  const m = String(n.getMonth() + 1).padStart(2, '0')
+  const d = String(n.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export function DateTimeInput({
   value,
   onChange,
@@ -257,7 +265,9 @@ export function DateTimeInput({
       onChange('')
       return
     }
-    onChange(`${d} ${timeValue}`.trim())
+    const finalDate = d || todayStr()
+    const finalTime = timeValue || '00:00'
+    onChange(`${finalDate} ${finalTime}`.trim())
   }
 
   const handleTimeChange = (t: string) => {
@@ -265,7 +275,9 @@ export function DateTimeInput({
       onChange('')
       return
     }
-    onChange(`${dateValue} ${t}`.trim())
+    const finalDate = dateValue || todayStr()
+    const finalTime = t || '00:00'
+    onChange(`${finalDate} ${finalTime}`.trim())
   }
 
   return (
