@@ -987,6 +987,12 @@ export function getCasesDrydockingColumns(params?: {
                         </div>
                       ) : null
                     )}
+                    {kvRow(
+                      '案件备注',
+                      <span className='break-words whitespace-pre-wrap'>
+                        {(rowData as any).case_remark ?? ''}
+                      </span>
+                    )}
                   </div>
                   {(inquiryGroups.询价.length > 0 ||
                     inquiryGroups.报价.length > 0 ||
@@ -1122,12 +1128,6 @@ export function getCasesDrydockingColumns(params?: {
                     {kvRow(
                       '供应商结账日期',
                       formatDateAsHyphen(rowData.case_spd)
-                    )}
-                    {kvRow(
-                      '案件备注',
-                      <span className='break-words whitespace-pre-wrap'>
-                        {(rowData as any).case_remark ?? ''}
-                      </span>
                     )}
                   </div>
                 </div>

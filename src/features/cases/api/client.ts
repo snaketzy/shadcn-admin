@@ -726,7 +726,7 @@ export function triggerAttachmentDownload(att: CaseMemoAttachment): void {
 }
 
 export function openAttachmentInNewTab(att: CaseMemoAttachment): void {
-  const url = getAttachmentAccessUrl(att)
+  const url = getAttachmentPreviewUrl(att)
   if (!url) return
   const w = window.open(url, '_blank', 'noopener,noreferrer')
   if (w) w.focus()
