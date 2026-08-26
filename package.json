@@ -16,7 +16,14 @@
     "test:ui": "vitest --ui --browser.headless",
     "test:browser": "vitest",
     "test:coverage": "vitest run --coverage --browser.headless",
-    "test:browser:install": "playwright install chromium --with-deps"
+    "test:browser:install": "playwright install chromium --with-deps",
+    "server:dev": "tsx watch server.ts",
+    "server:start": "pm2 start ecosystem.config.js --env production",
+    "server:stop": "pm2 stop shadcn-admin-api",
+    "server:restart": "pm2 restart shadcn-admin-api",
+    "server:delete": "pm2 delete shadcn-admin-api",
+    "server:logs": "pm2 logs shadcn-admin-api",
+    "server:status": "pm2 status"
   },
   "dependencies": {
     "@clerk/react": "^6.4.3",
@@ -48,6 +55,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
+    "cos-nodejs-sdk-v5": "^3.0.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
     "input-otp": "^1.4.2",
@@ -87,7 +95,6 @@
     "@vitest/browser-playwright": "^4.1.4",
     "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
-    "cos-nodejs-sdk-v5": "^3.0.0",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

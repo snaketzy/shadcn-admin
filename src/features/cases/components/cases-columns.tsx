@@ -316,20 +316,6 @@ export function getCasesColumns(params?: {
 
   const J_HAND_SET = new Set(['J1', 'J2', 'J3', 'J10'])
 
-  function renderServiceInchargeText(row: Case): string {
-    const { items, fallback } = buildServiceInchargeSegments(row)
-    if (items.length === 0) {
-      const resolved = resolveInchargeELabel(fallback)
-      return resolved || '-'
-    }
-    return items
-      .map((s) => {
-        if (!s.company) return s.name
-        return `${s.name}-${s.company}`
-      })
-      .join('，')
-  }
-
   function renderServiceInchargeNode(row: Case): React.ReactNode {
     const { items, fallback } = buildServiceInchargeSegments(row)
     if (items.length === 0) {
@@ -819,25 +805,6 @@ export function getCasesColumns(params?: {
             title={String(value ?? '')}
           >
             <LongText className='max-w-50 truncate'>{displayValue}</LongText>
-          </span>
-        )
-        const trigger = (
-          <span
-            className='inline-flex items-center gap-1'
-            title={'点击图标查看案件详情速览'}
-          >
-            {vesselLabel}
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              className='h-6 w-6 shrink-0 text-muted-foreground/70 hover:bg-slate-200/60 hover:text-foreground'
-              onClick={(e) => e.stopPropagation()}
-              aria-label='查看案件详情速览'
-              title='查看案件详情速览'
-            >
-              <FileText size={13} aria-hidden />
-            </Button>
           </span>
         )
         const kvRow = (label: string, content: React.ReactNode) => {

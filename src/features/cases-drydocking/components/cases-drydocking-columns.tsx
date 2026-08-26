@@ -314,20 +314,6 @@ export function getCasesDrydockingColumns(params?: {
     return { items, fallback }
   }
 
-  function renderServiceInchargeText(row: Case): string {
-    const { items, fallback } = buildServiceInchargeSegments(row)
-    if (items.length === 0) {
-      const resolved = resolveInchargeELabel(fallback)
-      return resolved || '-'
-    }
-    return items
-      .map((s) => {
-        if (!s.company) return s.name
-        return `${s.name}-${s.company}`
-      })
-      .join('，')
-  }
-
   const J_HAND_SET = new Set(['J1', 'J2', 'J3', 'J10'])
 
   function renderServiceInchargeNode(row: Case): React.ReactNode {

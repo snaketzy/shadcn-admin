@@ -403,11 +403,12 @@ export function CasesDealTable(_: DataTableProps) {
     const list = (divisionCollabRows as DivisionCollaborationRow[]) ?? []
     for (const r of list) {
       const idRaw = r.collaboration_id
+      const idStr = String(idRaw ?? '')
       const id =
         typeof idRaw === 'number'
           ? idRaw
-          : typeof idRaw === 'string' && idRaw.trim() !== ''
-            ? Number(idRaw)
+          : idStr.trim() !== ''
+            ? Number(idStr)
             : Number.NaN
       const name = r.collaboration_name
         ? String(r.collaboration_name)

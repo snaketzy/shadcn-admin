@@ -137,7 +137,7 @@ export async function fetchCaseDetail(caseId: number): Promise<Case | null> {
         'case_settlement_attachments' in (res.data.data as object),
       keys:
         res && res.data && res.data.data && typeof res.data.data === 'object'
-          ? Object.keys(res.data.data as Record<string, unknown>).filter((k) =>
+          ? Object.keys(res.data.data as unknown as Record<string, unknown>).filter((k) =>
               k.includes('attachment')
             )
           : [],

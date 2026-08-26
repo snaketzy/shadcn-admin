@@ -24,9 +24,6 @@ import {
   GalleryVerticalEnd,
   BookOpen,
   FileText,
-  ListChecks,
-  Handshake,
-  Anchor,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
