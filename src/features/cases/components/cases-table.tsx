@@ -150,6 +150,7 @@ export function CasesTable(_: DataTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
   const [inqDatePopoverOpen, setInqDatePopoverOpen] = useState(false)
+  const [followDatePopoverOpen, setFollowDatePopoverOpen] = useState(false)
 
   const { data: ownerAllRows = [] } = useQuery({
     queryKey: ['owner-picker-all-for-case-list'],
@@ -587,6 +588,12 @@ export function CasesTable(_: DataTableProps) {
   const urlInqDateTo: string =
     (search as unknown as { caseInquiryDateTo?: string }).caseInquiryDateTo ??
     ''
+  const urlFollowDateFrom: string =
+    (search as unknown as { caseUptodateDateFrom?: string })
+      .caseUptodateDateFrom ?? ''
+  const urlFollowDateTo: string =
+    (search as unknown as { caseUptodateDateTo?: string }).caseUptodateDateTo ??
+    ''
 
   const [editingVesselName, setEditingVesselName] = useState(urlVesselName)
   const vesselNameComposingRef = useRef(false)
@@ -608,6 +615,12 @@ export function CasesTable(_: DataTableProps) {
   const [editingInqDateTo, setEditingInqDateTo] = useState(urlInqDateTo)
   const inqDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [editingFollowDateFrom, setEditingFollowDateFrom] =
+    useState(urlFollowDateFrom)
+  const [editingFollowDateTo, setEditingFollowDateTo] =
+    useState(urlFollowDateTo)
+  const followDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     if (editingVesselName !== urlVesselName) setEditingVesselName(urlVesselName)
   }, [urlVesselName])
@@ -628,6 +641,16 @@ export function CasesTable(_: DataTableProps) {
   useEffect(() => {
     if (editingInqDateTo !== urlInqDateTo) setEditingInqDateTo(urlInqDateTo)
   }, [urlInqDateTo])
+
+  useEffect(() => {
+    if (editingFollowDateFrom !== urlFollowDateFrom)
+      setEditingFollowDateFrom(urlFollowDateFrom)
+  }, [urlFollowDateFrom])
+
+  useEffect(() => {
+    if (editingFollowDateTo !== urlFollowDateTo)
+      setEditingFollowDateTo(urlFollowDateTo)
+  }, [urlFollowDateTo])
 
   const scheduleVesselNameCommit = useCallback(
     (valueRaw: string) => {
@@ -789,6 +812,57 @@ export function CasesTable(_: DataTableProps) {
     scheduleInqDateCommit('', '')
   }, [scheduleInqDateCommit])
 
+  const scheduleFollowDateCommit = useCallback(
+    (fromRaw: string, toRaw: string) => {
+      if (followDateCommitRef.current) clearTimeout(followDateCommitRef.current)
+      followDateCommitRef.current = setTimeout(() => {
+        const from = fromRaw.trim()
+        const to = toRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            caseUptodateDateFrom: from || undefined,
+            caseUptodateDateTo: to || undefined,
+            page: undefined,
+          }),
+        })
+      }, 180)
+    },
+    [navigate]
+  )
+
+  const setFollowDatePreset = useCallback(
+    (preset: 'thisWeek' | 'thisMonth') => {
+      const now = new Date()
+      let from: Date
+      let to: Date
+      if (preset === 'thisWeek') {
+        const day = now.getDay()
+        const diffMon = day === 0 ? -6 : 1 - day
+        from = new Date(now)
+        from.setHours(0, 0, 0, 0)
+        from.setDate(now.getDate() + diffMon)
+        to = new Date(from)
+        to.setDate(from.getDate() + 6)
+      } else {
+        from = new Date(now.getFullYear(), now.getMonth(), 1)
+        to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      }
+      const fromStr = formatInqDateISO(from)
+      const toStr = formatInqDateISO(to)
+      setEditingFollowDateFrom(fromStr)
+      setEditingFollowDateTo(toStr)
+      scheduleFollowDateCommit(fromStr, toStr)
+    },
+    [scheduleFollowDateCommit]
+  )
+
+  const clearFollowDateFilter = useCallback(() => {
+    setEditingFollowDateFrom('')
+    setEditingFollowDateTo('')
+    scheduleFollowDateCommit('', '')
+  }, [scheduleFollowDateCommit])
+
   const caseProgressFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseProgress)
@@ -883,6 +957,8 @@ export function CasesTable(_: DataTableProps) {
       urlCaseRemark,
       urlInqDateFrom,
       urlInqDateTo,
+      urlFollowDateFrom,
+      urlFollowDateTo,
       invoiceNumberFilter,
       orderNumberFilter,
       caseProgressFilter,
@@ -904,6 +980,8 @@ export function CasesTable(_: DataTableProps) {
         caseRemark: urlCaseRemark || undefined,
         caseInquiryDateFrom: urlInqDateFrom || undefined,
         caseInquiryDateTo: urlInqDateTo || undefined,
+        caseUptodateDateFrom: urlFollowDateFrom || undefined,
+        caseUptodateDateTo: urlFollowDateTo || undefined,
         invoiceNumber:
           invoiceNumberFilter.length > 0 ? invoiceNumberFilter : undefined,
         orderNumber:
@@ -1031,6 +1109,8 @@ export function CasesTable(_: DataTableProps) {
         caseRemark: undefined,
         caseInquiryDateFrom: undefined,
         caseInquiryDateTo: undefined,
+        caseUptodateDateFrom: undefined,
+        caseUptodateDateTo: undefined,
         invoiceNumber: undefined,
         orderNumber: undefined,
         caseProgress: undefined,
@@ -1082,7 +1162,9 @@ export function CasesTable(_: DataTableProps) {
     editingKeyword.trim() !== '' ||
     editingCaseRemark.trim() !== '' ||
     editingInqDateFrom.trim() !== '' ||
-    editingInqDateTo.trim() !== ''
+    editingInqDateTo.trim() !== '' ||
+    editingFollowDateFrom.trim() !== '' ||
+    editingFollowDateTo.trim() !== ''
 
   if (isLoading) {
     return (
@@ -1232,6 +1314,142 @@ export function CasesTable(_: DataTableProps) {
                   const v = e.target.value
                   setEditingInqDateTo(v)
                   scheduleInqDateCommit(editingInqDateFrom, v)
+                }}
+              />
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Popover
+        open={followDatePopoverOpen}
+        onOpenChange={setFollowDatePopoverOpen}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-8 shrink-0 border-dashed'
+          >
+            <CalendarIcon className='size-4' />
+            跟进日期
+            {(editingFollowDateFrom || editingFollowDateTo) && (
+              <>
+                <Separator orientation='vertical' className='mx-2 h-4' />
+                <div className='hidden gap-x-1 lg:flex'>
+                  {editingFollowDateFrom && (
+                    <Badge
+                      variant='secondary'
+                      className='rounded-sm px-1 font-normal'
+                    >
+                      {editingFollowDateFrom}
+                    </Badge>
+                  )}
+                  {(editingFollowDateFrom || editingFollowDateTo) &&
+                    (editingFollowDateFrom ? '→' : 'Until')}
+                  {editingFollowDateTo && (
+                    <Badge
+                      variant='secondary'
+                      className='rounded-sm px-1 font-normal'
+                    >
+                      {editingFollowDateTo}
+                    </Badge>
+                  )}
+                </div>
+                <Badge
+                  variant='secondary'
+                  className='rounded-sm px-1 font-normal lg:hidden'
+                >
+                  {(editingFollowDateFrom ? '1' : '') +
+                    (editingFollowDateTo ? '1' : '')}
+                </Badge>
+              </>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className='w-auto p-0' align='start'>
+          <Calendar
+            initialFocus
+            mode='range'
+            defaultMonth={
+              editingFollowDateFrom
+                ? new Date(editingFollowDateFrom)
+                : undefined
+            }
+            selected={{
+              from: editingFollowDateFrom
+                ? new Date(editingFollowDateFrom)
+                : undefined,
+              to: editingFollowDateTo
+                ? new Date(editingFollowDateTo)
+                : undefined,
+            }}
+            onSelect={(range) => {
+              const from = range?.from ? formatInqDateISO(range.from) : ''
+              const to = range?.to ? formatInqDateISO(range.to) : ''
+              if (from) setEditingFollowDateFrom(from)
+              if (to) setEditingFollowDateTo(to)
+              if ((from && !to) || (!from && to)) {
+                if (followDateCommitRef.current)
+                  clearTimeout(followDateCommitRef.current)
+                return
+              }
+              scheduleFollowDateCommit(from, to)
+            }}
+            numberOfMonths={1}
+          />
+          <div className='space-y-2 border-t p-3'>
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setFollowDatePreset('thisWeek')}
+              >
+                本周
+              </Button>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setFollowDatePreset('thisMonth')}
+              >
+                本月
+              </Button>
+              {(editingFollowDateFrom || editingFollowDateTo) && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={clearFollowDateFilter}
+                >
+                  清空
+                </Button>
+              )}
+            </div>
+            <div className='grid grid-cols-8 items-center gap-2'>
+              <label className='col-span-2 text-xs text-muted-foreground'>
+                起始日期
+              </label>
+              <Input
+                type='date'
+                value={editingFollowDateFrom}
+                className='col-span-6 h-8 text-xs'
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEditingFollowDateFrom(v)
+                  scheduleFollowDateCommit(v, editingFollowDateTo)
+                }}
+              />
+            </div>
+            <div className='grid grid-cols-8 items-center gap-2'>
+              <label className='col-span-2 text-xs text-muted-foreground'>
+                结束日期
+              </label>
+              <Input
+                type='date'
+                value={editingFollowDateTo}
+                className='col-span-6 h-8 text-xs'
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEditingFollowDateTo(v)
+                  scheduleFollowDateCommit(editingFollowDateFrom, v)
                 }}
               />
             </div>

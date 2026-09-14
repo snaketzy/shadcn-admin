@@ -1111,6 +1111,10 @@ async function handleCaseListApi(
             searchParams.get('caseInquiryDateFrom')
           ),
           caseInquiryDateTo: toOptStr(searchParams.get('caseInquiryDateTo')),
+          caseUptodateDateFrom: toOptStr(
+            searchParams.get('caseUptodateDateFrom')
+          ),
+          caseUptodateDateTo: toOptStr(searchParams.get('caseUptodateDateTo')),
           caseProgress: toArr('caseProgress'),
           caseUrgent: toArr('caseUrgent'),
           caseShouldHandleToday: toArr('caseShouldHandleToday'),

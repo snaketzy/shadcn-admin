@@ -281,6 +281,8 @@ export async function getCaseListPaginated(params: {
   caseRemark?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
+  caseUptodateDateFrom?: string
+  caseUptodateDateTo?: string
   caseProgress?: string | string[]
   caseUrgent?: string | string[]
   caseShouldHandleToday?: string | string[]
@@ -355,6 +357,17 @@ export async function getCaseListPaginated(params: {
   if (params.caseInquiryDateTo && params.caseInquiryDateTo.trim() !== '') {
     whereClauses.push('case_inquiry_date <= ?')
     whereParams.push(normDate(params.caseInquiryDateTo))
+  }
+  if (
+    params.caseUptodateDateFrom &&
+    params.caseUptodateDateFrom.trim() !== ''
+  ) {
+    whereClauses.push('case_uptodate_date >= ?')
+    whereParams.push(normDate(params.caseUptodateDateFrom))
+  }
+  if (params.caseUptodateDateTo && params.caseUptodateDateTo.trim() !== '') {
+    whereClauses.push('case_uptodate_date <= ?')
+    whereParams.push(normDate(params.caseUptodateDateTo))
   }
   const pushInClauses = (
     col: string,

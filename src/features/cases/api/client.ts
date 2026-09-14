@@ -165,6 +165,8 @@ export async function fetchCasePaginated(params: {
   caseRemark?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
+  caseUptodateDateFrom?: string
+  caseUptodateDateTo?: string
   caseProgress?: string | string[]
   caseUrgent?: string | string[]
   caseShouldHandleToday?: string | string[]
