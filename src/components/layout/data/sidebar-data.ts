@@ -83,7 +83,7 @@ export const sidebarData: SidebarData = {
               url: '/case_urgent_list',
             },
             {
-              title: '服务项目案件列表',
+              title: '服务案件列表',
               url: '/case_service_list',
             },
             {

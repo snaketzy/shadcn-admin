@@ -15,7 +15,7 @@ export const CASE_LIST_TO_LABEL: Record<CaseListFromPath, string> = {
   '/case_today_list': '今日待办',
   '/case_deal_list': '我处理的',
   '/case_urgent_list': '紧急案件列表',
-  '/case_service_list': '服务项目案件列表',
+  '/case_service_list': '服务案件列表',
   '/case_drydocking_list': '坞修案件列表',
 }
 

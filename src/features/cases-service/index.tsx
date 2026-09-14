@@ -12,7 +12,7 @@ import { CasesServiceTable } from './components/cases-service-table'
 export function CasesService() {
   useEffect(() => {
     const originalTitle = document.title
-    document.title = `${originalTitle} - 服务项目案件列表`
+    document.title = `${originalTitle} - 服务案件列表`
     return () => {
       document.title = originalTitle
     }
