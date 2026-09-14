@@ -781,13 +781,14 @@ export function getCasesDrydockingColumns(params?: {
           ? (getCaseIdInquiriesMap?.()?.get(caseId) ?? [])
           : []
         const groupInquirySuppliers = (
-          matcher: (label: string) => boolean
+          dataKeyMatcher: (rawType: string | null | undefined) => boolean
         ): { supplier: string; date: string; typeLabel: string }[] => {
           const out: { supplier: string; date: string; typeLabel: string }[] =
             []
           for (const r of inquiries) {
+            const rawType = r.case_inquiry_type
+            if (!dataKeyMatcher(rawType)) continue
             const typeLabel = resolveInquiryQLabel(r.case_inquiry_type)
-            if (!matcher(typeLabel)) continue
             const supplier = resolveSupplierName(r.case_inquiry_division_id)
             out.push({
               supplier: supplier || '未指定供应商',
@@ -797,13 +798,14 @@ export function getCasesDrydockingColumns(params?: {
           }
           return out
         }
+        const dataKey = (t: unknown): string =>
+          String(t ?? '').trim().toUpperCase()
         const inquiryGroups = {
-          询价: groupInquirySuppliers((l) =>
-            /询价|询盘|inquir|enquir/i.test(l)
-          ),
-          报价: groupInquirySuppliers((l) => /报价|quot/i.test(l)),
-          竞标: groupInquirySuppliers((l) => /竞标|投标|bid/i.test(l)),
-          中标: groupInquirySuppliers((l) => /中标|win|award/i.test(l)),
+          询价: groupInquirySuppliers((t) => dataKey(t) === 'Q1'),
+          报价: groupInquirySuppliers((t) => dataKey(t) === 'Q2'),
+          无法报价: groupInquirySuppliers((t) => dataKey(t) === 'Q7'),
+          竞标: groupInquirySuppliers((t) => dataKey(t) === 'Q3'),
+          中标: groupInquirySuppliers((t) => dataKey(t) === 'Q4'),
         }
         const ownerInfo = resolveOwner(rowData.owner_following, false)
         const ownerById =
@@ -854,7 +856,8 @@ export function getCasesDrydockingColumns(params?: {
                 accent.includes('blue') ? 'bg-blue-50/70 ring-blue-200' : '',
                 accent.includes('emerald')
                   ? 'bg-emerald-50/70 ring-emerald-200'
-                  : ''
+                  : '',
+                accent.includes('rose') ? 'bg-rose-50/70 ring-rose-200' : ''
               )}
             >
               <div className='mb-1.5 flex items-center justify-between gap-2'>
@@ -873,6 +876,9 @@ export function getCasesDrydockingColumns(params?: {
                       : '',
                     accent.includes('emerald')
                       ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                      : '',
+                    accent.includes('rose')
+                      ? 'bg-rose-100 text-rose-800 hover:bg-rose-100'
                       : ''
                   )}
                 >
@@ -996,6 +1002,7 @@ export function getCasesDrydockingColumns(params?: {
                   </div>
                   {(inquiryGroups.询价.length > 0 ||
                     inquiryGroups.报价.length > 0 ||
+                    inquiryGroups.无法报价.length > 0 ||
                     inquiryGroups.竞标.length > 0 ||
                     inquiryGroups.中标.length > 0) && (
                     <>
@@ -1013,6 +1020,11 @@ export function getCasesDrydockingColumns(params?: {
                           '报价单位',
                           inquiryGroups.报价,
                           'amber'
+                        )}
+                        {buildInquirySection(
+                          '无法报价单位',
+                          inquiryGroups.无法报价,
+                          'rose'
                         )}
                         {buildInquirySection(
                           '竞标单位',
