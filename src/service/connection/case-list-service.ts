@@ -154,9 +154,7 @@ export async function checkDuplicateOrderNumber(params: {
     whereParams.push(Number(params.excludeCaseId))
   }
   const whereSql = whereClauses.join(' AND ')
-  const rows = await query<
-    { case_id: number; order_number: string | null }[]
-  >(
+  const rows = await query<{ case_id: number; order_number: string | null }[]>(
     `SELECT case_id, order_number FROM \`case_list\` WHERE ${whereSql} ORDER BY case_id DESC LIMIT 1`,
     whereParams as ExecuteValues[]
   )
@@ -165,9 +163,7 @@ export async function checkDuplicateOrderNumber(params: {
   return {
     exists: true,
     matchedCaseId: Number(hit.case_id),
-    matchedOrderNumber: hit.order_number
-      ? String(hit.order_number)
-      : undefined,
+    matchedOrderNumber: hit.order_number ? String(hit.order_number) : undefined,
   }
 }
 
@@ -291,6 +287,7 @@ export async function getCaseListPaginated(params: {
   caseRank?: string | string[]
   vesselPosition?: string | string[]
   awardSupplierIds?: number[] | string[]
+  quoteSupplierIds?: number[] | string[]
 }): Promise<{
   rows: CaseListRow[]
   total: number
@@ -401,6 +398,28 @@ export async function getCaseListPaginated(params: {
               OR UPPER(COALESCE(d.dict_value_remark, '')) REGEXP '中标|WIN|AWARD'
               OR UPPER(COALESCE(i.case_inquiry_type, '')) REGEXP '中标|WIN|AWARD'
             )
+        )`
+      )
+      for (const id of ids) whereParams.push(id)
+    }
+  }
+
+  if (
+    params.quoteSupplierIds &&
+    Array.isArray(params.quoteSupplierIds) &&
+    params.quoteSupplierIds.length > 0
+  ) {
+    const ids = params.quoteSupplierIds
+      .map((v) => Number(v))
+      .filter((n) => Number.isFinite(n) && n > 0)
+    if (ids.length > 0) {
+      const placeholders = ids.map(() => '?').join(', ')
+      whereClauses.push(
+        `EXISTS (
+          SELECT 1 FROM case_inquiry_list i
+          WHERE i.case_id = case_list.case_id
+            AND i.case_inquiry_division_id IN (${placeholders})
+            AND TRIM(UPPER(COALESCE(i.case_inquiry_type, ''))) = 'Q2'
         )`
       )
       for (const id of ids) whereParams.push(id)

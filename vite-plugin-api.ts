@@ -1123,6 +1123,16 @@ async function handleCaseListApi(
             }
             return out.length > 0 ? out : undefined
           })(),
+          quoteSupplierIds: (() => {
+            const list = toArr('quoteSupplierIds')
+            if (!list || list.length === 0) return undefined
+            const out: number[] = []
+            for (const s of list) {
+              const n = Number(s)
+              if (Number.isFinite(n) && n > 0) out.push(n)
+            }
+            return out.length > 0 ? out : undefined
+          })(),
         })
         sendJson(res, 200, { success: true, data: result })
         return true

@@ -559,6 +559,11 @@ export function CasesTable(_: DataTableProps) {
         searchKey: 'awardSupplierIds',
         type: 'array',
       },
+      {
+        columnId: 'quote_supplier_ids',
+        searchKey: 'quoteSupplierIds',
+        type: 'array',
+      },
     ],
   })
   const {
@@ -793,6 +798,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const quoteSupplierIdsFilter: string[] = useMemo(
+    () =>
+      Array.isArray((search as any).quoteSupplierIds)
+        ? ((search as any).quoteSupplierIds as string[])
+        : [],
+    [search]
+  )
 
   const invoiceNumberFilter: string[] = useMemo(
     () =>
@@ -833,6 +845,7 @@ export function CasesTable(_: DataTableProps) {
       caseRankFilter,
       vesselPositionFilter,
       awardSupplierIdsFilter,
+      quoteSupplierIdsFilter,
     ],
     queryFn: () =>
       fetchCasePaginated({
@@ -862,6 +875,8 @@ export function CasesTable(_: DataTableProps) {
           vesselPositionFilter.length > 0 ? vesselPositionFilter : undefined,
         awardSupplierIds:
           awardSupplierIdsFilter.length > 0 ? awardSupplierIdsFilter : undefined,
+        quoteSupplierIds:
+          quoteSupplierIdsFilter.length > 0 ? quoteSupplierIdsFilter : undefined,
       }),
     placeholderData: (prev) => prev,
   })
@@ -1207,6 +1222,41 @@ export function CasesTable(_: DataTableProps) {
             <DataTableFacetedFilter
               column={col}
               title='中标单位'
+              options={options}
+            />
+          </div>
+        )
+      })()}
+      {(() => {
+        const list = (supplierAllRows as Supplier[]) ?? []
+        if (list.length === 0) return null
+        const options = list
+          .map((s) => ({
+            idRaw: (s as any).supplier_id,
+            name: String((s as any).supplier_name ?? '').trim(),
+          }))
+          .filter(
+            (o): o is { idRaw: number | string; name: string } =>
+              o.name !== '' &&
+              ((typeof o.idRaw === 'number' && o.idRaw > 0) ||
+                (typeof o.idRaw === 'string' &&
+                  o.idRaw.trim() !== '' &&
+                  Number.isFinite(Number(o.idRaw)) &&
+                  Number(o.idRaw) > 0))
+          )
+          .map((o) => ({
+            value: String(o.idRaw),
+            label: o.name,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
+        if (options.length === 0) return null
+        const col = table.getColumn('quote_supplier_ids')
+        if (!col) return null
+        return (
+          <div className='shrink-0'>
+            <DataTableFacetedFilter
+              column={col}
+              title='报价单位'
               options={options}
             />
           </div>

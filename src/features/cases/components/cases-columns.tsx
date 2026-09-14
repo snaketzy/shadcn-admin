@@ -664,7 +664,7 @@ export function getCasesColumns(params?: {
                                 <div className='rounded-md bg-white/50 p-2 ring-1 ring-amber-200/40'>
                                   <div className='mb-1.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
                                     附件（{attach.length}）
-                                    <span className='ml-2 normal-case text-[10px] text-amber-800/60'>
+                                    <span className='ml-2 text-[10px] text-amber-800/60 normal-case'>
                                       · 点击附件可预览/下载
                                     </span>
                                   </div>
@@ -1864,11 +1864,13 @@ export function getCasesColumns(params?: {
         if (!Number.isFinite(cid) || cid <= 0) return result
         const inquiries =
           getCaseIdInquiriesMap != null
-            ? getCaseIdInquiriesMap()?.get(cid) ?? []
+            ? (getCaseIdInquiriesMap()?.get(cid) ?? [])
             : []
         for (const r of inquiries) {
           const rawType = (r as any)?.case_inquiry_type
-          const typeKey = String(rawType ?? '').trim().toUpperCase()
+          const typeKey = String(rawType ?? '')
+            .trim()
+            .toUpperCase()
           const typeLabel = typeKey
             ? (inquiryTypeQKeyToLabel?.get(typeKey) ?? String(rawType ?? ''))
             : ''
@@ -1905,8 +1907,75 @@ export function getCasesColumns(params?: {
               .filter(Boolean)
           : []
         if (fArr.length === 0) return true
-        const rowArr: string[] = Array.isArray(row.getValue('award_supplier_ids'))
+        const rowArr: string[] = Array.isArray(
+          row.getValue('award_supplier_ids')
+        )
           ? (row.getValue('award_supplier_ids') as unknown[])
+              .map((v) => String(v ?? '').trim())
+              .filter(Boolean)
+          : []
+        if (rowArr.length === 0) return false
+        const fSet = new Set(fArr)
+        for (const v of rowArr) if (fSet.has(v)) return true
+        return false
+      },
+    },
+    {
+      accessorKey: 'quote_supplier_ids',
+      header: () => <span>报价单位</span>,
+      accessorFn: (row) => {
+        const cidRaw = (row as any)?.case_id
+        const cid =
+          typeof cidRaw === 'number'
+            ? cidRaw
+            : typeof cidRaw === 'string' && cidRaw.trim() !== ''
+              ? Number(cidRaw)
+              : Number.NaN
+        const result: string[] = []
+        if (!Number.isFinite(cid) || cid <= 0) return result
+        const inquiries =
+          getCaseIdInquiriesMap != null
+            ? (getCaseIdInquiriesMap()?.get(cid) ?? [])
+            : []
+        for (const r of inquiries) {
+          const rawType = (r as any)?.case_inquiry_type
+          const typeKey = String(rawType ?? '')
+            .trim()
+            .toUpperCase()
+          if (typeKey !== 'Q2') {
+            continue
+          }
+          const divRaw = (r as any)?.case_inquiry_division_id
+          const id =
+            typeof divRaw === 'number'
+              ? divRaw
+              : typeof divRaw === 'string' && divRaw.trim() !== ''
+                ? Number(divRaw)
+                : Number.NaN
+          if (Number.isFinite(id) && id > 0) result.push(String(id))
+        }
+        return result
+      },
+      cell: () => null,
+      enableColumnFilter: true,
+      enableSorting: false,
+      enableHiding: true,
+      meta: {
+        label: '报价单位',
+        className: 'hidden',
+        thClassName: 'hidden',
+      },
+      filterFn: (row, _columnId, filterValue: unknown) => {
+        const fArr = Array.isArray(filterValue)
+          ? (filterValue as unknown[])
+              .map((v) => String(v ?? '').trim())
+              .filter(Boolean)
+          : []
+        if (fArr.length === 0) return true
+        const rowArr: string[] = Array.isArray(
+          row.getValue('quote_supplier_ids')
+        )
+          ? (row.getValue('quote_supplier_ids') as unknown[])
               .map((v) => String(v ?? '').trim())
               .filter(Boolean)
           : []
