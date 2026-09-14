@@ -579,6 +579,8 @@ export function CasesTable(_: DataTableProps) {
   const urlKeyword: string =
     (search as unknown as { caseInquiryKeyword?: string }).caseInquiryKeyword ??
     ''
+  const urlCaseRemark: string =
+    (search as unknown as { caseRemark?: string }).caseRemark ?? ''
   const urlInqDateFrom: string =
     (search as unknown as { caseInquiryDateFrom?: string })
       .caseInquiryDateFrom ?? ''
@@ -596,6 +598,12 @@ export function CasesTable(_: DataTableProps) {
   const keywordComposingRef = useRef(false)
   const keywordDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [editingCaseRemark, setEditingCaseRemark] = useState(urlCaseRemark)
+  const caseRemarkComposingRef = useRef(false)
+  const caseRemarkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
   const [editingInqDateFrom, setEditingInqDateFrom] = useState(urlInqDateFrom)
   const [editingInqDateTo, setEditingInqDateTo] = useState(urlInqDateTo)
   const inqDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -607,6 +615,10 @@ export function CasesTable(_: DataTableProps) {
   useEffect(() => {
     if (editingKeyword !== urlKeyword) setEditingKeyword(urlKeyword)
   }, [urlKeyword])
+
+  useEffect(() => {
+    if (editingCaseRemark !== urlCaseRemark) setEditingCaseRemark(urlCaseRemark)
+  }, [urlCaseRemark])
 
   useEffect(() => {
     if (editingInqDateFrom !== urlInqDateFrom)
@@ -654,6 +666,25 @@ export function CasesTable(_: DataTableProps) {
     [navigate]
   )
 
+  const scheduleCaseRemarkCommit = useCallback(
+    (valueRaw: string) => {
+      if (caseRemarkDebounceRef.current)
+        clearTimeout(caseRemarkDebounceRef.current)
+      caseRemarkDebounceRef.current = setTimeout(() => {
+        if (caseRemarkComposingRef.current) return
+        const value = valueRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            caseRemark: value || undefined,
+            page: undefined,
+          }),
+        })
+      }, 300)
+    },
+    [navigate]
+  )
+
   const onVesselNameChange = (value: string) => {
     setEditingVesselName(value)
     scheduleVesselNameCommit(value)
@@ -684,6 +715,22 @@ export function CasesTable(_: DataTableProps) {
     const trimmed = value.trim()
     setEditingKeyword(trimmed)
     scheduleKeywordCommit(trimmed)
+  }
+
+  const onCaseRemarkChange = (value: string) => {
+    setEditingCaseRemark(value)
+    scheduleCaseRemarkCommit(value)
+  }
+
+  const onCaseRemarkCompositionStart = () => {
+    caseRemarkComposingRef.current = true
+  }
+
+  const onCaseRemarkCompositionEnd = (value: string) => {
+    caseRemarkComposingRef.current = false
+    const trimmed = value.trim()
+    setEditingCaseRemark(trimmed)
+    scheduleCaseRemarkCommit(trimmed)
   }
 
   const pad2Inq = (n: number): string => (n < 10 ? `0${n}` : `${n}`)
@@ -833,6 +880,7 @@ export function CasesTable(_: DataTableProps) {
       pagination.pageSize,
       urlVesselName,
       urlKeyword,
+      urlCaseRemark,
       urlInqDateFrom,
       urlInqDateTo,
       invoiceNumberFilter,
@@ -853,6 +901,7 @@ export function CasesTable(_: DataTableProps) {
         pageSize: pagination.pageSize,
         vesselName: urlVesselName || undefined,
         caseInquiryKeyword: urlKeyword || undefined,
+        caseRemark: urlCaseRemark || undefined,
         caseInquiryDateFrom: urlInqDateFrom || undefined,
         caseInquiryDateTo: urlInqDateTo || undefined,
         invoiceNumber:
@@ -874,9 +923,13 @@ export function CasesTable(_: DataTableProps) {
         vesselPosition:
           vesselPositionFilter.length > 0 ? vesselPositionFilter : undefined,
         awardSupplierIds:
-          awardSupplierIdsFilter.length > 0 ? awardSupplierIdsFilter : undefined,
+          awardSupplierIdsFilter.length > 0
+            ? awardSupplierIdsFilter
+            : undefined,
         quoteSupplierIds:
-          quoteSupplierIdsFilter.length > 0 ? quoteSupplierIdsFilter : undefined,
+          quoteSupplierIdsFilter.length > 0
+            ? quoteSupplierIdsFilter
+            : undefined,
       }),
     placeholderData: (prev) => prev,
   })
@@ -975,6 +1028,7 @@ export function CasesTable(_: DataTableProps) {
         pageSize: undefined,
         vesselName: undefined,
         caseInquiryKeyword: undefined,
+        caseRemark: undefined,
         caseInquiryDateFrom: undefined,
         caseInquiryDateTo: undefined,
         invoiceNumber: undefined,
@@ -1026,6 +1080,7 @@ export function CasesTable(_: DataTableProps) {
     columnFilters.length > 0 ||
     editingVesselName.trim() !== '' ||
     editingKeyword.trim() !== '' ||
+    editingCaseRemark.trim() !== '' ||
     editingInqDateFrom.trim() !== '' ||
     editingInqDateTo.trim() !== ''
 
@@ -1336,6 +1391,16 @@ export function CasesTable(_: DataTableProps) {
               onKeywordCompositionEnd((e.target as HTMLInputElement).value)
             }
             className='h-8 w-45 lg:w-75'
+          />
+          <Input
+            placeholder='按案件备注筛选...'
+            value={editingCaseRemark}
+            onChange={(e) => onCaseRemarkChange(e.target.value)}
+            onCompositionStart={onCaseRemarkCompositionStart}
+            onCompositionEnd={(e) =>
+              onCaseRemarkCompositionEnd((e.target as HTMLInputElement).value)
+            }
+            className='h-8 w-45 lg:w-60'
           />
           {isFiltered && (
             <Button

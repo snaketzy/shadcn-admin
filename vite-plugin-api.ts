@@ -1106,6 +1106,7 @@ async function handleCaseListApi(
               ? true
               : undefined,
           caseInquiryKeyword: toOptStr(searchParams.get('caseInquiryKeyword')),
+          caseRemark: toOptStr(searchParams.get('caseRemark')),
           caseInquiryDateFrom: toOptStr(
             searchParams.get('caseInquiryDateFrom')
           ),

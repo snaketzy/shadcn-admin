@@ -278,6 +278,7 @@ export async function getCaseListPaginated(params: {
   caseUrgentIsYes?: boolean
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
+  caseRemark?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
   caseProgress?: string | string[]
@@ -305,6 +306,10 @@ export async function getCaseListPaginated(params: {
   if (params.vesselName && params.vesselName.trim() !== '') {
     whereClauses.push('vessel_name LIKE ?')
     whereParams.push(`%${params.vesselName}%`)
+  }
+  if (params.caseRemark && params.caseRemark.trim() !== '') {
+    whereClauses.push('case_remark LIKE ?')
+    whereParams.push(`%${params.caseRemark}%`)
   }
   if (params.orderNumberHasValue) {
     whereClauses.push("order_number IS NOT NULL AND TRIM(order_number) <> ''")
