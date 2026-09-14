@@ -1404,6 +1404,49 @@ export function getCasesColumns(params?: {
       enableSorting: false,
     },
     {
+      id: 'days_since_followup',
+      accessorFn: (row) => {
+        const formatted = formatDateAsHyphen((row as any).case_uptodate_date)
+        if (!formatted) return null
+        const today = getTodayHyphen()
+        const todayDate = new Date(today)
+        const followDate = new Date(formatted)
+        const diffMs = todayDate.getTime() - followDate.getTime()
+        return Math.floor(diffMs / 86400000)
+      },
+      size: 90,
+      minSize: 90,
+      maxSize: 90,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='距今天' />
+      ),
+      cell: ({ row }) => {
+        const diffDays = row.getValue('days_since_followup') as number | null
+        if (diffDays == null) return <div className='text-center'>-</div>
+        let colorClass = ''
+        if (diffDays <= 1) {
+          colorClass = 'text-emerald-600 dark:text-emerald-400 font-medium'
+        } else if (diffDays <= 3) {
+          colorClass = 'text-blue-600 dark:text-blue-400 font-medium'
+        } else if (diffDays <= 7) {
+          colorClass = 'text-amber-600 dark:text-amber-400 font-medium'
+        } else {
+          colorClass = 'text-rose-600 dark:text-rose-400 font-medium'
+        }
+        return (
+          <div className={cn(colorClass, 'text-center')}>
+            {diffDays === 0 ? '当天' : `${diffDays}天`}
+          </div>
+        )
+      },
+      meta: {
+        label: '距今天',
+        className: 'w-[90px] min-w-[90px] max-w-[90px] text-center',
+        thClassName: 'w-[90px] min-w-[90px] max-w-[90px] text-center',
+      },
+      enableSorting: true,
+    },
+    {
       accessorKey: 'owner_following',
       size: 180,
       minSize: 180,
