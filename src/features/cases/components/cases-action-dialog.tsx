@@ -2835,6 +2835,10 @@ export function CasesActionDialog({
       queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
+      queryClient.invalidateQueries({
+        queryKey: ['case-urgent-list-paginated'],
+      })
+      queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
       form.reset()
       if (mode === 'page') {
         onSuccess?.()
@@ -2882,6 +2886,10 @@ export function CasesActionDialog({
       queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
+      queryClient.invalidateQueries({
+        queryKey: ['case-urgent-list-paginated'],
+      })
+      queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
       form.reset()
       if (mode === 'page') {
         onSuccess?.()

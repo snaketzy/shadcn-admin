@@ -159,6 +159,7 @@ export async function fetchCasePaginated(params: {
   invoiceNumber?: string | string[]
   orderNumber?: string | string[]
   orderNumberHasValue?: boolean
+  caseUrgentIsYes?: boolean
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
   caseInquiryDateFrom?: string

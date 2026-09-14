@@ -1097,6 +1097,10 @@ async function handleCaseListApi(
             searchParams.get('orderNumberHasValue') === 'true'
               ? true
               : undefined,
+          caseUrgentIsYes:
+            searchParams.get('caseUrgentIsYes') === 'true'
+              ? true
+              : undefined,
           serviceProjectActive:
             searchParams.get('serviceProjectActive') === 'true'
               ? true

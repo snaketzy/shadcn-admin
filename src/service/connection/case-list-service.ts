@@ -275,6 +275,7 @@ export async function getCaseListPaginated(params: {
   invoiceNumber?: string
   orderNumber?: string
   orderNumberHasValue?: boolean
+  caseUrgentIsYes?: boolean
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
   caseInquiryDateFrom?: string
@@ -307,6 +308,11 @@ export async function getCaseListPaginated(params: {
   }
   if (params.orderNumberHasValue) {
     whereClauses.push("order_number IS NOT NULL AND TRIM(order_number) <> ''")
+  }
+  if (params.caseUrgentIsYes) {
+    whereClauses.push(
+      "(TRIM(COALESCE(case_urgent, '')) = '是' OR UPPER(TRIM(COALESCE(case_urgent, ''))) LIKE '%URGENT%' OR TRIM(COALESCE(case_urgent, '')) LIKE '%紧急%' OR UPPER(TRIM(COALESCE(case_urgent, ''))) REGEXP '^B-?1')"
+    )
   }
   if (params.serviceProjectActive) {
     whereClauses.push(

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { type Row } from '@tanstack/react-table'
 import { AlertTriangle, StickyNotePlus, Trash2, UserPen } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,17 +10,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { deleteCase } from '../api/client'
-import { buildCaseNavSearch } from '../api/nav-helpers'
-import { type Case } from '../data/schema'
+import { type Case } from '@/features/cases/data/schema'
+import { deleteCase } from '@/features/cases/api/client'
+import { buildCaseNavSearch } from '@/features/cases/api/nav-helpers'
 
-const route = getRouteApi('/_authenticated/case_list/')
+const route = getRouteApi('/_authenticated/case_urgent_list/')
 
-type DataTableRowActionsProps = {
+type DataTableRowActionsUrgentProps = {
   row: Row<Case>
 }
 
-export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+export function DataTableRowActionsUrgent({
+  row,
+}: DataTableRowActionsUrgentProps) {
   const navigate = route.useNavigate()
   const search = route.useSearch()
   const queryClient = useQueryClient()
@@ -29,7 +31,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const navSearch = useMemo(
     () =>
       buildCaseNavSearch({
-        fromPath: '/case_list',
+        fromPath: '/case_urgent_list',
         listSearch: search as Record<string, unknown>,
       }),
     [search]
@@ -42,17 +44,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         toast.success('案件已删除')
         queryClient.invalidateQueries({ queryKey: ['case-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-list-groups'] })
-        queryClient.invalidateQueries({
-          queryKey: ['case-today-list-paginated'],
-        })
+        queryClient.invalidateQueries({ queryKey: ['case-today-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
-        queryClient.invalidateQueries({
-          queryKey: ['case-deal-list-paginated'],
-        })
+        queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
-        queryClient.invalidateQueries({
-          queryKey: ['case-urgent-list-paginated'],
-        })
+        queryClient.invalidateQueries({ queryKey: ['case-urgent-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
         setDeleteOpen(false)
       } else {
@@ -88,7 +84,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <Button
             variant='ghost'
             size='icon'
-            className='h-8 w-8 text-red-500 hover:bg-red-500/10 hover:text-red-600'
+            className='h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10'
           >
             <Trash2 size={16} />
           </Button>

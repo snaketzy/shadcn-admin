@@ -31,6 +31,7 @@ import { Route as AuthenticatedCase_memoCaseIdRouteImport } from './routes/_auth
 import { Route as AuthenticatedCase_newIndexRouteImport } from './routes/_authenticated/case_new/index'
 import { Route as AuthenticatedCase_service_listIndexRouteImport } from './routes/_authenticated/case_service_list/index'
 import { Route as AuthenticatedCase_today_listIndexRouteImport } from './routes/_authenticated/case_today_list/index'
+import { Route as AuthenticatedCase_urgent_listIndexRouteImport } from './routes/_authenticated/case_urgent_list/index'
 import { Route as AuthenticatedCollaboration_listIndexRouteImport } from './routes/_authenticated/collaboration_list/index'
 import { Route as AuthenticatedContact_detailContactIdRouteRouteImport } from './routes/_authenticated/contact_detail/$contactId/route'
 import { Route as AuthenticatedContact_listIndexRouteImport } from './routes/_authenticated/contact_list/index'
@@ -168,6 +169,12 @@ const AuthenticatedCase_today_listIndexRoute =
   AuthenticatedCase_today_listIndexRouteImport.update({
     id: '/case_today_list/',
     path: '/case_today_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCase_urgent_listIndexRoute =
+  AuthenticatedCase_urgent_listIndexRouteImport.update({
+    id: '/case_urgent_list/',
+    path: '/case_urgent_list/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCollaboration_listIndexRoute =
@@ -319,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/case_new/': typeof AuthenticatedCase_newIndexRoute
   '/case_service_list/': typeof AuthenticatedCase_service_listIndexRoute
   '/case_today_list/': typeof AuthenticatedCase_today_listIndexRoute
+  '/case_urgent_list/': typeof AuthenticatedCase_urgent_listIndexRoute
   '/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
@@ -359,6 +367,7 @@ export interface FileRoutesByTo {
   '/case_new': typeof AuthenticatedCase_newIndexRoute
   '/case_service_list': typeof AuthenticatedCase_service_listIndexRoute
   '/case_today_list': typeof AuthenticatedCase_today_listIndexRoute
+  '/case_urgent_list': typeof AuthenticatedCase_urgent_listIndexRoute
   '/collaboration_list': typeof AuthenticatedCollaboration_listIndexRoute
   '/contact_list': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries': typeof AuthenticatedDictionariesIndexRoute
@@ -404,6 +413,7 @@ export interface FileRoutesById {
   '/_authenticated/case_new/': typeof AuthenticatedCase_newIndexRoute
   '/_authenticated/case_service_list/': typeof AuthenticatedCase_service_listIndexRoute
   '/_authenticated/case_today_list/': typeof AuthenticatedCase_today_listIndexRoute
+  '/_authenticated/case_urgent_list/': typeof AuthenticatedCase_urgent_listIndexRoute
   '/_authenticated/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/_authenticated/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/_authenticated/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
@@ -449,6 +459,7 @@ export interface FileRouteTypes {
     | '/case_new/'
     | '/case_service_list/'
     | '/case_today_list/'
+    | '/case_urgent_list/'
     | '/collaboration_list/'
     | '/contact_list/'
     | '/dictionaries/'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/case_new'
     | '/case_service_list'
     | '/case_today_list'
+    | '/case_urgent_list'
     | '/collaboration_list'
     | '/contact_list'
     | '/dictionaries'
@@ -533,6 +545,7 @@ export interface FileRouteTypes {
     | '/_authenticated/case_new/'
     | '/_authenticated/case_service_list/'
     | '/_authenticated/case_today_list/'
+    | '/_authenticated/case_urgent_list/'
     | '/_authenticated/collaboration_list/'
     | '/_authenticated/contact_list/'
     | '/_authenticated/dictionaries/'
@@ -716,6 +729,13 @@ declare module '@tanstack/react-router' {
       path: '/case_today_list'
       fullPath: '/case_today_list/'
       preLoaderRoute: typeof AuthenticatedCase_today_listIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/case_urgent_list/': {
+      id: '/_authenticated/case_urgent_list/'
+      path: '/case_urgent_list'
+      fullPath: '/case_urgent_list/'
+      preLoaderRoute: typeof AuthenticatedCase_urgent_listIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/collaboration_list/': {
@@ -935,6 +955,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCase_newIndexRoute: typeof AuthenticatedCase_newIndexRoute
   AuthenticatedCase_service_listIndexRoute: typeof AuthenticatedCase_service_listIndexRoute
   AuthenticatedCase_today_listIndexRoute: typeof AuthenticatedCase_today_listIndexRoute
+  AuthenticatedCase_urgent_listIndexRoute: typeof AuthenticatedCase_urgent_listIndexRoute
   AuthenticatedCollaboration_listIndexRoute: typeof AuthenticatedCollaboration_listIndexRoute
   AuthenticatedContact_listIndexRoute: typeof AuthenticatedContact_listIndexRoute
   AuthenticatedDictionariesIndexRoute: typeof AuthenticatedDictionariesIndexRoute
@@ -965,6 +986,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedCase_service_listIndexRoute,
   AuthenticatedCase_today_listIndexRoute:
     AuthenticatedCase_today_listIndexRoute,
+  AuthenticatedCase_urgent_listIndexRoute:
+    AuthenticatedCase_urgent_listIndexRoute,
   AuthenticatedCollaboration_listIndexRoute:
     AuthenticatedCollaboration_listIndexRoute,
   AuthenticatedContact_listIndexRoute: AuthenticatedContact_listIndexRoute,
