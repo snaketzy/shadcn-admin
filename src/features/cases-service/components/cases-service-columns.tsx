@@ -1578,7 +1578,11 @@ export function getCasesServiceColumns(params?: {
         const value = row.getValue('case_delivery_or_service_deadline') as
           string | null
         const formatted = formatDateAsHyphen(value)
-        return <div>{formatted || '-'}</div>
+        return (
+          <div className='text-purple-600 dark:text-purple-400 font-medium'>
+            {formatted || '-'}
+          </div>
+        )
       },
       meta: {
         label: '运输｜服务截止日',
