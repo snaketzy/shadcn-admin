@@ -1,4 +1,3 @@
-import { ContentSection } from '@/features/settings/components/content-section'
 import {
   Card,
   CardContent,
@@ -13,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { ArrowRightIcon } from '@radix-ui/react-icons'
 import type { OwnerDictEntry } from '@/features/owners/api/client'
+import { Separator } from '@/components/ui/separator'
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
 
@@ -63,118 +63,124 @@ export function OwnerDetailBasic() {
   if (!owner) return null
 
   return (
-    <ContentSection
-      title='基本信息'
-      desc='该船东的基础档案信息，包括名称、联系方式、部门职级等。'
-    >
-      <div className='space-y-4'>
-        <Card>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center justify-between gap-3'>
-              <div>
-                <CardTitle className='text-base'>基础档案</CardTitle>
-                <CardDescription>名称、邮箱、电话等基础字段</CardDescription>
-              </div>
-              <Link
-                to='/owner_detail/$ownerId/info'
-                params={{ ownerId }}
-                className='flex items-center gap-1 text-xs text-muted-foreground hover:underline'
-              >
-                查看关联船舶
-                <ArrowRightIcon className='size-3' />
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className='divide-y border-t'>
-            <FieldValue label='船东名称'>
-              <span className='font-medium'>{owner.owner_name || '-'}</span>
-            </FieldValue>
-            <FieldValue label='船东ID'>
-              <span className='font-mono text-muted-foreground'>
-                {owner.owner_id}
-              </span>
-            </FieldValue>
-            <FieldValue label='船东邮箱'>
-              {owner.owner_email ? (
-                <a
-                  href={`mailto:${owner.owner_email}`}
-                  className='hover:underline break-all'
-                >
-                  {owner.owner_email}
-                </a>
-              ) : (
-                <span className='text-muted-foreground'>-</span>
-              )}
-            </FieldValue>
-            <FieldValue label='船东电话'>
-              {owner.owner_phone ? (
-                <a
-                  href={`tel:${owner.owner_phone}`}
-                  className='hover:underline font-mono text-sm'
-                >
-                  {owner.owner_phone}
-                </a>
-              ) : (
-                <span className='text-muted-foreground'>-</span>
-              )}
-            </FieldValue>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className='pb-2'>
-            <CardTitle className='text-base'>部门职级</CardTitle>
-            <CardDescription>小组、部门、职级等组织信息</CardDescription>
-          </CardHeader>
-          <CardContent className='divide-y border-t'>
-            <FieldValue label='船东小组'>
-              {(() => {
-                const label = resolveLabel(owner.owner_team, teamMap)
-                if (!label) return <span className='text-muted-foreground'>-</span>
-                return (
-                  <Badge variant='outline' className={cn(getBadgeColor(label))}>
-                    {label}
-                  </Badge>
-                )
-              })()}
-            </FieldValue>
-            <FieldValue label='船东部门'>
-              {(() => {
-                const label = resolveLabel(owner.owner_department, deptMap)
-                if (!label) return <span className='text-muted-foreground'>-</span>
-                return (
-                  <Badge variant='outline' className={cn(getBadgeColor(label))}>
-                    {label}
-                  </Badge>
-                )
-              })()}
-            </FieldValue>
-            <FieldValue label='船东部门邮箱'>
-              {owner.owner_department_email ? (
-                <a
-                  href={`mailto:${owner.owner_department_email}`}
-                  className='hover:underline break-all'
-                >
-                  {owner.owner_department_email}
-                </a>
-              ) : (
-                <span className='text-muted-foreground'>-</span>
-              )}
-            </FieldValue>
-            <FieldValue label='船东职级'>
-              {(() => {
-                const label = resolveLabel(owner.owner_rank, rankMap)
-                if (!label) return <span className='text-muted-foreground'>-</span>
-                return (
-                  <Badge variant='outline' className={cn(getBadgeColor(label))}>
-                    {label}
-                  </Badge>
-                )
-              })()}
-            </FieldValue>
-          </CardContent>
-        </Card>
+    <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
+      <div className='flex-none'>
+        <h3 className='text-lg font-medium'>基本信息</h3>
+        <p className='text-sm text-muted-foreground'>
+          该船东的基础档案信息，包括名称、联系方式、部门职级等。
+        </p>
       </div>
-    </ContentSection>
+      <Separator className='my-4 flex-none' />
+      <div className='h-full min-h-0 w-full overflow-y-auto scroll-smooth pe-2 pb-8'>
+        <div className='space-y-4 pr-1'>
+          <Card>
+            <CardHeader className='pb-2'>
+              <div className='flex items-center justify-between gap-3'>
+                <div>
+                  <CardTitle className='text-base'>基础档案</CardTitle>
+                  <CardDescription>名称、邮箱、电话等基础字段</CardDescription>
+                </div>
+                <Link
+                  to='/owner_detail/$ownerId/info'
+                  params={{ ownerId }}
+                  className='flex items-center gap-1 text-xs text-muted-foreground hover:underline'
+                >
+                  查看关联船舶
+                  <ArrowRightIcon className='size-3' />
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className='divide-y border-t'>
+              <FieldValue label='船东名称'>
+                <span className='font-medium'>{owner.owner_name || '-'}</span>
+              </FieldValue>
+              <FieldValue label='船东ID'>
+                <span className='font-mono text-muted-foreground'>
+                  {owner.owner_id}
+                </span>
+              </FieldValue>
+              <FieldValue label='船东邮箱'>
+                {owner.owner_email ? (
+                  <a
+                    href={`mailto:${owner.owner_email}`}
+                    className='hover:underline break-all'
+                  >
+                    {owner.owner_email}
+                  </a>
+                ) : (
+                  <span className='text-muted-foreground'>-</span>
+                )}
+              </FieldValue>
+              <FieldValue label='船东电话'>
+                {owner.owner_phone ? (
+                  <a
+                    href={`tel:${owner.owner_phone}`}
+                    className='hover:underline font-mono text-sm'
+                  >
+                    {owner.owner_phone}
+                  </a>
+                ) : (
+                  <span className='text-muted-foreground'>-</span>
+                )}
+              </FieldValue>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-base'>部门职级</CardTitle>
+              <CardDescription>小组、部门、职级等组织信息</CardDescription>
+            </CardHeader>
+            <CardContent className='divide-y border-t'>
+              <FieldValue label='船东小组'>
+                {(() => {
+                  const label = resolveLabel(owner.owner_team, teamMap)
+                  if (!label) return <span className='text-muted-foreground'>-</span>
+                  return (
+                    <Badge variant='outline' className={cn(getBadgeColor(label))}>
+                      {label}
+                    </Badge>
+                  )
+                })()}
+              </FieldValue>
+              <FieldValue label='船东部门'>
+                {(() => {
+                  const label = resolveLabel(owner.owner_department, deptMap)
+                  if (!label) return <span className='text-muted-foreground'>-</span>
+                  return (
+                    <Badge variant='outline' className={cn(getBadgeColor(label))}>
+                      {label}
+                    </Badge>
+                  )
+                })()}
+              </FieldValue>
+              <FieldValue label='船东部门邮箱'>
+                {owner.owner_department_email ? (
+                  <a
+                    href={`mailto:${owner.owner_department_email}`}
+                    className='hover:underline break-all'
+                  >
+                    {owner.owner_department_email}
+                  </a>
+                ) : (
+                  <span className='text-muted-foreground'>-</span>
+                )}
+              </FieldValue>
+              <FieldValue label='船东职级'>
+                {(() => {
+                  const label = resolveLabel(owner.owner_rank, rankMap)
+                  if (!label) return <span className='text-muted-foreground'>-</span>
+                  return (
+                    <Badge variant='outline' className={cn(getBadgeColor(label))}>
+                      {label}
+                    </Badge>
+                  )
+                })()}
+              </FieldValue>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   )
 }
