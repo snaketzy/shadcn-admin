@@ -38,6 +38,7 @@ import { Route as AuthenticatedContact_listIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedDictionariesIndexRouteImport } from './routes/_authenticated/dictionaries/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
+import { Route as AuthenticatedOwner_detailOwnerIdRouteRouteImport } from './routes/_authenticated/owner_detail/$ownerId/route'
 import { Route as AuthenticatedOwner_listIndexRouteImport } from './routes/_authenticated/owner_list/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
@@ -49,6 +50,9 @@ import { Route as AuthenticatedSupplier_listIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedVessel_listIndexRouteImport } from './routes/_authenticated/vessel_list/index'
 import { Route as AuthenticatedContact_detailContactIdIndexRouteImport } from './routes/_authenticated/contact_detail/$contactId/index'
+import { Route as AuthenticatedOwner_detailOwnerIdIndexRouteImport } from './routes/_authenticated/owner_detail/$ownerId/index'
+import { Route as AuthenticatedOwner_detailOwnerIdCooperationRouteImport } from './routes/_authenticated/owner_detail/$ownerId/cooperation'
+import { Route as AuthenticatedOwner_detailOwnerIdInfoRouteImport } from './routes/_authenticated/owner_detail/$ownerId/info'
 import { Route as AuthenticatedSupplier_detailSupplierIdIndexRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/index'
 import { Route as AuthenticatedSupplier_detailSupplierIdCooperationRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/cooperation'
 import { Route as AuthenticatedSupplier_detailSupplierIdInfoRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/info'
@@ -213,6 +217,12 @@ const AuthenticatedHelpCenterIndexRoute =
     path: '/help-center/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOwner_detailOwnerIdRouteRoute =
+  AuthenticatedOwner_detailOwnerIdRouteRouteImport.update({
+    id: '/owner_detail/$ownerId',
+    path: '/owner_detail/$ownerId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOwner_listIndexRoute =
   AuthenticatedOwner_listIndexRouteImport.update({
     id: '/owner_list/',
@@ -278,6 +288,24 @@ const AuthenticatedContact_detailContactIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedContact_detailContactIdRouteRoute,
   } as any)
+const AuthenticatedOwner_detailOwnerIdIndexRoute =
+  AuthenticatedOwner_detailOwnerIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOwner_detailOwnerIdRouteRoute,
+  } as any)
+const AuthenticatedOwner_detailOwnerIdCooperationRoute =
+  AuthenticatedOwner_detailOwnerIdCooperationRouteImport.update({
+    id: '/cooperation',
+    path: '/cooperation',
+    getParentRoute: () => AuthenticatedOwner_detailOwnerIdRouteRoute,
+  } as any)
+const AuthenticatedOwner_detailOwnerIdInfoRoute =
+  AuthenticatedOwner_detailOwnerIdInfoRouteImport.update({
+    id: '/info',
+    path: '/info',
+    getParentRoute: () => AuthenticatedOwner_detailOwnerIdRouteRoute,
+  } as any)
 const AuthenticatedSupplier_detailSupplierIdIndexRoute =
   AuthenticatedSupplier_detailSupplierIdIndexRouteImport.update({
     id: '/',
@@ -311,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
+  '/owner_detail/$ownerId': typeof AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
   '/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
@@ -336,9 +365,12 @@ export interface FileRoutesByFullPath {
   '/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
+  '/owner_detail/$ownerId/cooperation': typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  '/owner_detail/$ownerId/info': typeof AuthenticatedOwner_detailOwnerIdInfoRoute
   '/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
   '/contact_detail/$contactId/': typeof AuthenticatedContact_detailContactIdIndexRoute
+  '/owner_detail/$ownerId/': typeof AuthenticatedOwner_detailOwnerIdIndexRoute
   '/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -377,9 +409,12 @@ export interface FileRoutesByTo {
   '/supplier_list': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/vessel_list': typeof AuthenticatedVessel_listIndexRoute
+  '/owner_detail/$ownerId/cooperation': typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  '/owner_detail/$ownerId/info': typeof AuthenticatedOwner_detailOwnerIdInfoRoute
   '/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
   '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdIndexRoute
+  '/owner_detail/$ownerId': typeof AuthenticatedOwner_detailOwnerIdIndexRoute
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesById {
@@ -398,6 +433,7 @@ export interface FileRoutesById {
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
+  '/_authenticated/owner_detail/$ownerId': typeof AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren
   '/_authenticated/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/_authenticated/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
   '/_authenticated/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
@@ -423,9 +459,12 @@ export interface FileRoutesById {
   '/_authenticated/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
+  '/_authenticated/owner_detail/$ownerId/cooperation': typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  '/_authenticated/owner_detail/$ownerId/info': typeof AuthenticatedOwner_detailOwnerIdInfoRoute
   '/_authenticated/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/_authenticated/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
   '/_authenticated/contact_detail/$contactId/': typeof AuthenticatedContact_detailContactIdIndexRoute
+  '/_authenticated/owner_detail/$ownerId/': typeof AuthenticatedOwner_detailOwnerIdIndexRoute
   '/_authenticated/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -444,6 +483,7 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/contact_detail/$contactId'
+    | '/owner_detail/$ownerId'
     | '/supplier_detail/$supplierId'
     | '/case_edit/$caseId'
     | '/case_memo/$caseId'
@@ -469,9 +509,12 @@ export interface FileRouteTypes {
     | '/supplier_list/'
     | '/tasks/'
     | '/vessel_list/'
+    | '/owner_detail/$ownerId/cooperation'
+    | '/owner_detail/$ownerId/info'
     | '/supplier_detail/$supplierId/cooperation'
     | '/supplier_detail/$supplierId/info'
     | '/contact_detail/$contactId/'
+    | '/owner_detail/$ownerId/'
     | '/supplier_detail/$supplierId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -510,9 +553,12 @@ export interface FileRouteTypes {
     | '/supplier_list'
     | '/tasks'
     | '/vessel_list'
+    | '/owner_detail/$ownerId/cooperation'
+    | '/owner_detail/$ownerId/info'
     | '/supplier_detail/$supplierId/cooperation'
     | '/supplier_detail/$supplierId/info'
     | '/contact_detail/$contactId'
+    | '/owner_detail/$ownerId'
     | '/supplier_detail/$supplierId'
   id:
     | '__root__'
@@ -530,6 +576,7 @@ export interface FileRouteTypes {
     | '/(errors)/503'
     | '/_authenticated/'
     | '/_authenticated/contact_detail/$contactId'
+    | '/_authenticated/owner_detail/$ownerId'
     | '/_authenticated/supplier_detail/$supplierId'
     | '/_authenticated/case_edit/$caseId'
     | '/_authenticated/case_memo/$caseId'
@@ -555,9 +602,12 @@ export interface FileRouteTypes {
     | '/_authenticated/supplier_list/'
     | '/_authenticated/tasks/'
     | '/_authenticated/vessel_list/'
+    | '/_authenticated/owner_detail/$ownerId/cooperation'
+    | '/_authenticated/owner_detail/$ownerId/info'
     | '/_authenticated/supplier_detail/$supplierId/cooperation'
     | '/_authenticated/supplier_detail/$supplierId/info'
     | '/_authenticated/contact_detail/$contactId/'
+    | '/_authenticated/owner_detail/$ownerId/'
     | '/_authenticated/supplier_detail/$supplierId/'
   fileRoutesById: FileRoutesById
 }
@@ -780,6 +830,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/owner_detail/$ownerId': {
+      id: '/_authenticated/owner_detail/$ownerId'
+      path: '/owner_detail/$ownerId'
+      fullPath: '/owner_detail/$ownerId'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/owner_list/': {
       id: '/_authenticated/owner_list/'
       path: '/owner_list'
@@ -857,6 +914,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContact_detailContactIdIndexRouteImport
       parentRoute: typeof AuthenticatedContact_detailContactIdRouteRoute
     }
+    '/_authenticated/owner_detail/$ownerId/': {
+      id: '/_authenticated/owner_detail/$ownerId/'
+      path: '/'
+      fullPath: '/owner_detail/$ownerId/'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdIndexRouteImport
+      parentRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRoute
+    }
+    '/_authenticated/owner_detail/$ownerId/cooperation': {
+      id: '/_authenticated/owner_detail/$ownerId/cooperation'
+      path: '/cooperation'
+      fullPath: '/owner_detail/$ownerId/cooperation'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdCooperationRouteImport
+      parentRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRoute
+    }
+    '/_authenticated/owner_detail/$ownerId/info': {
+      id: '/_authenticated/owner_detail/$ownerId/info'
+      path: '/info'
+      fullPath: '/owner_detail/$ownerId/info'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdInfoRouteImport
+      parentRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRoute
+    }
     '/_authenticated/supplier_detail/$supplierId/': {
       id: '/_authenticated/supplier_detail/$supplierId/'
       path: '/'
@@ -919,6 +997,27 @@ const AuthenticatedContact_detailContactIdRouteRouteWithChildren =
     AuthenticatedContact_detailContactIdRouteRouteChildren,
   )
 
+interface AuthenticatedOwner_detailOwnerIdRouteRouteChildren {
+  AuthenticatedOwner_detailOwnerIdCooperationRoute: typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  AuthenticatedOwner_detailOwnerIdInfoRoute: typeof AuthenticatedOwner_detailOwnerIdInfoRoute
+  AuthenticatedOwner_detailOwnerIdIndexRoute: typeof AuthenticatedOwner_detailOwnerIdIndexRoute
+}
+
+const AuthenticatedOwner_detailOwnerIdRouteRouteChildren: AuthenticatedOwner_detailOwnerIdRouteRouteChildren =
+  {
+    AuthenticatedOwner_detailOwnerIdCooperationRoute:
+      AuthenticatedOwner_detailOwnerIdCooperationRoute,
+    AuthenticatedOwner_detailOwnerIdInfoRoute:
+      AuthenticatedOwner_detailOwnerIdInfoRoute,
+    AuthenticatedOwner_detailOwnerIdIndexRoute:
+      AuthenticatedOwner_detailOwnerIdIndexRoute,
+  }
+
+const AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren =
+  AuthenticatedOwner_detailOwnerIdRouteRoute._addFileChildren(
+    AuthenticatedOwner_detailOwnerIdRouteRouteChildren,
+  )
+
 interface AuthenticatedSupplier_detailSupplierIdRouteRouteChildren {
   AuthenticatedSupplier_detailSupplierIdCooperationRoute: typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   AuthenticatedSupplier_detailSupplierIdInfoRoute: typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
@@ -944,6 +1043,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedContact_detailContactIdRouteRoute: typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
+  AuthenticatedOwner_detailOwnerIdRouteRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren
   AuthenticatedSupplier_detailSupplierIdRouteRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   AuthenticatedCase_editCaseIdRoute: typeof AuthenticatedCase_editCaseIdRoute
   AuthenticatedCase_memoCaseIdRoute: typeof AuthenticatedCase_memoCaseIdRoute
@@ -971,6 +1071,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedContact_detailContactIdRouteRoute:
     AuthenticatedContact_detailContactIdRouteRouteWithChildren,
+  AuthenticatedOwner_detailOwnerIdRouteRoute:
+    AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren,
   AuthenticatedSupplier_detailSupplierIdRouteRoute:
     AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren,
   AuthenticatedCase_editCaseIdRoute: AuthenticatedCase_editCaseIdRoute,
