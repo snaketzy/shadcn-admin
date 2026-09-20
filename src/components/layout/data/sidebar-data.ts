@@ -1,6 +1,7 @@
 import {
   Construction,
   LayoutDashboard,
+  GanttChart,
   Monitor,
   Bug,
   ListTodo,
@@ -61,6 +62,11 @@ export const sidebarData: SidebarData = {
           title: '工作台',
           url: '/',
           icon: LayoutDashboard,
+        },
+        {
+          title: '跟进中案件甘特图',
+          url: '/gantt_chart_test1',
+          icon: GanttChart,
         },
         {
           title: '案件列表',
