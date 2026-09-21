@@ -31,12 +31,15 @@ import { Route as AuthenticatedCase_memoCaseIdRouteImport } from './routes/_auth
 import { Route as AuthenticatedCase_newIndexRouteImport } from './routes/_authenticated/case_new/index'
 import { Route as AuthenticatedCase_service_listIndexRouteImport } from './routes/_authenticated/case_service_list/index'
 import { Route as AuthenticatedCase_today_listIndexRouteImport } from './routes/_authenticated/case_today_list/index'
+import { Route as AuthenticatedCase_urgent_listIndexRouteImport } from './routes/_authenticated/case_urgent_list/index'
 import { Route as AuthenticatedCollaboration_listIndexRouteImport } from './routes/_authenticated/collaboration_list/index'
 import { Route as AuthenticatedContact_detailContactIdRouteRouteImport } from './routes/_authenticated/contact_detail/$contactId/route'
 import { Route as AuthenticatedContact_listIndexRouteImport } from './routes/_authenticated/contact_list/index'
 import { Route as AuthenticatedDictionariesIndexRouteImport } from './routes/_authenticated/dictionaries/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
+import { Route as AuthenticatedGantt_chart_test1IndexRouteImport } from './routes/_authenticated/gantt_chart_test1/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
+import { Route as AuthenticatedOwner_detailOwnerIdRouteRouteImport } from './routes/_authenticated/owner_detail/$ownerId/route'
 import { Route as AuthenticatedOwner_listIndexRouteImport } from './routes/_authenticated/owner_list/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
@@ -48,9 +51,13 @@ import { Route as AuthenticatedSupplier_listIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedVessel_listIndexRouteImport } from './routes/_authenticated/vessel_list/index'
 import { Route as AuthenticatedContact_detailContactIdIndexRouteImport } from './routes/_authenticated/contact_detail/$contactId/index'
+import { Route as AuthenticatedOwner_detailOwnerIdIndexRouteImport } from './routes/_authenticated/owner_detail/$ownerId/index'
+import { Route as AuthenticatedOwner_detailOwnerIdCooperationRouteImport } from './routes/_authenticated/owner_detail/$ownerId/cooperation'
+import { Route as AuthenticatedOwner_detailOwnerIdInfoRouteImport } from './routes/_authenticated/owner_detail/$ownerId/info'
 import { Route as AuthenticatedSupplier_detailSupplierIdIndexRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/index'
 import { Route as AuthenticatedSupplier_detailSupplierIdCooperationRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/cooperation'
 import { Route as AuthenticatedSupplier_detailSupplierIdInfoRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/info'
+import { Route as AuthenticatedSupplier_detailSupplierIdQuoteRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/quote'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -170,6 +177,12 @@ const AuthenticatedCase_today_listIndexRoute =
     path: '/case_today_list/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCase_urgent_listIndexRoute =
+  AuthenticatedCase_urgent_listIndexRouteImport.update({
+    id: '/case_urgent_list/',
+    path: '/case_urgent_list/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCollaboration_listIndexRoute =
   AuthenticatedCollaboration_listIndexRouteImport.update({
     id: '/collaboration_list/',
@@ -200,10 +213,22 @@ const AuthenticatedErrorsErrorRoute =
     path: '/errors/$error',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGantt_chart_test1IndexRoute =
+  AuthenticatedGantt_chart_test1IndexRouteImport.update({
+    id: '/gantt_chart_test1/',
+    path: '/gantt_chart_test1/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHelpCenterIndexRoute =
   AuthenticatedHelpCenterIndexRouteImport.update({
     id: '/help-center/',
     path: '/help-center/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOwner_detailOwnerIdRouteRoute =
+  AuthenticatedOwner_detailOwnerIdRouteRouteImport.update({
+    id: '/owner_detail/$ownerId',
+    path: '/owner_detail/$ownerId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOwner_listIndexRoute =
@@ -271,6 +296,24 @@ const AuthenticatedContact_detailContactIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedContact_detailContactIdRouteRoute,
   } as any)
+const AuthenticatedOwner_detailOwnerIdIndexRoute =
+  AuthenticatedOwner_detailOwnerIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOwner_detailOwnerIdRouteRoute,
+  } as any)
+const AuthenticatedOwner_detailOwnerIdCooperationRoute =
+  AuthenticatedOwner_detailOwnerIdCooperationRouteImport.update({
+    id: '/cooperation',
+    path: '/cooperation',
+    getParentRoute: () => AuthenticatedOwner_detailOwnerIdRouteRoute,
+  } as any)
+const AuthenticatedOwner_detailOwnerIdInfoRoute =
+  AuthenticatedOwner_detailOwnerIdInfoRouteImport.update({
+    id: '/info',
+    path: '/info',
+    getParentRoute: () => AuthenticatedOwner_detailOwnerIdRouteRoute,
+  } as any)
 const AuthenticatedSupplier_detailSupplierIdIndexRoute =
   AuthenticatedSupplier_detailSupplierIdIndexRouteImport.update({
     id: '/',
@@ -289,6 +332,12 @@ const AuthenticatedSupplier_detailSupplierIdInfoRoute =
     path: '/info',
     getParentRoute: () => AuthenticatedSupplier_detailSupplierIdRouteRoute,
   } as any)
+const AuthenticatedSupplier_detailSupplierIdQuoteRoute =
+  AuthenticatedSupplier_detailSupplierIdQuoteRouteImport.update({
+    id: '/quote',
+    path: '/quote',
+    getParentRoute: () => AuthenticatedSupplier_detailSupplierIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -304,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
+  '/owner_detail/$ownerId': typeof AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
   '/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
@@ -319,18 +369,24 @@ export interface FileRoutesByFullPath {
   '/case_new/': typeof AuthenticatedCase_newIndexRoute
   '/case_service_list/': typeof AuthenticatedCase_service_listIndexRoute
   '/case_today_list/': typeof AuthenticatedCase_today_listIndexRoute
+  '/case_urgent_list/': typeof AuthenticatedCase_urgent_listIndexRoute
   '/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
+  '/gantt_chart_test1/': typeof AuthenticatedGantt_chart_test1IndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list/': typeof AuthenticatedOwner_listIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
+  '/owner_detail/$ownerId/cooperation': typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  '/owner_detail/$ownerId/info': typeof AuthenticatedOwner_detailOwnerIdInfoRoute
   '/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/supplier_detail/$supplierId/quote': typeof AuthenticatedSupplier_detailSupplierIdQuoteRoute
   '/contact_detail/$contactId/': typeof AuthenticatedContact_detailContactIdIndexRoute
+  '/owner_detail/$ownerId/': typeof AuthenticatedOwner_detailOwnerIdIndexRoute
   '/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -359,18 +415,24 @@ export interface FileRoutesByTo {
   '/case_new': typeof AuthenticatedCase_newIndexRoute
   '/case_service_list': typeof AuthenticatedCase_service_listIndexRoute
   '/case_today_list': typeof AuthenticatedCase_today_listIndexRoute
+  '/case_urgent_list': typeof AuthenticatedCase_urgent_listIndexRoute
   '/collaboration_list': typeof AuthenticatedCollaboration_listIndexRoute
   '/contact_list': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries': typeof AuthenticatedDictionariesIndexRoute
+  '/gantt_chart_test1': typeof AuthenticatedGantt_chart_test1IndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list': typeof AuthenticatedOwner_listIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/supplier_list': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/vessel_list': typeof AuthenticatedVessel_listIndexRoute
+  '/owner_detail/$ownerId/cooperation': typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  '/owner_detail/$ownerId/info': typeof AuthenticatedOwner_detailOwnerIdInfoRoute
   '/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/supplier_detail/$supplierId/quote': typeof AuthenticatedSupplier_detailSupplierIdQuoteRoute
   '/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdIndexRoute
+  '/owner_detail/$ownerId': typeof AuthenticatedOwner_detailOwnerIdIndexRoute
   '/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRoutesById {
@@ -389,6 +451,7 @@ export interface FileRoutesById {
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/contact_detail/$contactId': typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
+  '/_authenticated/owner_detail/$ownerId': typeof AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren
   '/_authenticated/supplier_detail/$supplierId': typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   '/_authenticated/case_edit/$caseId': typeof AuthenticatedCase_editCaseIdRoute
   '/_authenticated/case_memo/$caseId': typeof AuthenticatedCase_memoCaseIdRoute
@@ -404,18 +467,24 @@ export interface FileRoutesById {
   '/_authenticated/case_new/': typeof AuthenticatedCase_newIndexRoute
   '/_authenticated/case_service_list/': typeof AuthenticatedCase_service_listIndexRoute
   '/_authenticated/case_today_list/': typeof AuthenticatedCase_today_listIndexRoute
+  '/_authenticated/case_urgent_list/': typeof AuthenticatedCase_urgent_listIndexRoute
   '/_authenticated/collaboration_list/': typeof AuthenticatedCollaboration_listIndexRoute
   '/_authenticated/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/_authenticated/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
+  '/_authenticated/gantt_chart_test1/': typeof AuthenticatedGantt_chart_test1IndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/owner_list/': typeof AuthenticatedOwner_listIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
+  '/_authenticated/owner_detail/$ownerId/cooperation': typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  '/_authenticated/owner_detail/$ownerId/info': typeof AuthenticatedOwner_detailOwnerIdInfoRoute
   '/_authenticated/supplier_detail/$supplierId/cooperation': typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   '/_authenticated/supplier_detail/$supplierId/info': typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  '/_authenticated/supplier_detail/$supplierId/quote': typeof AuthenticatedSupplier_detailSupplierIdQuoteRoute
   '/_authenticated/contact_detail/$contactId/': typeof AuthenticatedContact_detailContactIdIndexRoute
+  '/_authenticated/owner_detail/$ownerId/': typeof AuthenticatedOwner_detailOwnerIdIndexRoute
   '/_authenticated/supplier_detail/$supplierId/': typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -434,6 +503,7 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/contact_detail/$contactId'
+    | '/owner_detail/$ownerId'
     | '/supplier_detail/$supplierId'
     | '/case_edit/$caseId'
     | '/case_memo/$caseId'
@@ -449,18 +519,24 @@ export interface FileRouteTypes {
     | '/case_new/'
     | '/case_service_list/'
     | '/case_today_list/'
+    | '/case_urgent_list/'
     | '/collaboration_list/'
     | '/contact_list/'
     | '/dictionaries/'
+    | '/gantt_chart_test1/'
     | '/help-center/'
     | '/owner_list/'
     | '/settings/'
     | '/supplier_list/'
     | '/tasks/'
     | '/vessel_list/'
+    | '/owner_detail/$ownerId/cooperation'
+    | '/owner_detail/$ownerId/info'
     | '/supplier_detail/$supplierId/cooperation'
     | '/supplier_detail/$supplierId/info'
+    | '/supplier_detail/$supplierId/quote'
     | '/contact_detail/$contactId/'
+    | '/owner_detail/$ownerId/'
     | '/supplier_detail/$supplierId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -489,18 +565,24 @@ export interface FileRouteTypes {
     | '/case_new'
     | '/case_service_list'
     | '/case_today_list'
+    | '/case_urgent_list'
     | '/collaboration_list'
     | '/contact_list'
     | '/dictionaries'
+    | '/gantt_chart_test1'
     | '/help-center'
     | '/owner_list'
     | '/settings'
     | '/supplier_list'
     | '/tasks'
     | '/vessel_list'
+    | '/owner_detail/$ownerId/cooperation'
+    | '/owner_detail/$ownerId/info'
     | '/supplier_detail/$supplierId/cooperation'
     | '/supplier_detail/$supplierId/info'
+    | '/supplier_detail/$supplierId/quote'
     | '/contact_detail/$contactId'
+    | '/owner_detail/$ownerId'
     | '/supplier_detail/$supplierId'
   id:
     | '__root__'
@@ -518,6 +600,7 @@ export interface FileRouteTypes {
     | '/(errors)/503'
     | '/_authenticated/'
     | '/_authenticated/contact_detail/$contactId'
+    | '/_authenticated/owner_detail/$ownerId'
     | '/_authenticated/supplier_detail/$supplierId'
     | '/_authenticated/case_edit/$caseId'
     | '/_authenticated/case_memo/$caseId'
@@ -533,18 +616,24 @@ export interface FileRouteTypes {
     | '/_authenticated/case_new/'
     | '/_authenticated/case_service_list/'
     | '/_authenticated/case_today_list/'
+    | '/_authenticated/case_urgent_list/'
     | '/_authenticated/collaboration_list/'
     | '/_authenticated/contact_list/'
     | '/_authenticated/dictionaries/'
+    | '/_authenticated/gantt_chart_test1/'
     | '/_authenticated/help-center/'
     | '/_authenticated/owner_list/'
     | '/_authenticated/settings/'
     | '/_authenticated/supplier_list/'
     | '/_authenticated/tasks/'
     | '/_authenticated/vessel_list/'
+    | '/_authenticated/owner_detail/$ownerId/cooperation'
+    | '/_authenticated/owner_detail/$ownerId/info'
     | '/_authenticated/supplier_detail/$supplierId/cooperation'
     | '/_authenticated/supplier_detail/$supplierId/info'
+    | '/_authenticated/supplier_detail/$supplierId/quote'
     | '/_authenticated/contact_detail/$contactId/'
+    | '/_authenticated/owner_detail/$ownerId/'
     | '/_authenticated/supplier_detail/$supplierId/'
   fileRoutesById: FileRoutesById
 }
@@ -718,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCase_today_listIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/case_urgent_list/': {
+      id: '/_authenticated/case_urgent_list/'
+      path: '/case_urgent_list'
+      fullPath: '/case_urgent_list/'
+      preLoaderRoute: typeof AuthenticatedCase_urgent_listIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/collaboration_list/': {
       id: '/_authenticated/collaboration_list/'
       path: '/collaboration_list'
@@ -753,11 +849,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrorsErrorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gantt_chart_test1/': {
+      id: '/_authenticated/gantt_chart_test1/'
+      path: '/gantt_chart_test1'
+      fullPath: '/gantt_chart_test1/'
+      preLoaderRoute: typeof AuthenticatedGantt_chart_test1IndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/help-center/': {
       id: '/_authenticated/help-center/'
       path: '/help-center'
       fullPath: '/help-center/'
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/owner_detail/$ownerId': {
+      id: '/_authenticated/owner_detail/$ownerId'
+      path: '/owner_detail/$ownerId'
+      fullPath: '/owner_detail/$ownerId'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/owner_list/': {
@@ -837,6 +947,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContact_detailContactIdIndexRouteImport
       parentRoute: typeof AuthenticatedContact_detailContactIdRouteRoute
     }
+    '/_authenticated/owner_detail/$ownerId/': {
+      id: '/_authenticated/owner_detail/$ownerId/'
+      path: '/'
+      fullPath: '/owner_detail/$ownerId/'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdIndexRouteImport
+      parentRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRoute
+    }
+    '/_authenticated/owner_detail/$ownerId/cooperation': {
+      id: '/_authenticated/owner_detail/$ownerId/cooperation'
+      path: '/cooperation'
+      fullPath: '/owner_detail/$ownerId/cooperation'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdCooperationRouteImport
+      parentRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRoute
+    }
+    '/_authenticated/owner_detail/$ownerId/info': {
+      id: '/_authenticated/owner_detail/$ownerId/info'
+      path: '/info'
+      fullPath: '/owner_detail/$ownerId/info'
+      preLoaderRoute: typeof AuthenticatedOwner_detailOwnerIdInfoRouteImport
+      parentRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRoute
+    }
     '/_authenticated/supplier_detail/$supplierId/': {
       id: '/_authenticated/supplier_detail/$supplierId/'
       path: '/'
@@ -856,6 +987,13 @@ declare module '@tanstack/react-router' {
       path: '/info'
       fullPath: '/supplier_detail/$supplierId/info'
       preLoaderRoute: typeof AuthenticatedSupplier_detailSupplierIdInfoRouteImport
+      parentRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRoute
+    }
+    '/_authenticated/supplier_detail/$supplierId/quote': {
+      id: '/_authenticated/supplier_detail/$supplierId/quote'
+      path: '/quote'
+      fullPath: '/supplier_detail/$supplierId/quote'
+      preLoaderRoute: typeof AuthenticatedSupplier_detailSupplierIdQuoteRouteImport
       parentRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRoute
     }
   }
@@ -899,9 +1037,31 @@ const AuthenticatedContact_detailContactIdRouteRouteWithChildren =
     AuthenticatedContact_detailContactIdRouteRouteChildren,
   )
 
+interface AuthenticatedOwner_detailOwnerIdRouteRouteChildren {
+  AuthenticatedOwner_detailOwnerIdCooperationRoute: typeof AuthenticatedOwner_detailOwnerIdCooperationRoute
+  AuthenticatedOwner_detailOwnerIdInfoRoute: typeof AuthenticatedOwner_detailOwnerIdInfoRoute
+  AuthenticatedOwner_detailOwnerIdIndexRoute: typeof AuthenticatedOwner_detailOwnerIdIndexRoute
+}
+
+const AuthenticatedOwner_detailOwnerIdRouteRouteChildren: AuthenticatedOwner_detailOwnerIdRouteRouteChildren =
+  {
+    AuthenticatedOwner_detailOwnerIdCooperationRoute:
+      AuthenticatedOwner_detailOwnerIdCooperationRoute,
+    AuthenticatedOwner_detailOwnerIdInfoRoute:
+      AuthenticatedOwner_detailOwnerIdInfoRoute,
+    AuthenticatedOwner_detailOwnerIdIndexRoute:
+      AuthenticatedOwner_detailOwnerIdIndexRoute,
+  }
+
+const AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren =
+  AuthenticatedOwner_detailOwnerIdRouteRoute._addFileChildren(
+    AuthenticatedOwner_detailOwnerIdRouteRouteChildren,
+  )
+
 interface AuthenticatedSupplier_detailSupplierIdRouteRouteChildren {
   AuthenticatedSupplier_detailSupplierIdCooperationRoute: typeof AuthenticatedSupplier_detailSupplierIdCooperationRoute
   AuthenticatedSupplier_detailSupplierIdInfoRoute: typeof AuthenticatedSupplier_detailSupplierIdInfoRoute
+  AuthenticatedSupplier_detailSupplierIdQuoteRoute: typeof AuthenticatedSupplier_detailSupplierIdQuoteRoute
   AuthenticatedSupplier_detailSupplierIdIndexRoute: typeof AuthenticatedSupplier_detailSupplierIdIndexRoute
 }
 
@@ -911,6 +1071,8 @@ const AuthenticatedSupplier_detailSupplierIdRouteRouteChildren: AuthenticatedSup
       AuthenticatedSupplier_detailSupplierIdCooperationRoute,
     AuthenticatedSupplier_detailSupplierIdInfoRoute:
       AuthenticatedSupplier_detailSupplierIdInfoRoute,
+    AuthenticatedSupplier_detailSupplierIdQuoteRoute:
+      AuthenticatedSupplier_detailSupplierIdQuoteRoute,
     AuthenticatedSupplier_detailSupplierIdIndexRoute:
       AuthenticatedSupplier_detailSupplierIdIndexRoute,
   }
@@ -924,6 +1086,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedContact_detailContactIdRouteRoute: typeof AuthenticatedContact_detailContactIdRouteRouteWithChildren
+  AuthenticatedOwner_detailOwnerIdRouteRoute: typeof AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren
   AuthenticatedSupplier_detailSupplierIdRouteRoute: typeof AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren
   AuthenticatedCase_editCaseIdRoute: typeof AuthenticatedCase_editCaseIdRoute
   AuthenticatedCase_memoCaseIdRoute: typeof AuthenticatedCase_memoCaseIdRoute
@@ -935,9 +1098,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCase_newIndexRoute: typeof AuthenticatedCase_newIndexRoute
   AuthenticatedCase_service_listIndexRoute: typeof AuthenticatedCase_service_listIndexRoute
   AuthenticatedCase_today_listIndexRoute: typeof AuthenticatedCase_today_listIndexRoute
+  AuthenticatedCase_urgent_listIndexRoute: typeof AuthenticatedCase_urgent_listIndexRoute
   AuthenticatedCollaboration_listIndexRoute: typeof AuthenticatedCollaboration_listIndexRoute
   AuthenticatedContact_listIndexRoute: typeof AuthenticatedContact_listIndexRoute
   AuthenticatedDictionariesIndexRoute: typeof AuthenticatedDictionariesIndexRoute
+  AuthenticatedGantt_chart_test1IndexRoute: typeof AuthenticatedGantt_chart_test1IndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedOwner_listIndexRoute: typeof AuthenticatedOwner_listIndexRoute
   AuthenticatedSupplier_listIndexRoute: typeof AuthenticatedSupplier_listIndexRoute
@@ -950,6 +1115,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedContact_detailContactIdRouteRoute:
     AuthenticatedContact_detailContactIdRouteRouteWithChildren,
+  AuthenticatedOwner_detailOwnerIdRouteRoute:
+    AuthenticatedOwner_detailOwnerIdRouteRouteWithChildren,
   AuthenticatedSupplier_detailSupplierIdRouteRoute:
     AuthenticatedSupplier_detailSupplierIdRouteRouteWithChildren,
   AuthenticatedCase_editCaseIdRoute: AuthenticatedCase_editCaseIdRoute,
@@ -965,10 +1132,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedCase_service_listIndexRoute,
   AuthenticatedCase_today_listIndexRoute:
     AuthenticatedCase_today_listIndexRoute,
+  AuthenticatedCase_urgent_listIndexRoute:
+    AuthenticatedCase_urgent_listIndexRoute,
   AuthenticatedCollaboration_listIndexRoute:
     AuthenticatedCollaboration_listIndexRoute,
   AuthenticatedContact_listIndexRoute: AuthenticatedContact_listIndexRoute,
   AuthenticatedDictionariesIndexRoute: AuthenticatedDictionariesIndexRoute,
+  AuthenticatedGantt_chart_test1IndexRoute:
+    AuthenticatedGantt_chart_test1IndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedOwner_listIndexRoute: AuthenticatedOwner_listIndexRoute,
   AuthenticatedSupplier_listIndexRoute: AuthenticatedSupplier_listIndexRoute,

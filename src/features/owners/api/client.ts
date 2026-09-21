@@ -75,6 +75,16 @@ export async function fetchOwnerAll(): Promise<Owner[]> {
   return res.data.data ?? []
 }
 
+export async function fetchOwnerDetail(ownerId: number): Promise<Owner | null> {
+  try {
+    const res = await api.get<ApiEnvelope<Owner>>(`/owner-list/${ownerId}`)
+    return res.data.data ?? null
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
+}
+
 export async function fetchOwnerPaginated(params: {
   page?: number
   pageSize?: number

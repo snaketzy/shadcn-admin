@@ -1,4 +1,5 @@
-import { type ColumnDef } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
+import { type ColumnDef, type Row } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -8,6 +9,10 @@ import { getBadgeColor } from '../data/data'
 import { type Owner } from '../data/schema'
 import { type OwnerDictEntry } from '../api/client'
 import { DataTableRowActions } from './data-table-row-actions'
+
+function toDetailParams(row: Row<Owner>): { ownerId: string } {
+  return { ownerId: String(row.original.owner_id) }
+}
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
 
@@ -79,7 +84,16 @@ export function getOwnersColumns(
         <DataTableColumnHeader column={column} title='船东名称' />
       ),
       cell: ({ row }) => (
-        <LongText className='max-w-50 ps-3'>{row.getValue('owner_name')}</LongText>
+        <Link
+          to='/owner_detail/$ownerId'
+          params={toDetailParams(row)}
+          className='inline-flex max-w-50 items-center truncate ps-3 align-middle font-medium hover:underline'
+          title={String(row.getValue('owner_name') ?? '')}
+        >
+          <LongText className='max-w-50 truncate'>
+            {row.getValue('owner_name')}
+          </LongText>
+        </Link>
       ),
       meta: {
         className: cn(

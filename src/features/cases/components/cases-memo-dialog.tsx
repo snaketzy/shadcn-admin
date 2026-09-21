@@ -50,6 +50,19 @@ import {
   updateCaseMemo,
   fetchCaseMemoListByCaseId,
   parseAttachments,
+  isImageAttachment,
+  isTextAttachment,
+  isPdfAttachment,
+  isOfficeAttachment,
+  isPreviewableAttachment,
+  formatAttachmentSize,
+  getMsOfficeViewerUrl,
+  getAttachmentPreviewUrl,
+  normalizeAttachmentUrl,
+  triggerAttachmentDownload,
+  openAttachmentInNewTab,
+  isCosUrl,
+  readAttachmentTextContent,
   type CaseMemo,
   type CaseMemoAttachment,
 } from '../api/client'
@@ -94,13 +107,6 @@ function formatDisplayDate(raw: string | null | undefined): string {
   return `${y}/${m}/${day} ${hh}:${mm}`
 }
 
-function formatBytes(bytes: number | undefined): string {
-  if (bytes === undefined) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_TOTAL_ATTACHMENT_SIZE = 12 * 1024 * 1024 // 12MB
 const ALLOWED_ATTACHMENT_EXTS = [
@@ -128,25 +134,6 @@ function filenameAllowed(name: string): boolean {
   return ALLOWED_ATTACHMENT_EXTS.includes(ext)
 }
 
-function getExt(name: string): string {
-  const i = name.lastIndexOf('.')
-  return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
-}
-
-const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp']
-const TEXT_EXTS = ['txt', 'csv', 'md']
-const PDF_EXT = 'pdf'
-
-function isImageExt(name: string): boolean {
-  return IMAGE_EXTS.includes(getExt(name))
-}
-function isTextExt(name: string): boolean {
-  return TEXT_EXTS.includes(getExt(name))
-}
-function isPdfExt(name: string): boolean {
-  return getExt(name) === PDF_EXT
-}
-
 function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -154,35 +141,6 @@ function readFileAsDataURL(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('文件读取失败'))
     reader.readAsDataURL(file)
   })
-}
-
-function dataUrlFromAttachment(att: CaseMemoAttachment): string {
-  if (att.data) return att.data
-  return ''
-}
-
-function triggerDownload(att: CaseMemoAttachment) {
-  const url = dataUrlFromAttachment(att)
-  if (!url) {
-    toast.warning('该附件未包含文件内容，无法下载')
-    return
-  }
-  const a = document.createElement('a')
-  a.href = url
-  a.download = att.name
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-}
-
-function openInNewTab(att: CaseMemoAttachment) {
-  const url = dataUrlFromAttachment(att)
-  if (!url) {
-    toast.warning('该附件未包含文件内容，无法预览')
-    return
-  }
-  const w = window.open(url, '_blank', 'noopener,noreferrer')
-  if (w) w.focus()
 }
 
 export function CasesMemoDialog({
@@ -613,7 +571,7 @@ export function CasesMemoDialog({
                     <span className='max-w-[16rem] truncate'>{a.name}</span>
                     {a.size != null && (
                       <span className='opacity-60'>
-                        ({formatBytes(a.size)})
+                        ({formatAttachmentSize(a.size)})
                       </span>
                     )}
                     <button
@@ -790,7 +748,7 @@ export function CasesMemoDialog({
               <DialogHeader className='shrink-0 flex-row items-center justify-between gap-3 border-b px-6 py-4 text-start'>
                 <div className='flex min-w-0 flex-col gap-1'>
                   <DialogTitle className='flex flex-wrap items-center gap-2 text-base leading-6'>
-                    {isImageExt(previewAtt.name) ? (
+                    {isImageAttachment(previewAtt.name) ? (
                       <ImageIcon size={18} className='text-primary' />
                     ) : (
                       <FileTextIcon size={18} className='text-primary' />
@@ -798,7 +756,7 @@ export function CasesMemoDialog({
                     <span className='break-all'>{previewAtt.name}</span>
                   </DialogTitle>
                   <DialogDescription className='text-xs'>
-                    {previewAtt.size != null && formatBytes(previewAtt.size)}
+                    {previewAtt.size != null && formatAttachmentSize(previewAtt.size)}
                     {previewAtt.type && (
                       <>
                         <span className='mx-1.5 opacity-40'>·</span>
@@ -812,19 +770,26 @@ export function CasesMemoDialog({
                     variant='outline'
                     size='sm'
                     className='h-9 gap-1.5'
-                    onClick={() => triggerDownload(previewAtt)}
+                    onClick={() => triggerAttachmentDownload(previewAtt)}
                   >
                     <DownloadIcon size={15} />
                     <span>下载</span>
                   </Button>
-                  {(isPdfExt(previewAtt.name) ||
-                    isImageExt(previewAtt.name) ||
-                    isTextExt(previewAtt.name)) && (
+                  {isPreviewableAttachment(previewAtt.name) && (
                     <Button
                       variant='outline'
                       size='sm'
                       className='h-9 gap-1.5'
-                      onClick={() => openInNewTab(previewAtt)}
+                      onClick={() => {
+                        const previewUrl = getAttachmentPreviewUrl(previewAtt)
+                        if (!previewUrl) return
+                        const w = window.open(
+                          previewUrl,
+                          '_blank',
+                          'noopener,noreferrer'
+                        )
+                        if (w) w.focus()
+                      }}
                     >
                       <ExternalLinkIcon size={15} />
                       <span>新标签页</span>
@@ -849,10 +814,11 @@ export function CasesMemoDialog({
 }
 
 function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
-  const url = dataUrlFromAttachment(att)
-  const ext = getExt(att.name)
+  const rawUrl = att.data ?? ''
+  const normUrl = normalizeAttachmentUrl(rawUrl)
+  const hasData = Boolean(rawUrl)
 
-  if (!url) {
+  if (!hasData) {
     return (
       <div className='flex flex-1 items-center justify-center p-10'>
         <Card className='w-full max-w-md border-dashed shadow-none'>
@@ -874,7 +840,7 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
                 variant='outline'
                 size='sm'
                 className='h-9 gap-1.5'
-                onClick={() => triggerDownload(att)}
+                onClick={() => triggerAttachmentDownload(att)}
               >
                 <DownloadIcon size={15} />
                 <span>尝试下载</span>
@@ -886,12 +852,12 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
     )
   }
 
-  if (isImageExt(att.name)) {
+  if (isImageAttachment(att.name)) {
     return (
       <ScrollArea className='min-h-0 flex-1'>
         <div className='flex min-h-full items-start justify-center bg-muted/20 p-6'>
           <img
-            src={url}
+            src={normUrl}
             alt={att.name}
             className='h-auto max-w-full rounded-md border border-border/60 bg-white shadow-sm'
             style={{ imageRendering: 'auto' }}
@@ -901,14 +867,13 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
     )
   }
 
-  if (isTextExt(att.name)) {
+  if (isTextAttachment(att.name)) {
     const [text, setText] = useState<string>('')
     useEffect(() => {
       let cancelled = false
       const run = async () => {
         try {
-          const resp = await fetch(url)
-          const t = await resp.text()
+          const t = await readAttachmentTextContent(att)
           if (!cancelled) setText(t)
         } catch {
           if (!cancelled) setText('')
@@ -918,7 +883,7 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
       return () => {
         cancelled = true
       }
-    }, [url])
+    }, [att])
     return (
       <ScrollArea className='min-h-0 flex-1'>
         <pre className='min-h-full bg-muted/20 p-6 font-mono text-[13px] leading-6 break-words whitespace-pre-wrap text-foreground/90'>
@@ -928,11 +893,11 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
     )
   }
 
-  if (isPdfExt(att.name)) {
+  if (isPdfAttachment(att.name)) {
     return (
       <div className='min-h-0 flex-1 bg-muted/20 p-3'>
         <iframe
-          src={url}
+          src={normUrl}
           title={att.name}
           className='h-full w-full rounded-md border border-border/60 bg-white'
         />
@@ -940,6 +905,74 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
     )
   }
 
+  if (isOfficeAttachment(att.name)) {
+    if (isCosUrl(rawUrl)) {
+      const viewerUrl = getMsOfficeViewerUrl(normUrl)
+      return (
+        <div className='min-h-0 flex-1 bg-muted/20 p-3'>
+          <iframe
+            src={viewerUrl}
+            title={`${att.name} · Microsoft Office Online`}
+            className='h-full w-full rounded-md border border-border/60 bg-white'
+            allow='autoplay'
+          />
+        </div>
+      )
+    }
+    return (
+      <div className='flex flex-1 items-center justify-center p-10'>
+        <Card className='w-full max-w-md border-dashed shadow-none'>
+          <CardContent className='space-y-3 py-8 text-center'>
+            <FileTextIcon
+              size={36}
+              className='mx-auto text-muted-foreground/70'
+            />
+            <div className='text-sm font-medium text-foreground/90'>
+              使用 Microsoft Office Online 预览
+            </div>
+            <div className='text-xs text-muted-foreground'>
+              当前附件为本地暂存文件，Microsoft Office Online
+              预览需要公网可访问的文件 URL。
+              <br />
+              请先保存至云端，或在列表页中重新上传该附件以启用 COS 在线预览。
+            </div>
+            <div className='flex flex-wrap items-center justify-center gap-2 pt-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-9 gap-1.5'
+                onClick={() => triggerAttachmentDownload(att)}
+              >
+                <DownloadIcon size={15} />
+                <span>下载附件</span>
+              </Button>
+              <Button
+                size='sm'
+                className='h-9 gap-1.5'
+                onClick={() => {
+                  const viewerUrl = getMsOfficeViewerUrl(normUrl)
+                  if (!viewerUrl) return
+                  const w = window.open(
+                    viewerUrl,
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
+                  if (w) w.focus()
+                }}
+              >
+                <ExternalLinkIcon size={15} />
+                <span>尝试在线打开</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const ext = att.name.includes('.')
+    ? att.name.split('.').pop()?.toUpperCase() ?? ''
+    : ''
   return (
     <div className='flex flex-1 items-center justify-center p-10'>
       <Card className='w-full max-w-md border-dashed shadow-none'>
@@ -949,16 +982,16 @@ function AttachmentPreviewBody({ att }: { att: CaseMemoAttachment }) {
             className='mx-auto text-muted-foreground/70'
           />
           <div className='text-sm font-medium text-foreground/90'>
-            .{ext.toUpperCase()} 文件不支持在线预览
+            {ext ? `.${ext} 文件` : '该类型文件'} 暂不支持在线预览
           </div>
           <div className='text-xs text-muted-foreground'>
-            该类型需要 Office / WPS 等本地软件打开，请先下载。
+            请先下载到本地，使用对应软件打开。
           </div>
           <div className='pt-2'>
             <Button
               size='sm'
               className='h-9 gap-1.5'
-              onClick={() => triggerDownload(att)}
+              onClick={() => triggerAttachmentDownload(att)}
             >
               <DownloadIcon size={15} />
               <span>下载附件</span>
@@ -1112,7 +1145,7 @@ function MemoHistoryItem({
                   <PaperclipIcon size={11} className='opacity-70' />
                   <span className='max-w-[14rem] truncate'>{a.name}</span>
                   {a.size != null && (
-                    <span className='opacity-60'>({formatBytes(a.size)})</span>
+                    <span className='opacity-60'>({formatAttachmentSize(a.size)})</span>
                   )}
                 </Badge>
               ))}

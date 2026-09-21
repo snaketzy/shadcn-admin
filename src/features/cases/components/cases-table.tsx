@@ -150,6 +150,7 @@ export function CasesTable(_: DataTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
   const [inqDatePopoverOpen, setInqDatePopoverOpen] = useState(false)
+  const [followDatePopoverOpen, setFollowDatePopoverOpen] = useState(false)
 
   const { data: ownerAllRows = [] } = useQuery({
     queryKey: ['owner-picker-all-for-case-list'],
@@ -559,6 +560,11 @@ export function CasesTable(_: DataTableProps) {
         searchKey: 'awardSupplierIds',
         type: 'array',
       },
+      {
+        columnId: 'quote_supplier_ids',
+        searchKey: 'quoteSupplierIds',
+        type: 'array',
+      },
     ],
   })
   const {
@@ -574,11 +580,19 @@ export function CasesTable(_: DataTableProps) {
   const urlKeyword: string =
     (search as unknown as { caseInquiryKeyword?: string }).caseInquiryKeyword ??
     ''
+  const urlCaseRemark: string =
+    (search as unknown as { caseRemark?: string }).caseRemark ?? ''
   const urlInqDateFrom: string =
     (search as unknown as { caseInquiryDateFrom?: string })
       .caseInquiryDateFrom ?? ''
   const urlInqDateTo: string =
     (search as unknown as { caseInquiryDateTo?: string }).caseInquiryDateTo ??
+    ''
+  const urlFollowDateFrom: string =
+    (search as unknown as { caseUptodateDateFrom?: string })
+      .caseUptodateDateFrom ?? ''
+  const urlFollowDateTo: string =
+    (search as unknown as { caseUptodateDateTo?: string }).caseUptodateDateTo ??
     ''
 
   const [editingVesselName, setEditingVesselName] = useState(urlVesselName)
@@ -591,9 +605,21 @@ export function CasesTable(_: DataTableProps) {
   const keywordComposingRef = useRef(false)
   const keywordDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [editingCaseRemark, setEditingCaseRemark] = useState(urlCaseRemark)
+  const caseRemarkComposingRef = useRef(false)
+  const caseRemarkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
   const [editingInqDateFrom, setEditingInqDateFrom] = useState(urlInqDateFrom)
   const [editingInqDateTo, setEditingInqDateTo] = useState(urlInqDateTo)
   const inqDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [editingFollowDateFrom, setEditingFollowDateFrom] =
+    useState(urlFollowDateFrom)
+  const [editingFollowDateTo, setEditingFollowDateTo] =
+    useState(urlFollowDateTo)
+  const followDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (editingVesselName !== urlVesselName) setEditingVesselName(urlVesselName)
@@ -604,6 +630,10 @@ export function CasesTable(_: DataTableProps) {
   }, [urlKeyword])
 
   useEffect(() => {
+    if (editingCaseRemark !== urlCaseRemark) setEditingCaseRemark(urlCaseRemark)
+  }, [urlCaseRemark])
+
+  useEffect(() => {
     if (editingInqDateFrom !== urlInqDateFrom)
       setEditingInqDateFrom(urlInqDateFrom)
   }, [urlInqDateFrom])
@@ -611,6 +641,16 @@ export function CasesTable(_: DataTableProps) {
   useEffect(() => {
     if (editingInqDateTo !== urlInqDateTo) setEditingInqDateTo(urlInqDateTo)
   }, [urlInqDateTo])
+
+  useEffect(() => {
+    if (editingFollowDateFrom !== urlFollowDateFrom)
+      setEditingFollowDateFrom(urlFollowDateFrom)
+  }, [urlFollowDateFrom])
+
+  useEffect(() => {
+    if (editingFollowDateTo !== urlFollowDateTo)
+      setEditingFollowDateTo(urlFollowDateTo)
+  }, [urlFollowDateTo])
 
   const scheduleVesselNameCommit = useCallback(
     (valueRaw: string) => {
@@ -649,6 +689,25 @@ export function CasesTable(_: DataTableProps) {
     [navigate]
   )
 
+  const scheduleCaseRemarkCommit = useCallback(
+    (valueRaw: string) => {
+      if (caseRemarkDebounceRef.current)
+        clearTimeout(caseRemarkDebounceRef.current)
+      caseRemarkDebounceRef.current = setTimeout(() => {
+        if (caseRemarkComposingRef.current) return
+        const value = valueRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            caseRemark: value || undefined,
+            page: undefined,
+          }),
+        })
+      }, 300)
+    },
+    [navigate]
+  )
+
   const onVesselNameChange = (value: string) => {
     setEditingVesselName(value)
     scheduleVesselNameCommit(value)
@@ -679,6 +738,22 @@ export function CasesTable(_: DataTableProps) {
     const trimmed = value.trim()
     setEditingKeyword(trimmed)
     scheduleKeywordCommit(trimmed)
+  }
+
+  const onCaseRemarkChange = (value: string) => {
+    setEditingCaseRemark(value)
+    scheduleCaseRemarkCommit(value)
+  }
+
+  const onCaseRemarkCompositionStart = () => {
+    caseRemarkComposingRef.current = true
+  }
+
+  const onCaseRemarkCompositionEnd = (value: string) => {
+    caseRemarkComposingRef.current = false
+    const trimmed = value.trim()
+    setEditingCaseRemark(trimmed)
+    scheduleCaseRemarkCommit(trimmed)
   }
 
   const pad2Inq = (n: number): string => (n < 10 ? `0${n}` : `${n}`)
@@ -737,6 +812,57 @@ export function CasesTable(_: DataTableProps) {
     scheduleInqDateCommit('', '')
   }, [scheduleInqDateCommit])
 
+  const scheduleFollowDateCommit = useCallback(
+    (fromRaw: string, toRaw: string) => {
+      if (followDateCommitRef.current) clearTimeout(followDateCommitRef.current)
+      followDateCommitRef.current = setTimeout(() => {
+        const from = fromRaw.trim()
+        const to = toRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            caseUptodateDateFrom: from || undefined,
+            caseUptodateDateTo: to || undefined,
+            page: undefined,
+          }),
+        })
+      }, 180)
+    },
+    [navigate]
+  )
+
+  const setFollowDatePreset = useCallback(
+    (preset: 'thisWeek' | 'thisMonth') => {
+      const now = new Date()
+      let from: Date
+      let to: Date
+      if (preset === 'thisWeek') {
+        const day = now.getDay()
+        const diffMon = day === 0 ? -6 : 1 - day
+        from = new Date(now)
+        from.setHours(0, 0, 0, 0)
+        from.setDate(now.getDate() + diffMon)
+        to = new Date(from)
+        to.setDate(from.getDate() + 6)
+      } else {
+        from = new Date(now.getFullYear(), now.getMonth(), 1)
+        to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      }
+      const fromStr = formatInqDateISO(from)
+      const toStr = formatInqDateISO(to)
+      setEditingFollowDateFrom(fromStr)
+      setEditingFollowDateTo(toStr)
+      scheduleFollowDateCommit(fromStr, toStr)
+    },
+    [scheduleFollowDateCommit]
+  )
+
+  const clearFollowDateFilter = useCallback(() => {
+    setEditingFollowDateFrom('')
+    setEditingFollowDateTo('')
+    scheduleFollowDateCommit('', '')
+  }, [scheduleFollowDateCommit])
+
   const caseProgressFilter: string[] = useMemo(
     () =>
       Array.isArray((search as any).caseProgress)
@@ -793,6 +919,13 @@ export function CasesTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const quoteSupplierIdsFilter: string[] = useMemo(
+    () =>
+      Array.isArray((search as any).quoteSupplierIds)
+        ? ((search as any).quoteSupplierIds as string[])
+        : [],
+    [search]
+  )
 
   const invoiceNumberFilter: string[] = useMemo(
     () =>
@@ -821,8 +954,11 @@ export function CasesTable(_: DataTableProps) {
       pagination.pageSize,
       urlVesselName,
       urlKeyword,
+      urlCaseRemark,
       urlInqDateFrom,
       urlInqDateTo,
+      urlFollowDateFrom,
+      urlFollowDateTo,
       invoiceNumberFilter,
       orderNumberFilter,
       caseProgressFilter,
@@ -833,6 +969,7 @@ export function CasesTable(_: DataTableProps) {
       caseRankFilter,
       vesselPositionFilter,
       awardSupplierIdsFilter,
+      quoteSupplierIdsFilter,
     ],
     queryFn: () =>
       fetchCasePaginated({
@@ -840,8 +977,11 @@ export function CasesTable(_: DataTableProps) {
         pageSize: pagination.pageSize,
         vesselName: urlVesselName || undefined,
         caseInquiryKeyword: urlKeyword || undefined,
+        caseRemark: urlCaseRemark || undefined,
         caseInquiryDateFrom: urlInqDateFrom || undefined,
         caseInquiryDateTo: urlInqDateTo || undefined,
+        caseUptodateDateFrom: urlFollowDateFrom || undefined,
+        caseUptodateDateTo: urlFollowDateTo || undefined,
         invoiceNumber:
           invoiceNumberFilter.length > 0 ? invoiceNumberFilter : undefined,
         orderNumber:
@@ -861,7 +1001,13 @@ export function CasesTable(_: DataTableProps) {
         vesselPosition:
           vesselPositionFilter.length > 0 ? vesselPositionFilter : undefined,
         awardSupplierIds:
-          awardSupplierIdsFilter.length > 0 ? awardSupplierIdsFilter : undefined,
+          awardSupplierIdsFilter.length > 0
+            ? awardSupplierIdsFilter
+            : undefined,
+        quoteSupplierIds:
+          quoteSupplierIdsFilter.length > 0
+            ? quoteSupplierIdsFilter
+            : undefined,
       }),
     placeholderData: (prev) => prev,
   })
@@ -960,8 +1106,11 @@ export function CasesTable(_: DataTableProps) {
         pageSize: undefined,
         vesselName: undefined,
         caseInquiryKeyword: undefined,
+        caseRemark: undefined,
         caseInquiryDateFrom: undefined,
         caseInquiryDateTo: undefined,
+        caseUptodateDateFrom: undefined,
+        caseUptodateDateTo: undefined,
         invoiceNumber: undefined,
         orderNumber: undefined,
         caseProgress: undefined,
@@ -1011,8 +1160,11 @@ export function CasesTable(_: DataTableProps) {
     columnFilters.length > 0 ||
     editingVesselName.trim() !== '' ||
     editingKeyword.trim() !== '' ||
+    editingCaseRemark.trim() !== '' ||
     editingInqDateFrom.trim() !== '' ||
-    editingInqDateTo.trim() !== ''
+    editingInqDateTo.trim() !== '' ||
+    editingFollowDateFrom.trim() !== '' ||
+    editingFollowDateTo.trim() !== ''
 
   if (isLoading) {
     return (
@@ -1168,6 +1320,142 @@ export function CasesTable(_: DataTableProps) {
           </div>
         </PopoverContent>
       </Popover>
+      <Popover
+        open={followDatePopoverOpen}
+        onOpenChange={setFollowDatePopoverOpen}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-8 shrink-0 border-dashed'
+          >
+            <CalendarIcon className='size-4' />
+            跟进日期
+            {(editingFollowDateFrom || editingFollowDateTo) && (
+              <>
+                <Separator orientation='vertical' className='mx-2 h-4' />
+                <div className='hidden gap-x-1 lg:flex'>
+                  {editingFollowDateFrom && (
+                    <Badge
+                      variant='secondary'
+                      className='rounded-sm px-1 font-normal'
+                    >
+                      {editingFollowDateFrom}
+                    </Badge>
+                  )}
+                  {(editingFollowDateFrom || editingFollowDateTo) &&
+                    (editingFollowDateFrom ? '→' : 'Until')}
+                  {editingFollowDateTo && (
+                    <Badge
+                      variant='secondary'
+                      className='rounded-sm px-1 font-normal'
+                    >
+                      {editingFollowDateTo}
+                    </Badge>
+                  )}
+                </div>
+                <Badge
+                  variant='secondary'
+                  className='rounded-sm px-1 font-normal lg:hidden'
+                >
+                  {(editingFollowDateFrom ? '1' : '') +
+                    (editingFollowDateTo ? '1' : '')}
+                </Badge>
+              </>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className='w-auto p-0' align='start'>
+          <Calendar
+            initialFocus
+            mode='range'
+            defaultMonth={
+              editingFollowDateFrom
+                ? new Date(editingFollowDateFrom)
+                : undefined
+            }
+            selected={{
+              from: editingFollowDateFrom
+                ? new Date(editingFollowDateFrom)
+                : undefined,
+              to: editingFollowDateTo
+                ? new Date(editingFollowDateTo)
+                : undefined,
+            }}
+            onSelect={(range) => {
+              const from = range?.from ? formatInqDateISO(range.from) : ''
+              const to = range?.to ? formatInqDateISO(range.to) : ''
+              if (from) setEditingFollowDateFrom(from)
+              if (to) setEditingFollowDateTo(to)
+              if ((from && !to) || (!from && to)) {
+                if (followDateCommitRef.current)
+                  clearTimeout(followDateCommitRef.current)
+                return
+              }
+              scheduleFollowDateCommit(from, to)
+            }}
+            numberOfMonths={1}
+          />
+          <div className='space-y-2 border-t p-3'>
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setFollowDatePreset('thisWeek')}
+              >
+                本周
+              </Button>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setFollowDatePreset('thisMonth')}
+              >
+                本月
+              </Button>
+              {(editingFollowDateFrom || editingFollowDateTo) && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={clearFollowDateFilter}
+                >
+                  清空
+                </Button>
+              )}
+            </div>
+            <div className='grid grid-cols-8 items-center gap-2'>
+              <label className='col-span-2 text-xs text-muted-foreground'>
+                起始日期
+              </label>
+              <Input
+                type='date'
+                value={editingFollowDateFrom}
+                className='col-span-6 h-8 text-xs'
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEditingFollowDateFrom(v)
+                  scheduleFollowDateCommit(v, editingFollowDateTo)
+                }}
+              />
+            </div>
+            <div className='grid grid-cols-8 items-center gap-2'>
+              <label className='col-span-2 text-xs text-muted-foreground'>
+                结束日期
+              </label>
+              <Input
+                type='date'
+                value={editingFollowDateTo}
+                className='col-span-6 h-8 text-xs'
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEditingFollowDateTo(v)
+                  scheduleFollowDateCommit(editingFollowDateFrom, v)
+                }}
+              />
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
       {progressROptions.length > 0 && table.getColumn('case_progress') && (
         <div className='shrink-0'>
           <DataTableFacetedFilter
@@ -1207,6 +1495,41 @@ export function CasesTable(_: DataTableProps) {
             <DataTableFacetedFilter
               column={col}
               title='中标单位'
+              options={options}
+            />
+          </div>
+        )
+      })()}
+      {(() => {
+        const list = (supplierAllRows as Supplier[]) ?? []
+        if (list.length === 0) return null
+        const options = list
+          .map((s) => ({
+            idRaw: (s as any).supplier_id,
+            name: String((s as any).supplier_name ?? '').trim(),
+          }))
+          .filter(
+            (o): o is { idRaw: number | string; name: string } =>
+              o.name !== '' &&
+              ((typeof o.idRaw === 'number' && o.idRaw > 0) ||
+                (typeof o.idRaw === 'string' &&
+                  o.idRaw.trim() !== '' &&
+                  Number.isFinite(Number(o.idRaw)) &&
+                  Number(o.idRaw) > 0))
+          )
+          .map((o) => ({
+            value: String(o.idRaw),
+            label: o.name,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
+        if (options.length === 0) return null
+        const col = table.getColumn('quote_supplier_ids')
+        if (!col) return null
+        return (
+          <div className='shrink-0'>
+            <DataTableFacetedFilter
+              column={col}
+              title='报价单位'
               options={options}
             />
           </div>
@@ -1286,6 +1609,16 @@ export function CasesTable(_: DataTableProps) {
               onKeywordCompositionEnd((e.target as HTMLInputElement).value)
             }
             className='h-8 w-45 lg:w-75'
+          />
+          <Input
+            placeholder='按案件备注筛选...'
+            value={editingCaseRemark}
+            onChange={(e) => onCaseRemarkChange(e.target.value)}
+            onCompositionStart={onCaseRemarkCompositionStart}
+            onCompositionEnd={(e) =>
+              onCaseRemarkCompositionEnd((e.target as HTMLInputElement).value)
+            }
+            className='h-8 w-45 lg:w-60'
           />
           {isFiltered && (
             <Button

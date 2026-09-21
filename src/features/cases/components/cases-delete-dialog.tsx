@@ -42,6 +42,8 @@ export function CasesDeleteDialog({
         queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
         queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
         queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
+        queryClient.invalidateQueries({ queryKey: ['case-urgent-list-paginated'] })
+        queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
         onOpenChange(false)
       } else {
         toast.error('删除失败，请稍后重试')

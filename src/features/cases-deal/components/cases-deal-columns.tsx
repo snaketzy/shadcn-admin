@@ -767,13 +767,14 @@ export function getCasesDealColumns(params?: {
           ? (getCaseIdInquiriesMap?.()?.get(caseId) ?? [])
           : []
         const groupInquirySuppliers = (
-          matcher: (label: string) => boolean
+          dataKeyMatcher: (rawType: string | null | undefined) => boolean
         ): { supplier: string; date: string; typeLabel: string }[] => {
           const out: { supplier: string; date: string; typeLabel: string }[] =
             []
           for (const r of inquiries) {
+            const rawType = r.case_inquiry_type
+            if (!dataKeyMatcher(rawType)) continue
             const typeLabel = resolveInquiryQLabel(r.case_inquiry_type)
-            if (!matcher(typeLabel)) continue
             const supplier = resolveSupplierName(r.case_inquiry_division_id)
             out.push({
               supplier: supplier || '未指定供应商',
@@ -783,13 +784,14 @@ export function getCasesDealColumns(params?: {
           }
           return out
         }
+        const dataKey = (t: unknown): string =>
+          String(t ?? '').trim().toUpperCase()
         const inquiryGroups = {
-          询价: groupInquirySuppliers((l) =>
-            /询价|询盘|inquir|enquir/i.test(l)
-          ),
-          报价: groupInquirySuppliers((l) => /报价|quot/i.test(l)),
-          竞标: groupInquirySuppliers((l) => /竞标|投标|bid/i.test(l)),
-          中标: groupInquirySuppliers((l) => /中标|win|award/i.test(l)),
+          询价: groupInquirySuppliers((t) => dataKey(t) === 'Q1'),
+          报价: groupInquirySuppliers((t) => dataKey(t) === 'Q2'),
+          无法报价: groupInquirySuppliers((t) => dataKey(t) === 'Q7'),
+          竞标: groupInquirySuppliers((t) => dataKey(t) === 'Q3'),
+          中标: groupInquirySuppliers((t) => dataKey(t) === 'Q4'),
         }
         const ownerInfo = resolveOwner(rowData.owner_following, false)
         const ownerById =
@@ -840,7 +842,8 @@ export function getCasesDealColumns(params?: {
                 accent.includes('blue') ? 'bg-blue-50/70 ring-blue-200' : '',
                 accent.includes('emerald')
                   ? 'bg-emerald-50/70 ring-emerald-200'
-                  : ''
+                  : '',
+                accent.includes('rose') ? 'bg-rose-50/70 ring-rose-200' : ''
               )}
             >
               <div className='mb-1.5 flex items-center justify-between gap-2'>
@@ -859,6 +862,9 @@ export function getCasesDealColumns(params?: {
                       : '',
                     accent.includes('emerald')
                       ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                      : '',
+                    accent.includes('rose')
+                      ? 'bg-rose-100 text-rose-800 hover:bg-rose-100'
                       : ''
                   )}
                 >
@@ -981,9 +987,16 @@ export function getCasesDealColumns(params?: {
                         </div>
                       ) : null
                     )}
+                    {kvRow(
+                      '案件备注',
+                      <span className='break-words whitespace-pre-wrap'>
+                        {(rowData as any).case_remark ?? ''}
+                      </span>
+                    )}
                   </div>
                   {(inquiryGroups.询价.length > 0 ||
                     inquiryGroups.报价.length > 0 ||
+                    inquiryGroups.无法报价.length > 0 ||
                     inquiryGroups.竞标.length > 0 ||
                     inquiryGroups.中标.length > 0) && (
                     <>
@@ -1001,6 +1014,11 @@ export function getCasesDealColumns(params?: {
                           '报价单位',
                           inquiryGroups.报价,
                           'amber'
+                        )}
+                        {buildInquirySection(
+                          '无法报价单位',
+                          inquiryGroups.无法报价,
+                          'rose'
                         )}
                         {buildInquirySection(
                           '竞标单位',
@@ -1116,12 +1134,6 @@ export function getCasesDealColumns(params?: {
                     {kvRow(
                       '供应商结账日期',
                       formatDateAsHyphen(rowData.case_spd)
-                    )}
-                    {kvRow(
-                      '案件备注',
-                      <span className='break-words whitespace-pre-wrap'>
-                        {(rowData as any).case_remark ?? ''}
-                      </span>
                     )}
                   </div>
                 </div>
@@ -1352,6 +1364,54 @@ export function getCasesDealColumns(params?: {
       enableSorting: false,
     },
     {
+      id: 'days_since_followup',
+      accessorFn: (row) => {
+        const formatted = formatDateAsHyphen(
+          (row as any).case_uptodate_date
+        )
+        if (!formatted) return null
+        const today = getTodayHyphen()
+        const todayDate = new Date(today)
+        const followDate = new Date(formatted)
+        const diffMs = todayDate.getTime() - followDate.getTime()
+        return Math.floor(diffMs / 86400000)
+      },
+      size: 90,
+      minSize: 90,
+      maxSize: 90,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='距今天' />
+      ),
+      cell: ({ row }) => {
+        const diffDays = row.getValue('days_since_followup') as number | null
+        if (diffDays == null) return <div className='text-center'>-</div>
+        let colorClass = ''
+        if (diffDays <= 1) {
+          colorClass =
+            'text-emerald-600 dark:text-emerald-400 font-medium'
+        } else if (diffDays <= 3) {
+          colorClass =
+            'text-blue-600 dark:text-blue-400 font-medium'
+        } else if (diffDays <= 7) {
+          colorClass =
+            'text-amber-600 dark:text-amber-400 font-medium'
+        } else {
+          colorClass = 'text-rose-600 dark:text-rose-400 font-medium'
+        }
+        return (
+          <div className={cn(colorClass, 'text-center')}>
+            {diffDays === 0 ? '当天' : `${diffDays}天`}
+          </div>
+        )
+      },
+      meta: {
+        label: '距今天',
+        className: 'w-[90px] min-w-[90px] max-w-[90px] text-center',
+        thClassName: 'w-[90px] min-w-[90px] max-w-[90px] text-center',
+      },
+      enableSorting: true,
+    },
+    {
       accessorKey: 'owner_following',
       size: 180,
       minSize: 180,
@@ -1504,7 +1564,11 @@ export function getCasesDealColumns(params?: {
         const value = row.getValue('case_delivery_or_service_deadline') as
           string | null
         const formatted = formatDateAsHyphen(value)
-        return <div>{formatted || '-'}</div>
+        return (
+          <div className='text-purple-600 dark:text-purple-400 font-medium'>
+            {formatted || '-'}
+          </div>
+        )
       },
       meta: {
         label: '运输｜服务截止日',

@@ -50,6 +50,10 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           queryKey: ['case-deal-list-paginated'],
         })
         queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
+        queryClient.invalidateQueries({
+          queryKey: ['case-urgent-list-paginated'],
+        })
+        queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
         setDeleteOpen(false)
       } else {
         toast.error('删除失败，请稍后重试')

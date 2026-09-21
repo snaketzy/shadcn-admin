@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, getRouteApi } from '@tanstack/react-router'
-import { UserRound, Briefcase, AlertCircle, ClipboardList } from 'lucide-react'
+import { UserRound, Briefcase, AlertCircle, ClipboardList, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fetchContactAll, type Contact } from '@/features/contacts/api/client'
@@ -115,6 +115,11 @@ export function SupplierDetailRoute() {
       title: '员工信息',
       href: `/supplier_detail/${supplierId}/info`,
       icon: <Briefcase size={18} />,
+    },
+    {
+      title: '报价记录',
+      href: `/supplier_detail/${supplierId}/quote`,
+      icon: <FileText size={18} />,
     },
     {
       title: '合作记录',

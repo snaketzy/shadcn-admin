@@ -8,6 +8,7 @@ import casesReducer from './slices/cases/cases-slice'
 import casesDealReducer from './slices/cases/cases-deal-slice'
 import casesServiceReducer from './slices/cases/cases-service-slice'
 import casesTodayReducer from './slices/cases/cases-today-slice'
+import casesUrgentReducer from './slices/cases/cases-urgent-slice'
 import contactsReducer from './slices/contacts-slice'
 import collaborationsReducer from './slices/collaborations-slice'
 import dictionariesReducer from './slices/dictionaries-slice'
@@ -27,6 +28,7 @@ export const store = configureStore({
     casesDeal: casesDealReducer,
     casesService: casesServiceReducer,
     casesToday: casesTodayReducer,
+    casesUrgent: casesUrgentReducer,
     contacts: contactsReducer,
     collaborations: collaborationsReducer,
     dictionaries: dictionariesReducer,

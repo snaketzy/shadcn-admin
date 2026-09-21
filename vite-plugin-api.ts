@@ -1097,15 +1097,24 @@ export async function handleCaseListApi(
             searchParams.get('orderNumberHasValue') === 'true'
               ? true
               : undefined,
+          caseUrgentIsYes:
+            searchParams.get('caseUrgentIsYes') === 'true'
+              ? true
+              : undefined,
           serviceProjectActive:
             searchParams.get('serviceProjectActive') === 'true'
               ? true
               : undefined,
           caseInquiryKeyword: toOptStr(searchParams.get('caseInquiryKeyword')),
+          caseRemark: toOptStr(searchParams.get('caseRemark')),
           caseInquiryDateFrom: toOptStr(
             searchParams.get('caseInquiryDateFrom')
           ),
           caseInquiryDateTo: toOptStr(searchParams.get('caseInquiryDateTo')),
+          caseUptodateDateFrom: toOptStr(
+            searchParams.get('caseUptodateDateFrom')
+          ),
+          caseUptodateDateTo: toOptStr(searchParams.get('caseUptodateDateTo')),
           caseProgress: toArr('caseProgress'),
           caseUrgent: toArr('caseUrgent'),
           caseShouldHandleToday: toArr('caseShouldHandleToday'),
@@ -1115,6 +1124,16 @@ export async function handleCaseListApi(
           vesselPosition: toArr('vesselPosition'),
           awardSupplierIds: (() => {
             const list = toArr('awardSupplierIds')
+            if (!list || list.length === 0) return undefined
+            const out: number[] = []
+            for (const s of list) {
+              const n = Number(s)
+              if (Number.isFinite(n) && n > 0) out.push(n)
+            }
+            return out.length > 0 ? out : undefined
+          })(),
+          quoteSupplierIds: (() => {
+            const list = toArr('quoteSupplierIds')
             if (!list || list.length === 0) return undefined
             const out: number[] = []
             for (const s of list) {

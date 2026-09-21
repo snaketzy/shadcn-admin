@@ -1,6 +1,7 @@
 import {
   Construction,
   LayoutDashboard,
+  GanttChart,
   Monitor,
   Bug,
   ListTodo,
@@ -60,6 +61,11 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
+          title: '跟进中案件甘特图',
+          url: '/gantt_chart_test1',
+          icon: GanttChart,
+        },
+        {
           title: '案件列表',
           icon: FileText,
           items: [
@@ -76,7 +82,11 @@ export const sidebarData: SidebarData = {
               url: '/case_deal_list',
             },
             {
-              title: '服务项目案件列表',
+              title: '紧急案件列表',
+              url: '/case_urgent_list',
+            },
+            {
+              title: '服务案件列表',
               url: '/case_service_list',
             },
             {

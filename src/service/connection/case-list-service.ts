@@ -154,9 +154,7 @@ export async function checkDuplicateOrderNumber(params: {
     whereParams.push(Number(params.excludeCaseId))
   }
   const whereSql = whereClauses.join(' AND ')
-  const rows = await query<
-    { case_id: number; order_number: string | null }[]
-  >(
+  const rows = await query<{ case_id: number; order_number: string | null }[]>(
     `SELECT case_id, order_number FROM \`case_list\` WHERE ${whereSql} ORDER BY case_id DESC LIMIT 1`,
     whereParams as ExecuteValues[]
   )
@@ -165,9 +163,7 @@ export async function checkDuplicateOrderNumber(params: {
   return {
     exists: true,
     matchedCaseId: Number(hit.case_id),
-    matchedOrderNumber: hit.order_number
-      ? String(hit.order_number)
-      : undefined,
+    matchedOrderNumber: hit.order_number ? String(hit.order_number) : undefined,
   }
 }
 
@@ -279,10 +275,14 @@ export async function getCaseListPaginated(params: {
   invoiceNumber?: string
   orderNumber?: string
   orderNumberHasValue?: boolean
+  caseUrgentIsYes?: boolean
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
+  caseRemark?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
+  caseUptodateDateFrom?: string
+  caseUptodateDateTo?: string
   caseProgress?: string | string[]
   caseUrgent?: string | string[]
   caseShouldHandleToday?: string | string[]
@@ -291,6 +291,7 @@ export async function getCaseListPaginated(params: {
   caseRank?: string | string[]
   vesselPosition?: string | string[]
   awardSupplierIds?: number[] | string[]
+  quoteSupplierIds?: number[] | string[]
 }): Promise<{
   rows: CaseListRow[]
   total: number
@@ -308,8 +309,17 @@ export async function getCaseListPaginated(params: {
     whereClauses.push('vessel_name LIKE ?')
     whereParams.push(`%${params.vesselName}%`)
   }
+  if (params.caseRemark && params.caseRemark.trim() !== '') {
+    whereClauses.push('case_remark LIKE ?')
+    whereParams.push(`%${params.caseRemark}%`)
+  }
   if (params.orderNumberHasValue) {
     whereClauses.push("order_number IS NOT NULL AND TRIM(order_number) <> ''")
+  }
+  if (params.caseUrgentIsYes) {
+    whereClauses.push(
+      "(TRIM(COALESCE(case_urgent, '')) = '是' OR UPPER(TRIM(COALESCE(case_urgent, ''))) LIKE '%URGENT%' OR TRIM(COALESCE(case_urgent, '')) LIKE '%紧急%' OR UPPER(TRIM(COALESCE(case_urgent, ''))) REGEXP '^B-?1')"
+    )
   }
   if (params.serviceProjectActive) {
     whereClauses.push(
@@ -347,6 +357,17 @@ export async function getCaseListPaginated(params: {
   if (params.caseInquiryDateTo && params.caseInquiryDateTo.trim() !== '') {
     whereClauses.push('case_inquiry_date <= ?')
     whereParams.push(normDate(params.caseInquiryDateTo))
+  }
+  if (
+    params.caseUptodateDateFrom &&
+    params.caseUptodateDateFrom.trim() !== ''
+  ) {
+    whereClauses.push('case_uptodate_date >= ?')
+    whereParams.push(normDate(params.caseUptodateDateFrom))
+  }
+  if (params.caseUptodateDateTo && params.caseUptodateDateTo.trim() !== '') {
+    whereClauses.push('case_uptodate_date <= ?')
+    whereParams.push(normDate(params.caseUptodateDateTo))
   }
   const pushInClauses = (
     col: string,
@@ -401,6 +422,28 @@ export async function getCaseListPaginated(params: {
               OR UPPER(COALESCE(d.dict_value_remark, '')) REGEXP '中标|WIN|AWARD'
               OR UPPER(COALESCE(i.case_inquiry_type, '')) REGEXP '中标|WIN|AWARD'
             )
+        )`
+      )
+      for (const id of ids) whereParams.push(id)
+    }
+  }
+
+  if (
+    params.quoteSupplierIds &&
+    Array.isArray(params.quoteSupplierIds) &&
+    params.quoteSupplierIds.length > 0
+  ) {
+    const ids = params.quoteSupplierIds
+      .map((v) => Number(v))
+      .filter((n) => Number.isFinite(n) && n > 0)
+    if (ids.length > 0) {
+      const placeholders = ids.map(() => '?').join(', ')
+      whereClauses.push(
+        `EXISTS (
+          SELECT 1 FROM case_inquiry_list i
+          WHERE i.case_id = case_list.case_id
+            AND i.case_inquiry_division_id IN (${placeholders})
+            AND TRIM(UPPER(COALESCE(i.case_inquiry_type, ''))) = 'Q2'
         )`
       )
       for (const id of ids) whereParams.push(id)

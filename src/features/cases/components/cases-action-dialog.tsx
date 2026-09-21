@@ -1910,6 +1910,12 @@ export function CasesActionDialog({
   >(undefined)
   const [deleteConfirmLoading, setDeleteConfirmLoading] = useState(false)
 
+  const [followUpConfirmOpen, setFollowUpConfirmOpen] = useState(false)
+  const pendingSubmitRef = useRef<{
+    values: CaseForm
+    newFollowDate: string
+  } | null>(null)
+
   const keywordDuplicateCheckRef = useRef<{
     lastCheckedNormalized: string
     lastResultExists: boolean
@@ -2834,6 +2840,10 @@ export function CasesActionDialog({
       queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
+      queryClient.invalidateQueries({
+        queryKey: ['case-urgent-list-paginated'],
+      })
+      queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
       form.reset()
       if (mode === 'page') {
         onSuccess?.()
@@ -2881,6 +2891,10 @@ export function CasesActionDialog({
       queryClient.invalidateQueries({ queryKey: ['case-today-list-groups'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['case-deal-list-groups'] })
+      queryClient.invalidateQueries({
+        queryKey: ['case-urgent-list-paginated'],
+      })
+      queryClient.invalidateQueries({ queryKey: ['case-urgent-list-groups'] })
       form.reset()
       if (mode === 'page') {
         onSuccess?.()
@@ -3170,59 +3184,14 @@ export function CasesActionDialog({
     }
   }, [deleteConfirm, deleteConfirmLoading])
 
-  const onSubmit = useCallback(
-    async (values: CaseForm) => {
+  const buildPayloadAndSubmit = useCallback(
+    (values: CaseForm) => {
       const keywordRaw = toOptStr(values.case_inquiry_keyword)
-      if (!keywordRaw) {
-        form.setError('case_inquiry_keyword', {
-          type: 'manual',
-          message: '需求编号/名称不能为空',
-        })
-        toast.error('需求编号/名称不能为空')
-        return
-      }
-      if (!isEdit) {
-        try {
-          const dupResult = await runKeywordDuplicateCheck(keywordRaw)
-          if (dupResult.exists) {
-            const suffix = dupResult.matchedCaseId
-              ? `（已存在于案件 #${dupResult.matchedCaseId}）`
-              : ''
-            form.setError('case_inquiry_keyword', {
-              type: 'manual',
-              message: `需求编号/名称已存在，不可重复${suffix}`,
-            })
-            toast.error(`需求编号/名称已存在，不可保存${suffix}`)
-            return
-          }
-        } catch (e) {
-          // ignore network errors and proceed without duplicate pre-check
-        }
-      }
       const orderNumberRaw = toOptStr(values.order_number)
-      if (orderNumberRaw) {
-        try {
-          const orderDupResult =
-            await runOrderNumberDuplicateCheck(orderNumberRaw)
-          if (orderDupResult.exists) {
-            const suffix = orderDupResult.matchedCaseId
-              ? `（已存在于案件 #${orderDupResult.matchedCaseId}）`
-              : ''
-            form.setError('order_number', {
-              type: 'manual',
-              message: `订单编号已存在，不可重复${suffix}`,
-            })
-            toast.error(`订单编号已存在，不可保存${suffix}`)
-            return
-          }
-        } catch (e) {
-          // ignore network errors and proceed without duplicate pre-check
-        }
-      }
       const payload = {
         vessel_name: toOptStr(values.vessel_name),
         invoice_number: toOptStr(values.invoice_number),
-        order_number: toOptStr(values.order_number),
+        order_number: orderNumberRaw,
         case_inquiry_keyword: keywordRaw,
         case_progress: toOptStr(values.case_progress),
         case_urgent: toOptStr(values.case_urgent),
@@ -3297,17 +3266,135 @@ export function CasesActionDialog({
       }
     },
     [
-      form,
       isEdit,
       currentRow,
-      runKeywordDuplicateCheck,
-      runOrderNumberDuplicateCheck,
       createMutation,
       updateMutation,
       inquiryAttachments,
       settlementAttachments,
     ]
   )
+
+  const onSubmit = useCallback(
+    async (values: CaseForm) => {
+      const keywordRaw = toOptStr(values.case_inquiry_keyword)
+      if (!keywordRaw) {
+        form.setError('case_inquiry_keyword', {
+          type: 'manual',
+          message: '需求编号/名称不能为空',
+        })
+        toast.error('需求编号/名称不能为空')
+        return
+      }
+      if (!isEdit) {
+        try {
+          const dupResult = await runKeywordDuplicateCheck(keywordRaw)
+          if (dupResult.exists) {
+            const suffix = dupResult.matchedCaseId
+              ? `（已存在于案件 #${dupResult.matchedCaseId}）`
+              : ''
+            form.setError('case_inquiry_keyword', {
+              type: 'manual',
+              message: `需求编号/名称已存在，不可重复${suffix}`,
+            })
+            toast.error(`需求编号/名称已存在，不可保存${suffix}`)
+            return
+          }
+        } catch (e) {
+          // ignore network errors and proceed without duplicate pre-check
+        }
+      }
+      const orderNumberRaw = toOptStr(values.order_number)
+      if (orderNumberRaw) {
+        try {
+          const orderDupResult =
+            await runOrderNumberDuplicateCheck(orderNumberRaw)
+          if (orderDupResult.exists) {
+            const suffix = orderDupResult.matchedCaseId
+              ? `（已存在于案件 #${orderDupResult.matchedCaseId}）`
+              : ''
+            form.setError('order_number', {
+              type: 'manual',
+              message: `订单编号已存在，不可重复${suffix}`,
+            })
+            toast.error(`订单编号已存在，不可保存${suffix}`)
+            return
+          }
+        } catch (e) {
+          // ignore network errors and proceed without duplicate pre-check
+        }
+      }
+
+      let latestInquiryTimestamp = 0
+      let latestInquiryDateOnly = ''
+      for (const r of inquiryList) {
+        if (!r.case_inquired_date) continue
+        const t = new Date(
+          String(r.case_inquired_date).replace(' ', 'T')
+        ).getTime()
+        if (Number.isFinite(t) && t > latestInquiryTimestamp) {
+          latestInquiryTimestamp = t
+          const d = new Date(t)
+          latestInquiryDateOnly = `${d.getFullYear()}-${pad2(
+            d.getMonth() + 1
+          )}-${pad2(d.getDate())}`
+        }
+      }
+      const currentFollowRaw = toOptStr(values.case_uptodate_date)
+      let needConfirm = false
+      if (latestInquiryDateOnly && currentFollowRaw) {
+        const t1 = new Date(latestInquiryDateOnly).getTime()
+        const t2 = new Date(formatDateAsHyphen(currentFollowRaw)).getTime()
+        if (Number.isFinite(t1) && Number.isFinite(t2) && t1 > t2) {
+          needConfirm = true
+        }
+      } else if (latestInquiryDateOnly && !currentFollowRaw) {
+        needConfirm = true
+      }
+      if (needConfirm) {
+        pendingSubmitRef.current = {
+          values: { ...values },
+          newFollowDate: latestInquiryDateOnly,
+        }
+        setFollowUpConfirmOpen(true)
+        return
+      }
+      buildPayloadAndSubmit(values)
+    },
+    [
+      form,
+      isEdit,
+      runKeywordDuplicateCheck,
+      runOrderNumberDuplicateCheck,
+      inquiryList,
+      buildPayloadAndSubmit,
+    ]
+  )
+
+  const handleFollowUpConfirmCancel = useCallback(() => {
+    const pending = pendingSubmitRef.current
+    pendingSubmitRef.current = null
+    setFollowUpConfirmOpen(false)
+    if (pending) {
+      buildPayloadAndSubmit(pending.values)
+    }
+  }, [buildPayloadAndSubmit])
+
+  const handleFollowUpConfirmOk = useCallback(() => {
+    const pending = pendingSubmitRef.current
+    pendingSubmitRef.current = null
+    setFollowUpConfirmOpen(false)
+    if (pending) {
+      form.setValue('case_uptodate_date', pending.newFollowDate, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
+      buildPayloadAndSubmit({
+        ...pending.values,
+        case_uptodate_date: pending.newFollowDate,
+      })
+    }
+  }, [form, buildPayloadAndSubmit])
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
@@ -6158,6 +6245,52 @@ export function CasesActionDialog({
         handleConfirm={() => {
           void handleConfirmDeleteAttach()
         }}
+      />
+      <ConfirmDialog
+        open={followUpConfirmOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            void (async () => {
+              await Promise.resolve()
+              handleFollowUpConfirmCancel()
+            })()
+          }
+        }}
+        title={
+          <span className='flex items-center gap-2'>
+            <span className='inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-600'>
+              <Check size={16} />
+            </span>
+            是否更新案件跟进日期
+          </span>
+        }
+        confirmText='确认更新'
+        cancelBtnText='暂不更新'
+        desc={
+          <div className='flex flex-col gap-2 pt-1'>
+            <p>
+              检测到案件询价记录中最新日期
+              <span className='mx-1 font-semibold text-foreground'>
+                「{pendingSubmitRef.current?.newFollowDate ?? ''}」
+              </span>
+              晚于当前案件跟进日期
+              <span className='mx-1 font-semibold text-foreground'>
+                「
+                {pendingSubmitRef.current
+                  ? formatDateAsHyphen(
+                      pendingSubmitRef.current.values.case_uptodate_date
+                    ) || '（空）'
+                  : ''}
+                」
+              </span>
+              。
+            </p>
+            <p className='text-sm text-muted-foreground'>
+              点击「确认更新」可将案件跟进日期同步为最新询价记录日期后保存；点击「暂不更新」则保持当前跟进日期保存。
+            </p>
+          </div>
+        }
+        handleConfirm={handleFollowUpConfirmOk}
       />
     </>
   )

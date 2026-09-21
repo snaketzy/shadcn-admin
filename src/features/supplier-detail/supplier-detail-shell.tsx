@@ -61,8 +61,8 @@ export function SupplierDetailShell({
         <ProfileDropdown />
       </Header>
 
-      <Main fixed>
-        <div className='space-y-0.5 flex-none'>
+      <Main fixed fluid className='px-0 py-3'>
+        <div className='space-y-0.5 flex-none px-3'>
           <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
             <h1 className='text-2xl font-bold tracking-tight md:text-3xl truncate max-w-full'>
               {title}
@@ -77,12 +77,12 @@ export function SupplierDetailShell({
             )}
           </div>
         </div>
-        <Separator className='my-4 lg:my-6 flex-none' />
-        <div className='flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>
-          <aside className='top-0 lg:sticky lg:w-1/5'>
+        <Separator className='my-3 flex-none mx-0' />
+        <div className='flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-3 px-2'>
+          <aside className='top-0 lg:sticky lg:w-52 shrink-0'>
             <SidebarNav items={sidebarItems} />
           </aside>
-          <div className='flex min-h-0 flex-1 w-full overflow-hidden p-1'>
+          <div className='flex min-h-0 flex-1 w-full overflow-hidden'>
             {children}
           </div>
         </div>

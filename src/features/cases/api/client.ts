@@ -56,6 +56,7 @@ export interface Case {
   case_superintendent_id?: number | null
   case_surveyor: string | null
   case_delivery_or_service_incharge: string | null
+  case_delivery_or_service_incharge_id?: string | number | null
   case_delivery_or_service_deadline: string | null
   case_eta_cargo_ready_date: string | null
   case_etb_cargo_departure_date: string | null
@@ -159,10 +160,14 @@ export async function fetchCasePaginated(params: {
   invoiceNumber?: string | string[]
   orderNumber?: string | string[]
   orderNumberHasValue?: boolean
+  caseUrgentIsYes?: boolean
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
+  caseRemark?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
+  caseUptodateDateFrom?: string
+  caseUptodateDateTo?: string
   caseProgress?: string | string[]
   caseUrgent?: string | string[]
   caseShouldHandleToday?: string | string[]
@@ -171,6 +176,7 @@ export async function fetchCasePaginated(params: {
   caseRank?: string | string[]
   vesselPosition?: string | string[]
   awardSupplierIds?: number[] | string[]
+  quoteSupplierIds?: number[] | string[]
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/case-list/', {
     params,
@@ -273,6 +279,7 @@ export async function createCase(payload: {
   case_superintendent_id?: number | string | null
   case_surveyor?: string | null
   case_delivery_or_service_incharge?: string | null
+  case_delivery_or_service_incharge_id?: number | string | null
   case_delivery_or_service_deadline?: string | null
   case_eta_cargo_ready_date?: string | null
   case_etb_cargo_departure_date?: string | null
@@ -726,7 +733,7 @@ export function triggerAttachmentDownload(att: CaseMemoAttachment): void {
 }
 
 export function openAttachmentInNewTab(att: CaseMemoAttachment): void {
-  const url = getAttachmentAccessUrl(att)
+  const url = getAttachmentPreviewUrl(att)
   if (!url) return
   const w = window.open(url, '_blank', 'noopener,noreferrer')
   if (w) w.focus()
