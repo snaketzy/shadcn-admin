@@ -1091,6 +1091,14 @@ async function handleCaseListApi(
           page,
           pageSize,
           vesselName: toOptStr(searchParams.get('vesselName')),
+          vesselNames: (() => {
+            const list = toArr('vesselNames')
+            if (!list || list.length === 0) return undefined
+            const out = list
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out : undefined
+          })(),
           invoiceNumber: toOptStr(searchParams.get('invoiceNumber')),
           orderNumber: toOptStr(searchParams.get('orderNumber')),
           orderNumberHasValue:
