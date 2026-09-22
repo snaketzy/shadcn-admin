@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi, Link } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import {
   BarChart3,
   ChevronDown,
@@ -200,11 +200,7 @@ interface GanttGroup {
   connectors: GanttConnector[]
 }
 
-const route = getRouteApi('/_authenticated/gantt_chart_test1/')
-
 export function CaseGanttChart() {
-  const navigate = route.useNavigate()
-  const search = route.useSearch()
   const [anchorDeltaDays, setAnchorDeltaDays] = useState(0)
   const [collapsedCaseIds, setCollapsedCaseIds] = useState<Set<number>>(
     new Set()
@@ -543,8 +539,10 @@ export function CaseGanttChart() {
       globalMax = addDays(today, 7 * 8)
     } else {
       const today = startOfDay(new Date())
-      if (today < globalMin) globalMin = new Date(today)
-      if (today > globalMax) globalMax = new Date(today)
+      const minD = globalMin as Date
+      const maxD = globalMax as Date
+      if (today < minD) globalMin = new Date(today)
+      if (today > maxD) globalMax = new Date(today)
     }
     return {
       groups: out,

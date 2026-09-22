@@ -21,7 +21,10 @@ export const caseSchema = z.object({
   case_superintendent_id: z.number().nullable().optional(),
   case_surveyor: z.string().nullable(),
   case_delivery_or_service_incharge: z.string().nullable(),
-  case_delivery_or_service_incharge_id: z.string().nullable().optional(),
+  case_delivery_or_service_incharge_id: z
+    .union([z.string(), z.number()])
+    .nullable()
+    .optional(),
   case_delivery_or_service_deadline: z.string().nullable(),
   case_eta_cargo_ready_date: z.string().nullable(),
   case_etb_cargo_departure_date: z.string().nullable(),
