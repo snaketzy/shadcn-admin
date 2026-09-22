@@ -1079,6 +1079,30 @@ async function handleCaseListApi(
         const page = Number(searchParams.get('page') ?? 1)
         const pageSize = Number(searchParams.get('pageSize') ?? 50)
         const toArr = (key: string): string[] | undefined => {
+          const rawSingle = searchParams.get(key)
+          if (
+            rawSingle != null &&
+            (rawSingle.startsWith('[') || rawSingle.startsWith('{'))
+          ) {
+            try {
+              const parsed = JSON.parse(rawSingle)
+              if (Array.isArray(parsed)) {
+                const flat = parsed
+                  .flatMap((v) =>
+                    typeof v === 'string'
+                      ? v.split(',')
+                      : Array.isArray(v)
+                        ? v.map((x) => String(x))
+                        : [String(v ?? '')]
+                  )
+                  .map((s) => String(s ?? '').trim())
+                  .filter(Boolean)
+                if (flat.length > 0) return flat
+              }
+            } catch {
+              /* ignore malformed JSON */
+            }
+          }
           const raw = searchParams.getAll(key)
           if (raw.length === 0) return undefined
           const list = raw
@@ -1094,10 +1118,7 @@ async function handleCaseListApi(
           vesselNames: (() => {
             const list = toArr('vesselNames')
             if (!list || list.length === 0) return undefined
-            const out = list
-              .map((s) => String(s ?? '').trim())
-              .filter((s) => s !== '')
-            return out.length > 0 ? out : undefined
+            return list.map((s) => s.trim()).filter((s) => s !== '')
           })(),
           invoiceNumber: toOptStr(searchParams.get('invoiceNumber')),
           orderNumber: toOptStr(searchParams.get('orderNumber')),
