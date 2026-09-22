@@ -593,10 +593,6 @@ export function CasesTodayTable(_: DataTableProps) {
     ''
 
   const [editingVesselName, setEditingVesselName] = useState(urlVesselName)
-  const vesselNameComposingRef = useRef(false)
-  const vesselNameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  )
 
   const [editingKeyword, setEditingKeyword] = useState(urlKeyword)
   const keywordComposingRef = useRef(false)
@@ -623,24 +619,6 @@ export function CasesTodayTable(_: DataTableProps) {
     if (editingInqDateTo !== urlInqDateTo) setEditingInqDateTo(urlInqDateTo)
   }, [urlInqDateTo])
 
-  const scheduleVesselNameCommit = useCallback(
-    (value: string) => {
-      if (vesselNameDebounceRef.current)
-        clearTimeout(vesselNameDebounceRef.current)
-      vesselNameDebounceRef.current = setTimeout(() => {
-        if (vesselNameComposingRef.current) return
-        navigate({
-          search: (prev: any) => ({
-            ...(prev ?? {}),
-            vesselName: value || undefined,
-            page: undefined,
-          }),
-        })
-      }, 300)
-    },
-    [navigate]
-  )
-
   const scheduleKeywordCommit = useCallback(
     (value: string) => {
       if (keywordDebounceRef.current) clearTimeout(keywordDebounceRef.current)
@@ -657,21 +635,6 @@ export function CasesTodayTable(_: DataTableProps) {
     },
     [navigate]
   )
-
-  const onVesselNameChange = (value: string) => {
-    setEditingVesselName(value)
-    scheduleVesselNameCommit(value)
-  }
-
-  const onVesselNameCompositionStart = () => {
-    vesselNameComposingRef.current = true
-  }
-
-  const onVesselNameCompositionEnd = (value: string) => {
-    vesselNameComposingRef.current = false
-    setEditingVesselName(value)
-    scheduleVesselNameCommit(value)
-  }
 
   const onKeywordChange = (value: string) => {
     setEditingKeyword(value)
@@ -1262,10 +1225,9 @@ export function CasesTodayTable(_: DataTableProps) {
                 name: String(v.vessel_name ?? '').trim(),
               }))
               .filter(
-                (o): o is { idRaw: number | string; name: string } =>
+                (o): o is { idRaw: string; name: string } =>
                   o.name !== '' &&
-                  ((typeof o.idRaw === 'number' && o.idRaw > 0) ||
-                    (typeof o.idRaw === 'string' && o.idRaw.trim() !== ''))
+                  (typeof o.idRaw === 'string' && o.idRaw.trim() !== '')
               )
               .map((o) => ({
                 value: String(o.idRaw),
