@@ -1578,7 +1578,13 @@ export function CasesActionDialog({
             case_inquiry_keyword: '',
             case_progress: defaultProgressRInquiryKey,
             case_urgent: defaultUrgentBNoKey,
-            case_inquiry_type: '',
+            case_inquiry_type:
+              inqTypeAOptions.find(
+                (o) =>
+                  String(o.label ?? '')
+                    .toLowerCase()
+                    .replace(/\s+/g, ' ') === 'spare parts'
+              )?.value ?? '',
             case_inquiry_date: todayStr,
             case_follow_date: todayStr,
             case_uptodate_date: todayStr,
@@ -1619,6 +1625,7 @@ export function CasesActionDialog({
       todayStr,
       defaultProgressRInquiryKey,
       defaultInchargeEKey,
+      inqTypeAOptions,
     ]
   )
 
@@ -2113,6 +2120,30 @@ export function CasesActionDialog({
       setSettlementAttachments([])
     }
   }, [open, form, defaultValues, isEdit, currentRow, buildFormValuesFromCase])
+
+  const initedInquiryTypeDefaultRef = useRef(false)
+  useEffect(() => {
+    if (isEdit || !open) {
+      initedInquiryTypeDefaultRef.current = false
+      return
+    }
+    if (inqTypeAOptions.length === 0) return
+    if (initedInquiryTypeDefaultRef.current) return
+    const current = String(form.getValues('case_inquiry_type') ?? '').trim()
+    if (current) return
+    const target = inqTypeAOptions.find(
+      (o) =>
+        String(o.label ?? '')
+          .toLowerCase()
+          .replace(/\s+/g, ' ') === 'spare parts'
+    )
+    if (!target) return
+    initedInquiryTypeDefaultRef.current = true
+    form.setValue('case_inquiry_type', target.value, {
+      shouldDirty: false,
+      shouldValidate: false,
+    })
+  }, [open, isEdit, inqTypeAOptions, form])
 
   const initedAttachmentsRef = useRef(false)
   useEffect(() => {
