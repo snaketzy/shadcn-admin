@@ -16,7 +16,6 @@ import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -173,9 +172,9 @@ export function OwnerCooperationCasesTable() {
       const followId = c.owner_following_id
       const superId = c.case_superintendent_id
       const matchFollow =
-        followId != null && followId !== '' && Number(followId) === ownerIdNum
+        followId != null && Number.isFinite(followId) && Number(followId) === ownerIdNum
       const matchSuper =
-        superId != null && superId !== '' && Number(superId) === ownerIdNum
+        superId != null && Number.isFinite(superId) && Number(superId) === ownerIdNum
       return matchFollow || matchSuper
     })
   }, [allCases, owner, ownerIdNum])

@@ -15,6 +15,14 @@ export interface CaseDict {
   dict_key: string
 }
 
+export interface CaseDictEntry {
+  dict_id: number
+  dict_group: string | null
+  dict_value: string | null
+  dict_value_remark: string | null
+  dict_key: string | number | null
+}
+
 export interface PaginatedResponse {
   rows: CaseDict[]
   total: number

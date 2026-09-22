@@ -16,12 +16,14 @@ type LongTextProps = {
   children: React.ReactNode
   className?: string
   contentClassName?: string
+  title?: string
 }
 
 export function LongText({
   children,
   className = '',
   contentClassName = '',
+  title,
 }: LongTextProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [isOverflown, setIsOverflown] = useState(false)
@@ -36,7 +38,7 @@ export function LongText({
 
   if (!isOverflown)
     return (
-      <div ref={refCallback} className={cn('truncate', className)}>
+      <div ref={refCallback} title={title} className={cn('truncate', className)}>
         {children}
       </div>
     )
@@ -47,7 +49,11 @@ export function LongText({
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div ref={refCallback} className={cn('truncate', className)}>
+              <div
+                ref={refCallback}
+                title={title}
+                className={cn('truncate', className)}
+              >
                 {children}
               </div>
             </TooltipTrigger>
@@ -60,7 +66,11 @@ export function LongText({
       <div className='sm:hidden'>
         <Popover>
           <PopoverTrigger asChild>
-            <div ref={refCallback} className={cn('truncate', className)}>
+            <div
+              ref={refCallback}
+              title={title}
+              className={cn('truncate', className)}
+            >
               {children}
             </div>
           </PopoverTrigger>

@@ -1534,7 +1534,10 @@ export function CasesActionDialog({
             case_delivery_or_service_incharge:
               currentRow.case_delivery_or_service_incharge ?? '',
             case_delivery_or_service_incharge_id:
-              currentRow.case_delivery_or_service_incharge_id ?? null,
+              currentRow.case_delivery_or_service_incharge_id != null &&
+              currentRow.case_delivery_or_service_incharge_id !== ''
+                ? String(currentRow.case_delivery_or_service_incharge_id)
+                : null,
             case_delivery_or_service_deadline: formatDateAsHyphen(
               currentRow.case_delivery_or_service_deadline
             ),
@@ -2162,7 +2165,10 @@ export function CasesActionDialog({
       case_delivery_or_service_incharge:
         row.case_delivery_or_service_incharge ?? '',
       case_delivery_or_service_incharge_id:
-        (row as any).case_delivery_or_service_incharge_id ?? null,
+        (row as any).case_delivery_or_service_incharge_id != null &&
+        (row as any).case_delivery_or_service_incharge_id !== ''
+          ? String((row as any).case_delivery_or_service_incharge_id)
+          : null,
       case_delivery_or_service_deadline: formatDateAsHyphen(
         row.case_delivery_or_service_deadline
       ),

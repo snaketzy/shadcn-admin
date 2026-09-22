@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, getRouteApi } from '@tanstack/react-router'
 import { UserRound, Anchor, ClipboardList, AlertCircle } from 'lucide-react'

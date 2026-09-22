@@ -60,7 +60,6 @@ import {
   getAttachmentPreviewUrl,
   normalizeAttachmentUrl,
   triggerAttachmentDownload,
-  openAttachmentInNewTab,
   isCosUrl,
   readAttachmentTextContent,
   type CaseMemo,

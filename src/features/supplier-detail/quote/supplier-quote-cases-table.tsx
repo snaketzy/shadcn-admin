@@ -612,7 +612,7 @@ export function SupplierQuoteCasesTable({
             </TableBody>
           </table>
         </div>
-        <DataTablePagination table={table} pageSizes={[25, 50, 100, 200]} />
+        <DataTablePagination table={table} />
       </div>
     </div>
   )
