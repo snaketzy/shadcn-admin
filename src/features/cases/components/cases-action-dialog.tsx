@@ -147,8 +147,6 @@ import {
   updateCase,
   fetchCaseInquiryListByCaseId,
   replaceCaseInquiryByCaseId,
-  fetchCaseInquiryKeywordCheck,
-  fetchCaseOrderNumberCheck,
   fetchCaseDetail,
   parseAttachments,
   stringifyAttachments,
@@ -1949,173 +1947,20 @@ export function CasesActionDialog({
     isEdit && currentRow?.case_id && !Number.isNaN(Number(currentRow.case_id))
       ? Number(currentRow.case_id)
       : undefined
-
-  const runKeywordDuplicateCheck = useCallback(
-    async (
-      raw: string
-    ): Promise<{
-      exists: boolean
-      matchedCaseId?: number
-      matchedKeyword?: string
-    }> => {
-      const normalized = String(raw ?? '')
-        .trim()
-        .toLowerCase()
-      const state = keywordDuplicateCheckRef.current
-      if (!normalized) {
-        state.lastCheckedNormalized = ''
-        state.lastResultExists = false
-        return { exists: false }
-      }
-      if (state.lastCheckedNormalized === normalized && !state.isChecking) {
-        return {
-          exists: state.lastResultExists,
-          matchedCaseId: state.lastMatchedCaseId,
-          matchedKeyword: state.lastMatchedKeyword,
-        }
-      }
-      if (state.isChecking && state.pendingCheckToken) {
-        try {
-          window.clearTimeout(state.pendingCheckToken)
-        } catch (e) {
-          // ignore
-        }
-      }
-      state.isChecking = true
-      try {
-        const result = await fetchCaseInquiryKeywordCheck({
-          keyword: normalized,
-          excludeCaseId,
-        })
-        state.lastCheckedNormalized = normalized
-        state.lastResultExists = !!result.exists
-        state.lastMatchedCaseId = result.matchedCaseId
-        state.lastMatchedKeyword = result.matchedKeyword
-        return {
-          exists: !!result.exists,
-          matchedCaseId: result.matchedCaseId,
-          matchedKeyword: result.matchedKeyword,
-        }
-      } finally {
-        state.isChecking = false
-      }
-    },
-    [excludeCaseId]
-  )
-
-  const runOrderNumberDuplicateCheck = useCallback(
-    async (
-      raw: string
-    ): Promise<{
-      exists: boolean
-      matchedCaseId?: number
-      matchedOrderNumber?: string
-    }> => {
-      const normalized = String(raw ?? '')
-        .trim()
-        .toLowerCase()
-      const state = orderNumberDuplicateCheckRef.current
-      if (!normalized) {
-        state.lastCheckedNormalized = ''
-        state.lastResultExists = false
-        return { exists: false }
-      }
-      if (state.lastCheckedNormalized === normalized && !state.isChecking) {
-        return {
-          exists: state.lastResultExists,
-          matchedCaseId: state.lastMatchedCaseId,
-          matchedOrderNumber: state.lastMatchedOrderNumber,
-        }
-      }
-      if (state.isChecking && state.pendingCheckToken) {
-        try {
-          window.clearTimeout(state.pendingCheckToken)
-        } catch (e) {
-          // ignore
-        }
-      }
-      state.isChecking = true
-      try {
-        const result = await fetchCaseOrderNumberCheck({
-          orderNumber: normalized,
-          excludeCaseId,
-        })
-        state.lastCheckedNormalized = normalized
-        state.lastResultExists = !!result.exists
-        state.lastMatchedCaseId = result.matchedCaseId
-        state.lastMatchedOrderNumber = result.matchedOrderNumber
-        return {
-          exists: !!result.exists,
-          matchedCaseId: result.matchedCaseId,
-          matchedOrderNumber: result.matchedOrderNumber,
-        }
-      } finally {
-        state.isChecking = false
-      }
-    },
-    [excludeCaseId]
-  )
+  void excludeCaseId
 
   const setKeywordErrorIfDuplicate = useCallback(
-    async (raw: string): Promise<boolean> => {
-      if (isEdit) {
-        form.clearErrors('case_inquiry_keyword')
-        return false
-      }
-      const normalized = String(raw ?? '').trim()
-      if (!normalized) {
-        form.clearErrors('case_inquiry_keyword')
-        return false
-      }
-      try {
-        const result = await runKeywordDuplicateCheck(normalized)
-        if (result.exists) {
-          const suffix = result.matchedCaseId
-            ? `（已存在于案件 #${result.matchedCaseId}）`
-            : ''
-          form.setError('case_inquiry_keyword', {
-            type: 'manual',
-            message: `需求编号/名称已存在，不可重复${suffix}`,
-          })
-          return true
-        }
-        form.clearErrors('case_inquiry_keyword')
-        return false
-      } catch (e) {
-        form.clearErrors('case_inquiry_keyword')
-        return false
-      }
+    async (_raw: string): Promise<boolean> => {
+      return false
     },
-    [form, isEdit, runKeywordDuplicateCheck]
+    []
   )
 
   const setOrderNumberErrorIfDuplicate = useCallback(
-    async (raw: string): Promise<boolean> => {
-      const normalized = String(raw ?? '').trim()
-      if (!normalized) {
-        form.clearErrors('order_number')
-        return false
-      }
-      try {
-        const result = await runOrderNumberDuplicateCheck(normalized)
-        if (result.exists) {
-          const suffix = result.matchedCaseId
-            ? `（已存在于案件 #${result.matchedCaseId}）`
-            : ''
-          form.setError('order_number', {
-            type: 'manual',
-            message: `订单编号已存在，不可重复${suffix}`,
-          })
-          return true
-        }
-        form.clearErrors('order_number')
-        return false
-      } catch (e) {
-        form.clearErrors('order_number')
-        return false
-      }
+    async (_raw: string): Promise<boolean> => {
+      return false
     },
-    [form, runOrderNumberDuplicateCheck]
+    []
   )
 
   useEffect(() => {
@@ -3292,44 +3137,6 @@ export function CasesActionDialog({
         toast.error('需求编号/名称不能为空')
         return
       }
-      if (!isEdit) {
-        try {
-          const dupResult = await runKeywordDuplicateCheck(keywordRaw)
-          if (dupResult.exists) {
-            const suffix = dupResult.matchedCaseId
-              ? `（已存在于案件 #${dupResult.matchedCaseId}）`
-              : ''
-            form.setError('case_inquiry_keyword', {
-              type: 'manual',
-              message: `需求编号/名称已存在，不可重复${suffix}`,
-            })
-            toast.error(`需求编号/名称已存在，不可保存${suffix}`)
-            return
-          }
-        } catch (e) {
-          // ignore network errors and proceed without duplicate pre-check
-        }
-      }
-      const orderNumberRaw = toOptStr(values.order_number)
-      if (orderNumberRaw) {
-        try {
-          const orderDupResult =
-            await runOrderNumberDuplicateCheck(orderNumberRaw)
-          if (orderDupResult.exists) {
-            const suffix = orderDupResult.matchedCaseId
-              ? `（已存在于案件 #${orderDupResult.matchedCaseId}）`
-              : ''
-            form.setError('order_number', {
-              type: 'manual',
-              message: `订单编号已存在，不可重复${suffix}`,
-            })
-            toast.error(`订单编号已存在，不可保存${suffix}`)
-            return
-          }
-        } catch (e) {
-          // ignore network errors and proceed without duplicate pre-check
-        }
-      }
 
       let latestInquiryTimestamp = 0
       let latestInquiryDateOnly = ''
@@ -3367,14 +3174,7 @@ export function CasesActionDialog({
       }
       buildPayloadAndSubmit(values)
     },
-    [
-      form,
-      isEdit,
-      runKeywordDuplicateCheck,
-      runOrderNumberDuplicateCheck,
-      inquiryList,
-      buildPayloadAndSubmit,
-    ]
+    [form, inquiryList, buildPayloadAndSubmit]
   )
 
   const handleFollowUpConfirmCancel = useCallback(() => {
