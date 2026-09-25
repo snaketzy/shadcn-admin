@@ -164,14 +164,22 @@ export function useTableUrlState(
       const nextPageSearch = nextPage <= defaultPage ? undefined : nextPage
       const nextPageSizeSearch =
         nextPageSize === defaultPageSize ? undefined : nextPageSize
-      const currentPage = (search as SearchRecord)[pageKey]
-      const currentPageSize = (search as SearchRecord)[pageSizeKey]
+      const currentPageRaw = (search as SearchRecord)[pageKey]
+      const currentPageSizeRaw = (search as SearchRecord)[pageSizeKey]
+      const parseLoose = (v: unknown): number | undefined => {
+        if (v === undefined || v === null || v === '') return undefined
+        const n = Number(v)
+        return Number.isFinite(n) ? Math.max(1, Math.floor(n)) : undefined
+      }
+      const currentPageNum = parseLoose(currentPageRaw)
+      const currentPageSizeNum = parseLoose(currentPageSizeRaw)
       const samePage =
-        (nextPageSearch === undefined && currentPage === undefined) ||
-        nextPageSearch === currentPage
+        (nextPageSearch === undefined && currentPageNum === undefined) ||
+        nextPageSearch === currentPageNum
       const samePageSize =
-        (nextPageSizeSearch === undefined && currentPageSize === undefined) ||
-        nextPageSizeSearch === currentPageSize
+        (nextPageSizeSearch === undefined &&
+          currentPageSizeNum === undefined) ||
+        nextPageSizeSearch === currentPageSizeNum
       if (samePage && samePageSize) return
       navigate({
         search: (prev) => ({
@@ -266,9 +274,18 @@ export function useTableUrlState(
       pageCount: number,
       opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
     ) => {
-      const currentPage = (search as SearchRecord)[pageKey]
-      const pageNum =
-        typeof currentPage === 'number' ? currentPage : defaultPage
+      const currentPageRaw = (search as SearchRecord)[pageKey]
+      const parsePositiveInt = (v: unknown, fallback: number): number => {
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          return Math.max(1, Math.floor(v))
+        }
+        if (typeof v === 'string' && v.trim() !== '') {
+          const n = Number(v)
+          if (Number.isFinite(n)) return Math.max(1, Math.floor(n))
+        }
+        return fallback
+      }
+      const pageNum = parsePositiveInt(currentPageRaw, defaultPage)
       if (pageCount > 0 && pageNum > pageCount) {
         navigate({
           replace: true,

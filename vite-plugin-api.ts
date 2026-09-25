@@ -202,7 +202,7 @@ function parseUrl(req: IncomingMessage): { pathname: string; searchParams: URLSe
   return { pathname: u.pathname, searchParams: u.searchParams }
 }
 
-async function handleCaseDictApi(
+export async function handleCaseDictApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -332,7 +332,7 @@ async function handleCaseDictApi(
   }
 }
 
-async function handleVesselListApi(
+export async function handleVesselListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -480,7 +480,7 @@ async function handleVesselListApi(
   }
 }
 
-async function handleOwnerListApi(
+export async function handleOwnerListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -614,7 +614,7 @@ async function handleOwnerListApi(
   }
 }
 
-async function handleSupplierListApi(
+export async function handleSupplierListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -753,7 +753,7 @@ async function handleSupplierListApi(
   }
 }
 
-async function handleCollaborationListApi(
+export async function handleCollaborationListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -890,7 +890,7 @@ async function handleCollaborationListApi(
   }
 }
 
-async function handleContactListApi(
+export async function handleContactListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1037,7 +1037,7 @@ async function handleContactListApi(
   }
 }
 
-async function handleCaseListApi(
+export async function handleCaseListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1091,6 +1091,14 @@ async function handleCaseListApi(
           page,
           pageSize,
           vesselName: toOptStr(searchParams.get('vesselName')),
+          vesselNames: (() => {
+            const list = toArr('vesselNames')
+            if (!list || list.length === 0) return undefined
+            const out = list
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out : undefined
+          })(),
           invoiceNumber: toOptStr(searchParams.get('invoiceNumber')),
           orderNumber: toOptStr(searchParams.get('orderNumber')),
           orderNumberHasValue:
@@ -1365,7 +1373,7 @@ async function handleCaseListApi(
   }
 }
 
-async function handleCaseInquiryListApi(
+export async function handleCaseInquiryListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1499,7 +1507,7 @@ async function handleCaseInquiryListApi(
   }
 }
 
-async function handleCaseMemoListApi(
+export async function handleCaseMemoListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1632,7 +1640,7 @@ async function handleCaseMemoListApi(
   }
 }
 
-async function handleCosApi(
+export async function handleCosApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {

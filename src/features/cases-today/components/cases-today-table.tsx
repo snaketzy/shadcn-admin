@@ -51,6 +51,7 @@ import {
 } from '@/features/cases/api/client'
 import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import { fetchSupplierAll, type Supplier } from '@/features/suppliers/api/client'
+import { fetchVesselAll, type Vessel } from '@/features/users/api/client'
 import {
   fetchContactAll,
   fetchDivisionCollaborations,
@@ -403,8 +404,13 @@ export function CasesTodayTable(_: DataTableProps) {
     const list = (divisionCollabRows as DivisionCollaborationRow[]) ?? []
     for (const r of list) {
       const idRaw = r.collaboration_id
-      const idStr = String(idRaw ?? '').trim()
-      const id = idStr !== '' ? Number(idStr) : Number.NaN
+      const idStr = String(idRaw ?? '')
+      const id =
+        typeof idRaw === 'number'
+          ? idRaw
+          : idStr.trim() !== ''
+            ? Number(idStr)
+            : Number.NaN
       const name = r.collaboration_name
         ? String(r.collaboration_name)
         : ''
@@ -455,6 +461,12 @@ export function CasesTodayTable(_: DataTableProps) {
     }
     return m
   }, [supplierAllRows])
+
+  const { data: vesselAllRows = [] } = useQuery({
+    queryKey: ['vessel-picker-all-for-case-today-list'],
+    queryFn: fetchVesselAll,
+    staleTime: 60000,
+  })
 
   const { data: inquiryTypeQRowsData = [] } = useQuery({
     queryKey: ['case-dict-prefix-Q-table'],
@@ -553,6 +565,11 @@ export function CasesTodayTable(_: DataTableProps) {
         searchKey: 'vesselPosition',
         type: 'array',
       },
+      {
+        columnId: 'vessel_names',
+        searchKey: 'vesselNames',
+        type: 'array',
+      },
     ],
   })
   const {
@@ -576,10 +593,6 @@ export function CasesTodayTable(_: DataTableProps) {
     ''
 
   const [editingVesselName, setEditingVesselName] = useState(urlVesselName)
-  const vesselNameComposingRef = useRef(false)
-  const vesselNameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  )
 
   const [editingKeyword, setEditingKeyword] = useState(urlKeyword)
   const keywordComposingRef = useRef(false)
@@ -606,24 +619,6 @@ export function CasesTodayTable(_: DataTableProps) {
     if (editingInqDateTo !== urlInqDateTo) setEditingInqDateTo(urlInqDateTo)
   }, [urlInqDateTo])
 
-  const scheduleVesselNameCommit = useCallback(
-    (value: string) => {
-      if (vesselNameDebounceRef.current)
-        clearTimeout(vesselNameDebounceRef.current)
-      vesselNameDebounceRef.current = setTimeout(() => {
-        if (vesselNameComposingRef.current) return
-        navigate({
-          search: (prev: any) => ({
-            ...(prev ?? {}),
-            vesselName: value || undefined,
-            page: undefined,
-          }),
-        })
-      }, 300)
-    },
-    [navigate]
-  )
-
   const scheduleKeywordCommit = useCallback(
     (value: string) => {
       if (keywordDebounceRef.current) clearTimeout(keywordDebounceRef.current)
@@ -640,21 +635,6 @@ export function CasesTodayTable(_: DataTableProps) {
     },
     [navigate]
   )
-
-  const onVesselNameChange = (value: string) => {
-    setEditingVesselName(value)
-    scheduleVesselNameCommit(value)
-  }
-
-  const onVesselNameCompositionStart = () => {
-    vesselNameComposingRef.current = true
-  }
-
-  const onVesselNameCompositionEnd = (value: string) => {
-    vesselNameComposingRef.current = false
-    setEditingVesselName(value)
-    scheduleVesselNameCommit(value)
-  }
 
   const onKeywordChange = (value: string) => {
     setEditingKeyword(value)
@@ -776,6 +756,13 @@ export function CasesTodayTable(_: DataTableProps) {
         : [],
     [search]
   )
+  const vesselNamesFilter: string[] = useMemo(
+    () =>
+      Array.isArray((search as any).vesselNames)
+        ? ((search as any).vesselNames as string[])
+        : [],
+    [search]
+  )
 
   const invoiceNumberFilter: string[] = useMemo(
     () =>
@@ -820,6 +807,7 @@ export function CasesTodayTable(_: DataTableProps) {
       caseRankFilter,
       vesselPositionFilter,
       enforcedHandleTodayValues,
+      vesselNamesFilter,
     ],
     queryFn: () => {
       const baseHandleToday: string[] =
@@ -835,6 +823,8 @@ export function CasesTodayTable(_: DataTableProps) {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
         vesselName: urlVesselName || undefined,
+        vesselNames:
+          vesselNamesFilter.length > 0 ? vesselNamesFilter : undefined,
         caseInquiryKeyword: urlKeyword || undefined,
         caseInquiryDateFrom: urlInqDateFrom || undefined,
         caseInquiryDateTo: urlInqDateTo || undefined,
@@ -964,6 +954,7 @@ export function CasesTodayTable(_: DataTableProps) {
         caseUrgent: undefined,
         caseShouldHandleToday: undefined,
         vesselPosition: undefined,
+        vesselNames: undefined,
       } as any,
     })
   }
@@ -991,6 +982,7 @@ export function CasesTodayTable(_: DataTableProps) {
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: true,
+    manualFiltering: true,
     pageCount,
     rowCount,
   })
@@ -1224,16 +1216,37 @@ export function CasesTodayTable(_: DataTableProps) {
       {portalTarget && createPortal(filtersToolbar, portalTarget)}
       <div className='flex items-center justify-between gap-2'>
         <div className='flex flex-1 flex-col items-start gap-y-2 sm:flex-row sm:flex-wrap sm:items-center sm:space-x-2'>
-          <Input
-            placeholder='按船名筛选...'
-            value={editingVesselName}
-            onChange={(e) => onVesselNameChange(e.target.value)}
-            onCompositionStart={onVesselNameCompositionStart}
-            onCompositionEnd={(e) =>
-              onVesselNameCompositionEnd((e.target as HTMLInputElement).value)
-            }
-            className='h-8 w-34 lg:w-50'
-          />
+          {(() => {
+            const list = (vesselAllRows as Vessel[]) ?? []
+            if (list.length === 0) return null
+            const options = list
+              .map((v) => ({
+                idRaw: String(v.vessel_name ?? '').trim(),
+                name: String(v.vessel_name ?? '').trim(),
+              }))
+              .filter(
+                (o): o is { idRaw: string; name: string } =>
+                  o.name !== '' &&
+                  (typeof o.idRaw === 'string' && o.idRaw.trim() !== '')
+              )
+              .map((o) => ({
+                value: String(o.idRaw),
+                label: o.name,
+              }))
+              .sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
+            if (options.length === 0) return null
+            const col = table.getColumn('vessel_names')
+            if (!col) return null
+            return (
+              <div className='shrink-0'>
+                <DataTableFacetedFilter
+                  column={col}
+                  title='船名'
+                  options={options}
+                />
+              </div>
+            )
+          })()}
           <Input
             placeholder='按发票号 / 订单编号 / 需求编号/名称筛选...'
             value={editingKeyword}
