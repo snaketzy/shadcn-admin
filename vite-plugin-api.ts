@@ -1122,6 +1122,14 @@ export async function handleCaseListApi(
           caseIncharge: toArr('caseIncharge'),
           caseRank: toArr('caseRank'),
           vesselPosition: toArr('vesselPosition'),
+          vesselNames: (() => {
+            const list = toArr('vesselNames')
+            if (!list || list.length === 0) return undefined
+            const out = list
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out : undefined
+          })(),
           awardSupplierIds: (() => {
             const list = toArr('awardSupplierIds')
             if (!list || list.length === 0) return undefined

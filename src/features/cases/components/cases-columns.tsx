@@ -2013,5 +2013,40 @@ export function getCasesColumns(params?: {
         return false
       },
     },
+    {
+      accessorKey: 'vessel_names',
+      header: () => <span>船名</span>,
+      accessorFn: (row) => {
+        const raw = (row as any)?.vessel_name
+        const s = String(raw ?? '').trim()
+        return s !== '' ? [s] : []
+      },
+      cell: () => null,
+      enableColumnFilter: true,
+      enableSorting: false,
+      enableHiding: true,
+      meta: {
+        label: '船名',
+        className: 'hidden',
+        thClassName: 'hidden',
+      },
+      filterFn: (row, _columnId, filterValue: unknown) => {
+        const fArr = Array.isArray(filterValue)
+          ? (filterValue as unknown[])
+              .map((v) => String(v ?? '').trim())
+              .filter(Boolean)
+          : []
+        if (fArr.length === 0) return true
+        const rowArr: string[] = Array.isArray(row.getValue('vessel_names'))
+          ? (row.getValue('vessel_names') as unknown[])
+              .map((v) => String(v ?? '').trim())
+              .filter(Boolean)
+          : []
+        if (rowArr.length === 0) return false
+        const fSet = new Set(fArr)
+        for (const v of rowArr) if (fSet.has(v)) return true
+        return false
+      },
+    },
   ]
 }

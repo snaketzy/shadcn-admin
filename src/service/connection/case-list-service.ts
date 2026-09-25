@@ -272,6 +272,7 @@ export async function getCaseListPaginated(params: {
   page?: number
   pageSize?: number
   vesselName?: string
+  vesselNames?: string | string[]
   invoiceNumber?: string
   orderNumber?: string
   orderNumberHasValue?: boolean
@@ -308,6 +309,23 @@ export async function getCaseListPaginated(params: {
   if (params.vesselName && params.vesselName.trim() !== '') {
     whereClauses.push('vessel_name LIKE ?')
     whereParams.push(`%${params.vesselName}%`)
+  }
+  if (
+    params.vesselNames &&
+    ((Array.isArray(params.vesselNames) && params.vesselNames.length > 0) ||
+      (!Array.isArray(params.vesselNames) && String(params.vesselNames).trim() !== ''))
+  ) {
+    const names = (Array.isArray(params.vesselNames)
+      ? params.vesselNames
+      : [String(params.vesselNames)]
+    )
+      .map((s) => String(s ?? '').trim())
+      .filter((s) => s !== '')
+    if (names.length > 0) {
+      const placeholders = names.map(() => '?').join(', ')
+      whereClauses.push(`vessel_name IN (${placeholders})`)
+      for (const n of names) whereParams.push(n)
+    }
   }
   if (params.caseRemark && params.caseRemark.trim() !== '') {
     whereClauses.push('case_remark LIKE ?')
