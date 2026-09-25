@@ -99,14 +99,14 @@ import {
 } from './src/service/connection/cos-service'
 import type { IncomingMessage, ServerResponse } from 'http'
 
-interface MultipartPart {
+export interface MultipartPart {
   name: string
   filename?: string
   contentType?: string
   data: Buffer
 }
 
-function parseMultipart(
+export function parseMultipart(
   req: IncomingMessage,
   boundary: string
 ): Promise<MultipartPart[]> {
@@ -168,13 +168,13 @@ function parseMultipart(
   })
 }
 
-function sendJson(res: ServerResponse, status: number, data: unknown) {
+export function sendJson(res: ServerResponse, status: number, data: unknown) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   res.end(JSON.stringify(data))
 }
 
-function readBody(req: IncomingMessage): Promise<unknown> {
+export function readBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let raw = ''
     req.on('data', (chunk) => {
@@ -195,14 +195,14 @@ function readBody(req: IncomingMessage): Promise<unknown> {
   })
 }
 
-function parseUrl(req: IncomingMessage): { pathname: string; searchParams: URLSearchParams } {
+export function parseUrl(req: IncomingMessage): { pathname: string; searchParams: URLSearchParams } {
   const url = req.url ?? '/'
   const base = `http://${req.headers.host ?? 'localhost'}`
   const u = new URL(url, base)
   return { pathname: u.pathname, searchParams: u.searchParams }
 }
 
-async function handleCaseDictApi(
+export async function handleCaseDictApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -332,7 +332,7 @@ async function handleCaseDictApi(
   }
 }
 
-async function handleVesselListApi(
+export async function handleVesselListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -480,7 +480,7 @@ async function handleVesselListApi(
   }
 }
 
-async function handleOwnerListApi(
+export async function handleOwnerListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -614,7 +614,7 @@ async function handleOwnerListApi(
   }
 }
 
-async function handleSupplierListApi(
+export async function handleSupplierListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -753,7 +753,7 @@ async function handleSupplierListApi(
   }
 }
 
-async function handleCollaborationListApi(
+export async function handleCollaborationListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -890,7 +890,7 @@ async function handleCollaborationListApi(
   }
 }
 
-async function handleContactListApi(
+export async function handleContactListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1037,7 +1037,7 @@ async function handleContactListApi(
   }
 }
 
-async function handleCaseListApi(
+export async function handleCaseListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1365,7 +1365,7 @@ async function handleCaseListApi(
   }
 }
 
-async function handleCaseInquiryListApi(
+export async function handleCaseInquiryListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1499,7 +1499,7 @@ async function handleCaseInquiryListApi(
   }
 }
 
-async function handleCaseMemoListApi(
+export async function handleCaseMemoListApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1632,7 +1632,7 @@ async function handleCaseMemoListApi(
   }
 }
 
-async function handleCosApi(
+export async function handleCosApi(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
@@ -1783,6 +1783,44 @@ async function handleCosApi(
   }
 }
 
+export async function dispatchApiRequest(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const url = req.url ?? ''
+  if (url.startsWith('/api/case-dict')) {
+    return await handleCaseDictApi(req, res)
+  }
+  if (url.startsWith('/api/vessel-list')) {
+    return await handleVesselListApi(req, res)
+  }
+  if (url.startsWith('/api/owner-list')) {
+    return await handleOwnerListApi(req, res)
+  }
+  if (url.startsWith('/api/supplier-list')) {
+    return await handleSupplierListApi(req, res)
+  }
+  if (url.startsWith('/api/collaboration-list')) {
+    return await handleCollaborationListApi(req, res)
+  }
+  if (url.startsWith('/api/contact-list')) {
+    return await handleContactListApi(req, res)
+  }
+  if (url.startsWith('/api/case-list')) {
+    return await handleCaseListApi(req, res)
+  }
+  if (url.startsWith('/api/case-inquiry-list')) {
+    return await handleCaseInquiryListApi(req, res)
+  }
+  if (url.startsWith('/api/case-memo-list')) {
+    return await handleCaseMemoListApi(req, res)
+  }
+  if (url.startsWith('/api/cos')) {
+    return await handleCosApi(req, res)
+  }
+  return false
+}
+
 export function vitePluginCaseDictApi(): Plugin {
   return {
     name: 'vite-plugin-case-dict-api',
@@ -1792,48 +1830,9 @@ export function vitePluginCaseDictApi(): Plugin {
         res: ServerResponse,
         next: (err?: unknown) => void
       ) => {
-        const url = req.url ?? ''
         try {
-          if (url.startsWith('/api/case-dict')) {
-            const handled = await handleCaseDictApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/vessel-list')) {
-            const handled = await handleVesselListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/owner-list')) {
-            const handled = await handleOwnerListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/supplier-list')) {
-            const handled = await handleSupplierListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/collaboration-list')) {
-            const handled = await handleCollaborationListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/contact-list')) {
-            const handled = await handleContactListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/case-list')) {
-            const handled = await handleCaseListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/case-inquiry-list')) {
-            const handled = await handleCaseInquiryListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/case-memo-list')) {
-            const handled = await handleCaseMemoListApi(req, res)
-            if (handled) return
-          }
-          if (url.startsWith('/api/cos')) {
-            const handled = await handleCosApi(req, res)
-            if (handled) return
-          }
+          const handled = await dispatchApiRequest(req, res)
+          if (handled) return
           next()
         } catch (err) {
           next(err)
