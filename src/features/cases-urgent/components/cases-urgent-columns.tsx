@@ -963,8 +963,12 @@ export function getCasesUrgentColumns(params?: {
                         s(rowData.case_inquiry_type)
                     )}
                     {kvRow(
+                      '询价日期',
+                      formatDateAsHyphen(rowData.case_inquiry_date)
+                    )}
+                    {kvRow(
                       '跟进日期',
-                      formatDateAsHyphen(rowData.case_follow_date)
+                      formatDateAsHyphen(rowData.case_uptodate_date)
                     )}
                     {kvRow(
                       '船东联系人',
