@@ -17,7 +17,10 @@ export function CasesDialogs() {
       <CasesActionDialog
         key='case-add'
         open={open === 'add'}
-        onOpenChange={() => setOpen('add')}
+        onOpenChange={(o) => {
+          if (o) setOpen('add')
+          else setOpen(null)
+        }}
       />
 
       {currentRow && (
@@ -25,11 +28,15 @@ export function CasesDialogs() {
           <CasesActionDialog
             key={`case-edit-${currentRow.case_id}`}
             open={open === 'edit'}
-            onOpenChange={() => {
-              setOpen('edit')
-              setTimeout(() => {
-                setCurrentRow(null)
-              }, 500)
+            onOpenChange={(o) => {
+              if (o) {
+                setOpen('edit')
+              } else {
+                setOpen(null)
+                setTimeout(() => {
+                  setCurrentRow(null)
+                }, 500)
+              }
             }}
             currentRow={currentRow}
           />
@@ -56,11 +63,15 @@ export function CasesDialogs() {
           <CasesDeleteDialog
             key={`case-delete-${currentRow.case_id}`}
             open={open === 'delete'}
-            onOpenChange={() => {
-              setOpen('delete')
-              setTimeout(() => {
-                setCurrentRow(null)
-              }, 500)
+            onOpenChange={(o) => {
+              if (o) {
+                setOpen('delete')
+              } else {
+                setOpen(null)
+                setTimeout(() => {
+                  setCurrentRow(null)
+                }, 500)
+              }
             }}
             currentRow={currentRow}
           />
