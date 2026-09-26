@@ -2061,17 +2061,17 @@ export function CasesActionDialog({
     if (!open) {
       memoNameEditedRef.current = false
       didResetRef.current = false
-      setInquiryList([])
-      setInquiryAttachments([])
-      setSettlementAttachments([])
       localAddedInquiryIdsRef.current.clear()
       return
     }
     if (didResetRef.current) return
     didResetRef.current = true
     memoNameEditedRef.current = false
-    form.reset(defaultValues)
     localAddedInquiryIdsRef.current.clear()
+    setInquiryList([])
+    setInquiryAttachments([])
+    setSettlementAttachments([])
+    form.reset(defaultValues)
     if (isEdit && currentRow?.case_id) {
       fetchCaseInquiryListByCaseId(currentRow.case_id)
         .then((rows) => {
@@ -2175,7 +2175,7 @@ export function CasesActionDialog({
         initedAttachmentsRef.current = true
       }
     }
-  }, [open, isEdit, currentRow, form, inquiryAttachments.length])
+  }, [open, isEdit, currentRow, form])
 
   const initedSettlementAttachmentsRef = useRef(false)
   useEffect(() => {
@@ -2207,7 +2207,7 @@ export function CasesActionDialog({
         initedSettlementAttachmentsRef.current = true
       }
     }
-  }, [open, isEdit, currentRow, form, settlementAttachments.length])
+  }, [open, isEdit, currentRow, form])
 
   useEffect(() => {
     if (!open) return
