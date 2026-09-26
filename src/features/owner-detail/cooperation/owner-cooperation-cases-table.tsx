@@ -349,7 +349,7 @@ export function OwnerCooperationCasesTable() {
           let displayName: string | null = null
           if (
             superintendentId != null &&
-            superintendentId !== '' &&
+            !Number.isNaN(superintendentId) &&
             ownerIdEmailMap
           ) {
             const found = ownerIdEmailMap.get(String(superintendentId))

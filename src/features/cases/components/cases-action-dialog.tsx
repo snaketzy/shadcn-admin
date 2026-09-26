@@ -1808,7 +1808,9 @@ export function CasesActionDialog({
     rawNames: string
   } => {
     const idRaw = formCaseServiceInchargeId ?? null
-    const nameRaw = formCaseServiceIncharge ?? ''
+    const nameRaw: string = Array.isArray(formCaseServiceIncharge)
+      ? formCaseServiceIncharge.join('，')
+      : (formCaseServiceIncharge ?? '')
     if (
       (idRaw == null || String(idRaw).trim() === '') &&
       (nameRaw == null || String(nameRaw).trim() === '')
