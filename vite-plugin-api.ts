@@ -533,6 +533,7 @@ export async function handleOwnerListApi(
           owner_department: toOptStr(body.owner_department),
           owner_department_email: toOptStr(body.owner_department_email),
           owner_rank: toOptStr(body.owner_rank),
+          owner_remark: toOptStr(body.owner_remark),
         })
         sendJson(res, 200, { success: true, data: created })
         return true
@@ -591,6 +592,7 @@ export async function handleOwnerListApi(
           owner_department: toOptStr(body.owner_department),
           owner_department_email: toOptStr(body.owner_department_email),
           owner_rank: toOptStr(body.owner_rank),
+          owner_remark: toOptStr(body.owner_remark),
         })
         sendJson(res, 200, { success: true, data: updated })
         return true

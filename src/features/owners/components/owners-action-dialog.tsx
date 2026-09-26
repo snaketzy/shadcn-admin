@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ const formSchema = z.object({
   owner_department: z.string().optional().catch(''),
   owner_department_email: z.string().email('部门邮箱格式不正确').optional().or(z.literal('')).catch(''),
   owner_rank: z.string().optional().catch(''),
+  owner_remark: z.string().optional().catch(''),
 })
 type OwnerForm = z.infer<typeof formSchema>
 
@@ -80,6 +82,7 @@ export function OwnersActionDialog({
           owner_department: currentRow.owner_department ?? '',
           owner_department_email: currentRow.owner_department_email ?? '',
           owner_rank: currentRow.owner_rank ?? '',
+          owner_remark: currentRow.owner_remark ?? '',
         }
       : {
           owner_name: '',
@@ -89,6 +92,7 @@ export function OwnersActionDialog({
           owner_department: '',
           owner_department_email: '',
           owner_rank: '',
+          owner_remark: '',
         },
   })
 
@@ -103,6 +107,7 @@ export function OwnersActionDialog({
           owner_department: currentRow.owner_department ?? '',
           owner_department_email: currentRow.owner_department_email ?? '',
           owner_rank: currentRow.owner_rank ?? '',
+          owner_remark: currentRow.owner_remark ?? '',
         })
       } else {
         form.reset({
@@ -113,6 +118,7 @@ export function OwnersActionDialog({
           owner_department: '',
           owner_department_email: '',
           owner_rank: '',
+          owner_remark: '',
         })
       }
     }
@@ -156,6 +162,7 @@ export function OwnersActionDialog({
       owner_department: toOptStr(values.owner_department),
       owner_department_email: toOptStr(values.owner_department_email),
       owner_rank: toOptStr(values.owner_rank),
+      owner_remark: toOptStr(values.owner_remark),
     } as any
     if (isEdit && currentRow) {
       updateMutation.mutate({ id: currentRow.owner_id, data: payload })
@@ -353,6 +360,26 @@ export function OwnersActionDialog({
                       </SelectContent>
                     </Select>
                     <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='owner_remark'
+                render={({ field }) => (
+                  <FormItem className='col-span-2 grid grid-cols-12 items-start space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 pt-2 text-end'>
+                      船东备注
+                    </FormLabel>
+                    <div className='col-span-10'>
+                      <Textarea
+                        {...field}
+                        rows={4}
+                        placeholder='请输入船东备注...'
+                        className='resize-y'
+                      />
+                    </div>
+                    <FormMessage className='col-span-10 col-start-3' />
                   </FormItem>
                 )}
               />

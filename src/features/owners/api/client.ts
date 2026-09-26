@@ -45,6 +45,7 @@ export interface Owner {
   owner_department: string | null
   owner_department_email: string | null
   owner_rank: string | null
+  owner_remark: string | null
 }
 
 export interface OwnerDictEntry {
@@ -116,6 +117,7 @@ export async function createOwner(payload: {
   owner_department?: string | null
   owner_department_email?: string | null
   owner_rank?: string | null
+  owner_remark?: string | null
 }): Promise<Owner> {
   const res = await api.post<ApiEnvelope<Owner>>('/owner-list/', payload)
   return res.data.data
@@ -131,6 +133,7 @@ export async function updateOwner(
     owner_department?: string | null
     owner_department_email?: string | null
     owner_rank?: string | null
+    owner_remark?: string | null
   }
 ): Promise<Owner> {
   const res = await api.put<ApiEnvelope<Owner>>(`/owner-list/${ownerId}`, payload)

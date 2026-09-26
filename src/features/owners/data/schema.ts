@@ -9,6 +9,7 @@ export const ownerSchema = z.object({
   owner_department: z.string().nullable(),
   owner_department_email: z.string().nullable(),
   owner_rank: z.string().nullable(),
+  owner_remark: z.string().nullable(),
 })
 
 export type Owner = z.infer<typeof ownerSchema>
