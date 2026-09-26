@@ -515,6 +515,7 @@ export async function handleOwnerListApi(
           ownerRank: toOptStr(searchParams.get('ownerRank')),
           ownerEmail: toOptStr(searchParams.get('ownerEmail')),
           ownerPhone: toOptStr(searchParams.get('ownerPhone')),
+          ownerRemark: toOptStr(searchParams.get('ownerRemark')),
         })
         sendJson(res, 200, { success: true, data: result })
         return true
