@@ -34,6 +34,7 @@ import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
 } from '@/features/dictionaries/api/client'
+import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import { useOwnerDetail } from '../owner-detail-route'
 
 type DictMap = { keyMap: Map<string, string>; valueMap: Map<string, string> }
@@ -133,6 +134,28 @@ export function OwnerCooperationCasesTable() {
     queryFn: fetchCaseAll,
     staleTime: 60 * 1000,
   })
+
+  const { data: ownerAllRows = [] } = useQuery({
+    queryKey: ['owner-picker-all-for-cooperation'],
+    queryFn: fetchOwnerAll,
+    staleTime: 60 * 1000,
+  })
+
+  const ownerIdEmailMap = useMemo<
+    Map<string, { owner_name: string; owner_email: string }>
+  >(() => {
+    const m = new Map<string, { owner_name: string; owner_email: string }>()
+    const list = (ownerAllRows as Owner[]) ?? []
+    for (const o of list) {
+      if (o.owner_id != null) {
+        m.set(String(o.owner_id), {
+          owner_name: o.owner_name ? String(o.owner_name) : '',
+          owner_email: o.owner_email ? String(o.owner_email) : '',
+        })
+      }
+    }
+    return m
+  }, [ownerAllRows])
 
   const { data: groupsData } = useProgressDict()
   const progressMap = useMemo(
@@ -321,20 +344,24 @@ export function OwnerCooperationCasesTable() {
           <DataTableColumnHeader column={column} title='案件机务' />
         ),
         cell: ({ row }) => {
-          const value = row.getValue('case_superintendent') as string | null
-          const id = (row.original as CaseForTable).case_superintendent_id
-          const isCurrent =
-            id != null && Number(id) === ownerIdNum
-          return (
-            <div className='flex items-center gap-1.5'>
-              <span>{value ?? '-'}</span>
-              {isCurrent && (
-                <Badge variant='secondary' className='h-5 px-1.5 text-[10px]'>
-                  当前
-                </Badge>
-              )}
-            </div>
-          )
+          const superintendentId = (row.original as CaseForTable)
+            .case_superintendent_id
+          let displayName: string | null = null
+          if (
+            superintendentId != null &&
+            superintendentId !== '' &&
+            ownerIdEmailMap
+          ) {
+            const found = ownerIdEmailMap.get(String(superintendentId))
+            if (found?.owner_name) {
+              displayName = found.owner_name
+            }
+          }
+          if (!displayName) {
+            const value = row.getValue('case_superintendent') as string | null
+            displayName = value
+          }
+          return <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
         },
         size: 140,
         enableSorting: false,
@@ -368,7 +395,7 @@ export function OwnerCooperationCasesTable() {
         size: 120,
       },
     ],
-    [progressMap, ownerIdNum, inqTypeAMap]
+    [progressMap, ownerIdNum, inqTypeAMap, ownerIdEmailMap]
   )
 
   const pagination = useMemo(
