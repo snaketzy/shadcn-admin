@@ -5,6 +5,7 @@ import {
   type ExecuteValues,
   describeTable,
   listTables,
+  type TableColumn,
 } from './db'
 import {
   auditInsert,
@@ -12,6 +13,51 @@ import {
   auditDelete,
   auditBulkDelete,
 } from './log-list-service'
+
+export function toServiceInchargeIdCsv(
+  raw:
+    | string
+    | number
+    | Array<string | number | null | undefined>
+    | null
+    | undefined
+): string | null {
+  if (raw === null || raw === undefined) return null
+  if (Array.isArray(raw)) {
+    const out = raw
+      .map((v) => String(v ?? '').trim())
+      .filter((s) => s !== '')
+    return out.length > 0 ? out.join(',') : null
+  }
+  const s = String(raw).trim()
+  if (s === '') return null
+  const parts = s
+    .split(/[,，]\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p !== '')
+  return parts.length > 0 ? parts.join(',') : null
+}
+
+export function toServiceInchargeNameCsv(
+  raw:
+    | string
+    | Array<string | null | undefined>
+    | null
+    | undefined
+): string | null {
+  if (raw === null || raw === undefined) return null
+  if (Array.isArray(raw)) {
+    const out = raw.map((v) => String(v ?? '').trim()).filter((s) => s !== '')
+    return out.length > 0 ? out.join('，') : null
+  }
+  const s = String(raw).trim()
+  if (s === '') return null
+  const parts = s
+    .split(/[,，]\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p !== '')
+  return parts.length > 0 ? parts.join('，') : null
+}
 
 export interface CaseListRow {
   case_id: number
@@ -572,11 +618,8 @@ export async function createCaseList(data: {
         ? Number(data.case_superintendent_id)
         : null,
       data.case_surveyor ?? null,
-      data.case_delivery_or_service_incharge ?? null,
-      data.case_delivery_or_service_incharge_id != null &&
-      String(data.case_delivery_or_service_incharge_id).trim().length > 0
-        ? String(data.case_delivery_or_service_incharge_id)
-        : null,
+      toServiceInchargeNameCsv(data.case_delivery_or_service_incharge),
+      toServiceInchargeIdCsv(data.case_delivery_or_service_incharge_id),
       data.case_delivery_or_service_deadline ?? null,
       data.case_eta_cargo_ready_date ?? null,
       data.case_etb_cargo_departure_date ?? null,
@@ -707,6 +750,14 @@ export async function updateCaseList(
         } else {
           params.push(Number(v))
         }
+        continue
+      }
+      if (key === 'case_delivery_or_service_incharge_id') {
+        params.push(toServiceInchargeIdCsv(v))
+        continue
+      }
+      if (key === 'case_delivery_or_service_incharge') {
+        params.push(toServiceInchargeNameCsv(v))
         continue
       }
       if (typeof v === 'string' && v.trim() === '') params.push(null)
@@ -914,11 +965,20 @@ export async function ensureCaseDeliveryServiceInchargeIdColumn(): Promise<void>
     const COL_NAME = 'case_delivery_or_service_incharge_id'
     try {
       const info = await describeTable(TABLE_NAME)
-      const hasCol = info.columns.some((c) => c.field === COL_NAME)
-      if (!hasCol) {
+      const col: TableColumn | undefined = info.columns.find(
+        (c) => c.field === COL_NAME
+      )
+      if (!col) {
         await execute(
           `ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${COL_NAME}\` VARCHAR(512) NULL COMMENT '服务负责人多选ID列表，逗号分隔（对应 contact_list.contact_id）' AFTER \`case_delivery_or_service_incharge\``
         )
+      } else {
+        const t = String(col.type || '').toLowerCase()
+        if (!t.startsWith('varchar') && !t.startsWith('text')) {
+          await execute(
+            `ALTER TABLE \`${TABLE_NAME}\` MODIFY COLUMN \`${COL_NAME}\` VARCHAR(512) NULL COMMENT '服务负责人多选ID列表，逗号分隔（对应 contact_list.contact_id）'`
+          )
+        }
       }
     } catch (e) {
       _ensureCaseDeliveryServiceInchargeIdPromise = null

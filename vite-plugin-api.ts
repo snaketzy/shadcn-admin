@@ -1056,7 +1056,29 @@ export async function handleCaseListApi(
   function toOptStr(s: string | null | unknown): string | undefined {
     if (s === null) return undefined
     if (s === undefined) return undefined
+    if (Array.isArray(s)) {
+      const out = s
+        .map((v) => String(v ?? '').trim())
+        .filter((p) => p !== '')
+      return out.length > 0 ? out.join(',') : undefined
+    }
     const str = String(s)
+    if (str === '') return undefined
+    return str
+  }
+
+  function toOptCsvNames(
+    s: string | string[] | number[] | null | unknown
+  ): string | undefined {
+    if (s === null) return undefined
+    if (s === undefined) return undefined
+    if (Array.isArray(s)) {
+      const out = s
+        .map((v) => String(v ?? '').trim())
+        .filter((p) => p !== '')
+      return out.length > 0 ? out.join('，') : undefined
+    }
+    const str = String(s).trim()
     if (str === '') return undefined
     return str
   }
@@ -1182,8 +1204,12 @@ export async function handleCaseListApi(
           case_superintendent: toOptStr(body.case_superintendent),
           case_superintendent_id: toOptNumOrNull(body.case_superintendent_id),
           case_surveyor: toOptStr(body.case_surveyor),
-          case_delivery_or_service_incharge: toOptStr(body.case_delivery_or_service_incharge),
-          case_delivery_or_service_incharge_id: toOptStr(body.case_delivery_or_service_incharge_id),
+          case_delivery_or_service_incharge: toOptCsvNames(
+            body.case_delivery_or_service_incharge
+          ),
+          case_delivery_or_service_incharge_id: toOptStr(
+            body.case_delivery_or_service_incharge_id
+          ),
           case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
           case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
           case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),
@@ -1324,8 +1350,12 @@ export async function handleCaseListApi(
           case_superintendent: toOptStr(body.case_superintendent),
           case_superintendent_id: toOptNumOrNull(body.case_superintendent_id),
           case_surveyor: toOptStr(body.case_surveyor),
-          case_delivery_or_service_incharge: toOptStr(body.case_delivery_or_service_incharge),
-          case_delivery_or_service_incharge_id: toOptStr(body.case_delivery_or_service_incharge_id),
+          case_delivery_or_service_incharge: toOptCsvNames(
+            body.case_delivery_or_service_incharge
+          ),
+          case_delivery_or_service_incharge_id: toOptStr(
+            body.case_delivery_or_service_incharge_id
+          ),
           case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
           case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
           case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),

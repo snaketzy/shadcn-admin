@@ -20,9 +20,16 @@ export const caseSchema = z.object({
   case_superintendent: z.string().nullable(),
   case_superintendent_id: z.number().nullable().optional(),
   case_surveyor: z.string().nullable(),
-  case_delivery_or_service_incharge: z.string().nullable(),
+  case_delivery_or_service_incharge: z
+    .union([z.string(), z.array(z.string())])
+    .nullable()
+    .optional(),
   case_delivery_or_service_incharge_id: z
-    .union([z.string(), z.number()])
+    .union([
+      z.string(),
+      z.number(),
+      z.array(z.union([z.string(), z.number()])),
+    ])
     .nullable()
     .optional(),
   case_delivery_or_service_deadline: z.string().nullable(),

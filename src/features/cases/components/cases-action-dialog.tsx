@@ -363,9 +363,16 @@ const formSchema = z.object({
     .optional()
     .catch(''),
   case_surveyor: z.string().optional().catch(''),
-  case_delivery_or_service_incharge: z.string().optional().catch(''),
+  case_delivery_or_service_incharge: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .catch(''),
   case_delivery_or_service_incharge_id: z
-    .string()
+    .union([
+      z.string(),
+      z.number(),
+      z.array(z.union([z.string(), z.number()])),
+    ])
     .nullable()
     .optional()
     .catch(null),
@@ -3099,14 +3106,30 @@ export function CasesActionDialog({
             ? Number(values.case_superintendent_id)
             : null,
         case_surveyor: toOptStr(values.case_surveyor),
-        case_delivery_or_service_incharge: toOptStr(
-          values.case_delivery_or_service_incharge
-        ),
-        case_delivery_or_service_incharge_id: toOptStr(
-          values.case_delivery_or_service_incharge_id != null
-            ? String(values.case_delivery_or_service_incharge_id)
-            : ''
-        ),
+        case_delivery_or_service_incharge: (() => {
+          const v = values.case_delivery_or_service_incharge
+          if (v === null || v === undefined || v === '') return undefined
+          if (Array.isArray(v)) {
+            const out = v
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out.join('，') : undefined
+          }
+          const s = String(v).trim()
+          return s === '' ? undefined : s
+        })(),
+        case_delivery_or_service_incharge_id: (() => {
+          const v = values.case_delivery_or_service_incharge_id
+          if (v === null || v === undefined || v === '') return undefined
+          if (Array.isArray(v)) {
+            const out = v
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out.join(',') : undefined
+          }
+          const s = String(v).trim()
+          return s === '' ? undefined : s
+        })(),
         case_delivery_or_service_deadline: toOptStr(
           values.case_delivery_or_service_deadline
         ),
