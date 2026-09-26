@@ -1,4 +1,7 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { Cross2Icon } from '@radix-ui/react-icons'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import {
   type SortingState,
   type VisibilityState,
@@ -11,10 +14,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { SearchIcon } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   TableBody,
   TableCell,
@@ -25,15 +31,10 @@ import {
 import { DataTablePagination } from '@/components/data-table'
 import { DataTableFacetedFilter } from '@/components/data-table/faceted-filter'
 import { DataTableViewOptions } from '@/components/data-table/view-options'
-import { Cross2Icon } from '@radix-ui/react-icons'
-import { SearchIcon } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { fetchOwnerAll, fetchOwnerGroups } from '../api/client'
 import { type Owner } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getOwnersColumns } from './owners-columns'
-import { fetchOwnerAll, fetchOwnerGroups } from '../api/client'
-import { Skeleton } from '@/components/ui/skeleton'
 
 const route = getRouteApi('/_authenticated/owner_list/')
 
@@ -127,11 +128,17 @@ export function OwnersTable() {
 
   const urlState = useTableUrlState({
     search: search as Record<string, unknown>,
-    navigate: navigate as unknown as Parameters<typeof useTableUrlState>[0]['navigate'],
+    navigate: navigate as unknown as Parameters<
+      typeof useTableUrlState
+    >[0]['navigate'],
     pagination: { defaultPage: 1, defaultPageSize: 50 },
     columnFilters: [
       { columnId: 'owner_team', searchKey: 'ownerTeam', type: 'array' },
-      { columnId: 'owner_department', searchKey: 'ownerDepartment', type: 'array' },
+      {
+        columnId: 'owner_department',
+        searchKey: 'ownerDepartment',
+        type: 'array',
+      },
       { columnId: 'owner_rank', searchKey: 'ownerRank', type: 'array' },
     ],
   })
@@ -147,6 +154,54 @@ export function OwnersTable() {
     (search as unknown as { ownerName?: string }).ownerName ?? ''
   const contactSearch: string =
     (search as unknown as { contactSearch?: string }).contactSearch ?? ''
+  const urlOwnerRemark: string =
+    (search as unknown as { ownerRemark?: string }).ownerRemark ?? ''
+
+  const [editingOwnerRemark, setEditingOwnerRemark] = useState(urlOwnerRemark)
+  const ownerRemarkComposingRef = useRef(false)
+  const ownerRemarkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    if (editingOwnerRemark !== urlOwnerRemark)
+      setEditingOwnerRemark(urlOwnerRemark)
+  }, [urlOwnerRemark])
+
+  const scheduleOwnerRemarkCommit = useCallback(
+    (valueRaw: string) => {
+      if (ownerRemarkDebounceRef.current)
+        clearTimeout(ownerRemarkDebounceRef.current)
+      ownerRemarkDebounceRef.current = setTimeout(() => {
+        if (ownerRemarkComposingRef.current) return
+        const value = valueRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            ownerRemark: value || undefined,
+            page: undefined,
+          }),
+        })
+      }, 300)
+    },
+    [navigate]
+  )
+
+  const onOwnerRemarkChange = (value: string) => {
+    setEditingOwnerRemark(value)
+    scheduleOwnerRemarkCommit(value)
+  }
+
+  const onOwnerRemarkCompositionStart = () => {
+    ownerRemarkComposingRef.current = true
+  }
+
+  const onOwnerRemarkCompositionEnd = (value: string) => {
+    ownerRemarkComposingRef.current = false
+    const trimmed = value.trim()
+    setEditingOwnerRemark(trimmed)
+    scheduleOwnerRemarkCommit(trimmed)
+  }
 
   const ownerTeamFilter = useMemo(
     () =>
@@ -180,10 +235,25 @@ export function OwnersTable() {
     }
     if (contactSearch.trim() !== '') {
       const q = contactSearch.trim().toLowerCase()
+      result = result.filter(
+        (r) =>
+          String(r.owner_email ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.owner_phone ?? '')
+            .toLowerCase()
+            .includes(q) ||
+          String(r.owner_department_email ?? '')
+            .toLowerCase()
+            .includes(q)
+      )
+    }
+    if (urlOwnerRemark.trim() !== '') {
+      const q = urlOwnerRemark.trim().toLowerCase()
       result = result.filter((r) =>
-        String(r.owner_email ?? '').toLowerCase().includes(q) ||
-        String(r.owner_phone ?? '').toLowerCase().includes(q) ||
-        String(r.owner_department_email ?? '').toLowerCase().includes(q)
+        String(r.owner_remark ?? '')
+          .toLowerCase()
+          .includes(q)
       )
     }
     if (ownerTeamFilter.length > 0) {
@@ -206,6 +276,7 @@ export function OwnersTable() {
     allRows,
     ownerName,
     contactSearch,
+    urlOwnerRemark,
     ownerTeamFilter,
     ownerDepartmentFilter,
     ownerRankFilter,
@@ -231,6 +302,7 @@ export function OwnersTable() {
         pageSize: undefined,
         ownerName: undefined,
         contactSearch: undefined,
+        ownerRemark: undefined,
         ownerTeam: undefined,
         ownerDepartment: undefined,
         ownerRank: undefined,
@@ -272,7 +344,8 @@ export function OwnersTable() {
   const isFiltered =
     columnFilters.length > 0 ||
     ownerName.trim() !== '' ||
-    contactSearch.trim() !== ''
+    contactSearch.trim() !== '' ||
+    urlOwnerRemark.trim() !== ''
 
   if (isLoading) {
     return (
@@ -297,6 +370,52 @@ export function OwnersTable() {
     )
   }
 
+  const headerFiltersToolbar = (
+    <div className='flex min-w-0 flex-1 items-center gap-2 overflow-x-auto'>
+      {teamDict.length > 0 && table.getColumn('owner_team') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('owner_team')!}
+            title='船东小组'
+            options={teamDict.map((d) => ({
+              label: d.dict_value,
+              value: d.dict_key,
+            }))}
+          />
+        </div>
+      )}
+      {departmentDict.length > 0 && table.getColumn('owner_department') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('owner_department')!}
+            title='船东部门'
+            options={departmentDict.map((d) => ({
+              label: d.dict_value,
+              value: d.dict_key,
+            }))}
+          />
+        </div>
+      )}
+      {rankDict.length > 0 && table.getColumn('owner_rank') && (
+        <div className='shrink-0'>
+          <DataTableFacetedFilter
+            column={table.getColumn('owner_rank')!}
+            title='船东职级'
+            options={rankDict.map((d) => ({
+              label: d.dict_value,
+              value: d.dict_key,
+            }))}
+          />
+        </div>
+      )}
+    </div>
+  )
+
+  const portalTarget =
+    typeof document !== 'undefined'
+      ? document.getElementById('header-filters-portal')
+      : null
+
   return (
     <div
       className={cn(
@@ -304,52 +423,35 @@ export function OwnersTable() {
         'flex flex-1 flex-col gap-4 overflow-hidden'
       )}
     >
+      {portalTarget && createPortal(headerFiltersToolbar, portalTarget)}
       <div className='flex items-center justify-between gap-2'>
         <div className='flex flex-1 flex-col items-start gap-y-2 sm:flex-row sm:flex-wrap sm:items-center sm:space-x-2'>
           <Input
             placeholder='按船东名称筛选...'
             value={ownerName}
-            onChange={(e) => handleTextFilterChange('ownerName', e.target.value)}
+            onChange={(e) =>
+              handleTextFilterChange('ownerName', e.target.value)
+            }
             className='h-8 w-37.5 lg:w-62.5'
           />
           <Input
             placeholder='按邮箱/电话筛选...'
             value={contactSearch}
-            onChange={(e) => handleTextFilterChange('contactSearch', e.target.value)}
+            onChange={(e) =>
+              handleTextFilterChange('contactSearch', e.target.value)
+            }
             className='h-8 w-37.5 lg:w-62.5'
           />
-          <div className='flex gap-x-2'>
-            {teamDict.length > 0 && table.getColumn('owner_team') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('owner_team')!}
-                title='船东小组'
-                options={teamDict.map((d) => ({
-                  label: d.dict_value,
-                  value: d.dict_key,
-                }))}
-              />
-            )}
-            {departmentDict.length > 0 && table.getColumn('owner_department') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('owner_department')!}
-                title='船东部门'
-                options={departmentDict.map((d) => ({
-                  label: d.dict_value,
-                  value: d.dict_key,
-                }))}
-              />
-            )}
-            {rankDict.length > 0 && table.getColumn('owner_rank') && (
-              <DataTableFacetedFilter
-                column={table.getColumn('owner_rank')!}
-                title='船东职级'
-                options={rankDict.map((d) => ({
-                  label: d.dict_value,
-                  value: d.dict_key,
-                }))}
-              />
-            )}
-          </div>
+          <Input
+            placeholder='按备忘筛选...'
+            value={editingOwnerRemark}
+            onChange={(e) => onOwnerRemarkChange(e.target.value)}
+            onCompositionStart={onOwnerRemarkCompositionStart}
+            onCompositionEnd={(e) =>
+              onOwnerRemarkCompositionEnd((e.target as HTMLInputElement).value)
+            }
+            className='h-8 w-45 lg:w-60'
+          />
           {isFiltered && (
             <Button
               variant='ghost'
@@ -361,18 +463,20 @@ export function OwnersTable() {
             </Button>
           )}
         </div>
-          <Button
-            variant='outline'
-            size='sm'
-            className='h-8 gap-1'
-            onClick={async () => {
-              await queryClient.refetchQueries({ queryKey: ['owner-list'] })
-              await queryClient.refetchQueries({ queryKey: ['owner-list-groups'] })
-            }}
-          >
-            <SearchIcon className='size-4' />
-            查询
-          </Button>
+        <Button
+          variant='outline'
+          size='sm'
+          className='h-8 gap-1'
+          onClick={async () => {
+            await queryClient.refetchQueries({ queryKey: ['owner-list'] })
+            await queryClient.refetchQueries({
+              queryKey: ['owner-list-groups'],
+            })
+          }}
+        >
+          <SearchIcon className='size-4' />
+          查询
+        </Button>
         <DataTableViewOptions table={table} />
       </div>
       <div className='flex flex-1 flex-col overflow-hidden rounded-md border'>

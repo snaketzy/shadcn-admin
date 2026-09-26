@@ -10,6 +10,7 @@ const ownersSearchSchema = z.object({
   ownerRank: z.array(z.string()).optional().catch([]),
   ownerName: z.string().optional().catch(''),
   contactSearch: z.string().optional().catch(''),
+  ownerRemark: z.string().optional().catch(''),
 })
 
 export const Route = createFileRoute('/_authenticated/owner_list/')({

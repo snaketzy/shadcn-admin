@@ -95,6 +95,7 @@ export async function fetchOwnerPaginated(params: {
   ownerRank?: string
   ownerEmail?: string
   ownerPhone?: string
+  ownerRemark?: string
 }): Promise<PaginatedResponse> {
   const res = await api.get<ApiEnvelope<PaginatedResponse>>('/owner-list/', {
     params,

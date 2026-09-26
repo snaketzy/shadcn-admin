@@ -91,6 +91,7 @@ export async function getOwnerListPaginated(params: {
   ownerRank?: string
   ownerEmail?: string
   ownerPhone?: string
+  ownerRemark?: string
 }): Promise<{ rows: OwnerListRow[]; total: number; page: number; pageSize: number }> {
   const page = params.page ?? 1
   const pageSize = params.pageSize ?? 50
@@ -122,6 +123,10 @@ export async function getOwnerListPaginated(params: {
   if (params.ownerPhone && params.ownerPhone.trim() !== '') {
     whereClauses.push('owner_phone LIKE ?')
     whereParams.push(`%${params.ownerPhone}%`)
+  }
+  if (params.ownerRemark && params.ownerRemark.trim() !== '') {
+    whereClauses.push('owner_remark LIKE ?')
+    whereParams.push(`%${params.ownerRemark}%`)
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
