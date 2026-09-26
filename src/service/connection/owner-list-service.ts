@@ -11,6 +11,7 @@ export interface OwnerListRow {
   owner_department: string | null
   owner_department_email: string | null
   owner_rank: string | null
+  owner_remark: string | null
 }
 
 export interface OwnerDictEntry {
@@ -20,7 +21,8 @@ export interface OwnerDictEntry {
 
 const SELECT_COLS = `
   owner_id, owner_name, owner_email, owner_phone,
-  owner_team, owner_department, owner_department_email, owner_rank
+  owner_team, owner_department, owner_department_email, owner_rank,
+  owner_remark
 `
 
 export async function getAllOwnerList(): Promise<OwnerListRow[]> {
@@ -148,12 +150,13 @@ export async function createOwnerList(data: {
   owner_department?: string | null
   owner_department_email?: string | null
   owner_rank?: string | null
+  owner_remark?: string | null
 }): Promise<OwnerListRow> {
   const result = await execute(
     `INSERT INTO \`owner_list\`
       (owner_name, owner_email, owner_phone, owner_team,
-       owner_department, owner_department_email, owner_rank)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       owner_department, owner_department_email, owner_rank, owner_remark)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.owner_name,
       data.owner_email ?? null,
@@ -162,6 +165,7 @@ export async function createOwnerList(data: {
       data.owner_department ?? null,
       data.owner_department_email ?? null,
       data.owner_rank ?? null,
+      data.owner_remark ?? null,
     ]
   )
   const newId = Number(result.insertId)
@@ -182,6 +186,7 @@ export async function updateOwnerList(
     owner_department?: string | null
     owner_department_email?: string | null
     owner_rank?: string | null
+    owner_remark?: string | null
   }
 ): Promise<OwnerListRow> {
   const oldRow = await getOwnerListById(ownerId)
@@ -196,6 +201,7 @@ export async function updateOwnerList(
     'owner_department',
     'owner_department_email',
     'owner_rank',
+    'owner_remark',
   ]
   for (const key of keys) {
     if (key in data) {
@@ -257,5 +263,6 @@ function normalizeRow(row: any): OwnerListRow {
     owner_department: row.owner_department ? String(row.owner_department) : null,
     owner_department_email: row.owner_department_email ? String(row.owner_department_email) : null,
     owner_rank: row.owner_rank ? String(row.owner_rank) : null,
+    owner_remark: row.owner_remark ? String(row.owner_remark) : null,
   }
 }
