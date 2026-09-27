@@ -1331,59 +1331,70 @@ export async function handleCaseListApi(
           sendJson(res, 400, { success: false, message: 'Missing body' })
           return true
         }
-        const updated = await updateCaseList(caseId, {
-          vessel_name: toOptStr(body.vessel_name),
-          invoice_number: toOptStr(body.invoice_number),
-          order_number: toOptStr(body.order_number),
-          case_inquiry_keyword: toOptStr(body.case_inquiry_keyword),
-          case_progress: toOptStr(body.case_progress),
-          case_urgent: toOptStr(body.case_urgent),
-          case_inquiry_type: toOptStr(body.case_inquiry_type),
-          case_inquiry_date: toOptStr(body.case_inquiry_date),
-          case_follow_date: toOptStr(body.case_follow_date),
-          case_uptodate_date: toOptStr(body.case_uptodate_date),
-          case_should_handle_today: toOptStr(body.case_should_handle_today),
-          owner_following: toOptStr(body.owner_following),
-          owner_following_id: toOptNumOrNull(body.owner_following_id),
-          shipyard_business: toOptStr(body.shipyard_business),
-          case_agent: toOptStr(body.case_agent),
-          case_superintendent: toOptStr(body.case_superintendent),
-          case_superintendent_id: toOptNumOrNull(body.case_superintendent_id),
-          case_surveyor: toOptStr(body.case_surveyor),
-          case_delivery_or_service_incharge: toOptCsvNames(
-            body.case_delivery_or_service_incharge
-          ),
-          case_delivery_or_service_incharge_id: toOptStr(
-            body.case_delivery_or_service_incharge_id
-          ),
-          case_delivery_or_service_deadline: toOptStr(body.case_delivery_or_service_deadline),
-          case_eta_cargo_ready_date: toOptStr(body.case_eta_cargo_ready_date),
-          case_etb_cargo_departure_date: toOptStr(body.case_etb_cargo_departure_date),
-          case_etd_cargo_delivery_date: toOptStr(body.case_etd_cargo_delivery_date),
-          vessel_position: toOptStr(body.vessel_position),
-          case_settlement_done: toOptStr(body.case_settlement_done),
-          case_personal_register_completed: toOptStr(body.case_personal_register_completed),
-          case_business_register_completed: toOptStr(body.case_business_register_completed),
-          case_e_filing_completed: toOptStr(body.case_e_filing_completed),
-          case_paper_based_filing_completed: toOptStr(body.case_paper_based_filing_completed),
-          case_epd: toOptStr(body.case_epd),
-          case_spd: toOptStr(body.case_spd),
-          case_incharge: toOptStr(body.case_incharge),
-          case_memo_name: toOptStr(body.case_memo_name),
-          case_memo_address: toOptStr(body.case_memo_address),
-          case_inquiry_attachments:
-            body.case_inquiry_attachments == null ||
-            body.case_inquiry_attachments === ''
-              ? null
-              : String(body.case_inquiry_attachments),
-          case_settlement_attachments:
-            body.case_settlement_attachments == null ||
-            body.case_settlement_attachments === ''
-              ? null
-              : String(body.case_settlement_attachments),
-          case_remark: toOptStr(body.case_remark),
-          case_rank: toOptStr(body.case_rank),
-        })
+        console.log(`[CASE-PUT] caseId=${caseId} body.case_uptodate_date=`, JSON.stringify(body.case_uptodate_date), 'keys=', Object.keys(body).join(','))
+        const rawPayload: Record<string, any> = {}
+        const putOptStr = (k: string) => {
+          if (!(k in body)) return
+          const v = toOptStr(body[k] as any)
+          if (v !== undefined) rawPayload[k] = v
+        }
+        const putOptNumOrNull = (k: string) => {
+          if (!(k in body)) return
+          rawPayload[k] = toOptNumOrNull(body[k])
+        }
+        const putOptCsvNames = (k: string) => {
+          if (!(k in body)) return
+          const v = toOptCsvNames(body[k])
+          if (v !== undefined) rawPayload[k] = v
+        }
+        const putAttachments = (k: string) => {
+          if (!(k in body)) return
+          const v = body[k]
+          rawPayload[k] = (v == null || v === '') ? null : String(v)
+        }
+        putOptStr('vessel_name')
+        putOptStr('invoice_number')
+        putOptStr('order_number')
+        putOptStr('case_inquiry_keyword')
+        putOptStr('case_progress')
+        putOptStr('case_urgent')
+        putOptStr('case_inquiry_type')
+        putOptStr('case_inquiry_date')
+        putOptStr('case_follow_date')
+        putOptStr('case_uptodate_date')
+        putOptStr('case_should_handle_today')
+        putOptStr('owner_following')
+        putOptNumOrNull('owner_following_id')
+        putOptStr('shipyard_business')
+        putOptStr('case_agent')
+        putOptStr('case_superintendent')
+        putOptNumOrNull('case_superintendent_id')
+        putOptStr('case_surveyor')
+        putOptCsvNames('case_delivery_or_service_incharge')
+        putOptStr('case_delivery_or_service_incharge_id')
+        putOptStr('case_delivery_or_service_deadline')
+        putOptStr('case_eta_cargo_ready_date')
+        putOptStr('case_etb_cargo_departure_date')
+        putOptStr('case_etd_cargo_delivery_date')
+        putOptStr('vessel_position')
+        putOptStr('case_settlement_done')
+        putOptStr('case_personal_register_completed')
+        putOptStr('case_business_register_completed')
+        putOptStr('case_e_filing_completed')
+        putOptStr('case_paper_based_filing_completed')
+        putOptStr('case_epd')
+        putOptStr('case_spd')
+        putOptStr('case_incharge')
+        putOptStr('case_memo_name')
+        putOptStr('case_memo_address')
+        putAttachments('case_inquiry_attachments')
+        putAttachments('case_settlement_attachments')
+        putOptStr('case_remark')
+        putOptStr('case_rank')
+        console.log(`[CASE-PUT] payloadForService only changed keys:`, Object.keys(rawPayload).join(','),
+          'case_uptodate_date=', JSON.stringify(rawPayload.case_uptodate_date))
+        const updated = await updateCaseList(caseId, rawPayload)
+        console.log(`[CASE-PUT] SQL done. newRow.case_uptodate_date=`, JSON.stringify(updated?.case_uptodate_date))
         sendJson(res, 200, { success: true, data: updated })
         return true
       }

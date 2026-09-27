@@ -407,24 +407,17 @@ export async function updateCase(
       typeof body.case_settlement_attachments === 'string'
         ? body.case_settlement_attachments.length
         : null,
+    case_uptodate_date: body.case_uptodate_date,
+    keys: Object.keys(body).join(','),
   })
   const res = await api.put<ApiEnvelope<Case>>(`/case-list/${caseId}`, body)
+  const resCase = res?.data?.data as any
   console.log('[DEBUG updateCase caseId=' + caseId + ' response]', {
-    hasInquiryKey:
-      res &&
-      res.data &&
-      res.data.data &&
-      typeof res.data.data === 'object' &&
-      'case_inquiry_attachments' in (res.data.data as object),
-    inquiryValue: (res?.data?.data as any)?.case_inquiry_attachments ?? null,
-    hasSettlementKey:
-      res &&
-      res.data &&
-      res.data.data &&
-      typeof res.data.data === 'object' &&
-      'case_settlement_attachments' in (res.data.data as object),
-    settlementValue:
-      (res?.data?.data as any)?.case_settlement_attachments ?? null,
+    success: res?.data?.success,
+    message: res?.data?.message,
+    req_case_uptodate_date: body.case_uptodate_date,
+    res_case_uptodate_date: resCase?.case_uptodate_date ?? null,
+    res_has_case_uptodate_date: resCase ? 'case_uptodate_date' in resCase : false,
   })
   return res.data.data
 }

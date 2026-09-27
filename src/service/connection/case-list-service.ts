@@ -767,9 +767,17 @@ export async function updateCaseList(
   }
   if (sets.length === 0) {
     if (!oldRow) throw new Error('Case not found')
+    console.log('[updateCaseList] no changed columns, skip UPDATE. case_id=', caseId, 'data keys=', Object.keys(data).join(','))
     return oldRow
   }
   params.push(caseId)
+  const caseUptodateIndex = sets.findIndex((s) => s.startsWith('`case_uptodate_date`'))
+  const caseUptodateParam = caseUptodateIndex >= 0 ? params[caseUptodateIndex] : undefined
+  console.log('[updateCaseList] UPDATE case_list sets.length=', sets.length,
+    'case_uptodate in sets?', caseUptodateIndex >= 0,
+    'case_uptodate param=', JSON.stringify(caseUptodateParam),
+    'sets=', sets.join(' | '),
+    'params=', params.map((p) => JSON.stringify(p)).join(','))
   await execute(
     `UPDATE \`case_list\` SET ${sets.join(', ')} WHERE case_id = ?`,
     params as ExecuteValues
