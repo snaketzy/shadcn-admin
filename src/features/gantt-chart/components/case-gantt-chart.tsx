@@ -645,10 +645,12 @@ export function CaseGanttChart() {
   const centerScrollTimer2Ref = useRef<number | null>(null)
   const centerScrollPollRef = useRef<number | null>(null)
 
+  const [, setMountTick] = useState(0)
+
   useEffect(() => {
-    const t1 = window.setTimeout(() => setMountTick((n) => n + 1), 0)
-    const t2 = window.setTimeout(() => setMountTick((n) => n + 1), 40)
-    const t3 = window.setTimeout(() => setMountTick((n) => n + 1), 120)
+    const t1 = window.setTimeout(() => setMountTick((n: number) => n + 1), 0)
+    const t2 = window.setTimeout(() => setMountTick((n: number) => n + 1), 40)
+    const t3 = window.setTimeout(() => setMountTick((n: number) => n + 1), 120)
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
@@ -991,7 +993,7 @@ export function CaseGanttChart() {
                             : ROW_HEIGHT_CHILD)
                       }
                       realHeight += GROUP_PADDING_Y * 2
-                      const rowTopCenterMap = computeRowTopMap(filteredRows)
+                      computeRowTopMap(filteredRows)
                       return (
                         <div
                           key={g.caseId}
@@ -1577,7 +1579,9 @@ export function CaseGanttChart() {
             currentRow={editingCaseRow ?? undefined}
             mode='dialog'
             onSuccess={() => {
-              queryClient?.invalidateQueries?.(['case-paginated'])
+              queryClient?.invalidateQueries?.({
+                queryKey: ['case-paginated'],
+              })
             }}
           />
         </CardContent>
