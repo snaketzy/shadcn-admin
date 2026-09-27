@@ -62,10 +62,12 @@ import {
   triggerAttachmentDownload,
   isCosUrl,
   readAttachmentTextContent,
+  updateCase,
   type CaseMemo,
   type CaseMemoAttachment,
 } from '../api/client'
 import type { Case } from '../data/schema'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 type CasesMemoDialogProps = {
   open?: boolean
@@ -80,6 +82,38 @@ type CasesMemoDialogProps = {
 
 function pad2(n: number) {
   return n < 10 ? `0${n}` : `${n}`
+}
+
+function toISODay(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const str = String(raw).trim()
+  if (!str) return ''
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str)) {
+    const n = str.replace(/\//g, '-')
+    const [y, m, d] = n.split('-').map((s) => parseInt(s, 10))
+    if (
+      !Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d) &&
+      y >= 1000 && m >= 1 && m <= 12 && d >= 1 && d <= 31
+    ) {
+      return `${y}-${pad2(m)}-${pad2(d)}`
+    }
+  }
+  if (/^\d{8}$/.test(str)) {
+    const y = parseInt(str.slice(0, 4), 10)
+    const m = parseInt(str.slice(4, 6), 10)
+    const d = parseInt(str.slice(6, 8), 10)
+    if (
+      !Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d) &&
+      y >= 1000 && m >= 1 && m <= 12 && d >= 1 && d <= 31
+    ) {
+      return `${y}-${pad2(m)}-${pad2(d)}`
+    }
+  }
+  const parsed = new Date(str)
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(parsed.getDate())}`
+  }
+  return ''
 }
 
 function formatNowForStorage(now: Date): string {
@@ -160,6 +194,9 @@ export function CasesMemoDialog({
   const [previewAtt, setPreviewAtt] = useState<CaseMemoAttachment | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
+  const [updateDateConfirmOpen, setUpdateDateConfirmOpen] = useState(false)
+  const pendingUpdateDateRef = useRef<string | null>(null)
+
   const isEditMode = Boolean(editingMemo)
   const editingMemoId = editingMemo?.case_memo_id ?? null
 
@@ -234,6 +271,152 @@ export function CasesMemoDialog({
     onEditingMemoChange?.(null)
   }
 
+  const runAfterSave = (saveMode: 'close' | 'new' | null, toastText: string) => {
+    if (saveMode === 'close') {
+      toast.success(toastText)
+      clearForm()
+      if (mode === 'page') {
+        onSuccess?.()
+      } else {
+        onOpenChange?.(false)
+      }
+    } else if (saveMode === 'new') {
+      toast.success('备忘已保存，可继续新增')
+      clearForm()
+    } else {
+      toast.success(toastText)
+      clearForm()
+      if (mode === 'page') {
+        onSuccess?.()
+      } else {
+        onOpenChange?.(false)
+      }
+    }
+  }
+
+  const needUpdateUptodateDate = (): string | null => {
+    const memoDay = toISODay(memoDate)
+    if (!memoDay) return null
+    const upDay = toISODay(currentRow?.case_uptodate_date)
+    if (!upDay) return memoDay
+    const memoT = new Date(memoDay + 'T00:00:00').getTime()
+    const upT = new Date(upDay + 'T00:00:00').getTime()
+    if (!Number.isNaN(memoT) && !Number.isNaN(upT) && memoT > upT) {
+      return memoDay
+    }
+    return null
+  }
+
+  const invalidateCaseQueries = () => {
+    queryClient.invalidateQueries({
+      predicate: (q) => {
+        if (!Array.isArray(q.queryKey) || q.queryKey.length === 0) return false
+        const k0 = String(q.queryKey[0])
+        return (
+          k0 === 'case-list' ||
+          k0 === 'case-detail' ||
+          k0 === 'case-list-paginated' ||
+          k0 === 'case-list-groups' ||
+          k0 === 'case-today-list-paginated' ||
+          k0 === 'case-today-list-groups' ||
+          k0 === 'case-deal-list-paginated' ||
+          k0 === 'case-deal-list-groups' ||
+          k0 === 'case-service-list-paginated' ||
+          k0 === 'case-service-list-groups' ||
+          k0 === 'case-drydocking-list-paginated' ||
+          k0 === 'case-drydocking-list-groups' ||
+          k0 === 'case-urgent-list-paginated' ||
+          k0 === 'case-urgent-list-groups' ||
+          k0 === 'case-all' ||
+          k0.endsWith('case-list') ||
+          k0.includes('case-list')
+        )
+      },
+    })
+  }
+
+  const handleAfterSaveSuccess = (toastText: string) => {
+    const modeSave = saveModeRef.current
+    saveModeRef.current = null
+    const newDate = needUpdateUptodateDate()
+    console.log('[MEMO-SAVE] after save: memoDate=', memoDate,
+      'case_uptodate_date=', currentRow?.case_uptodate_date,
+      'needUpdate=', newDate,
+      'caseNo=', caseNo)
+    if (newDate && caseNo > 0) {
+      pendingUpdateDateRef.current = newDate
+      pendingAfterSaveRef.current = { modeSave, toastText }
+      setUpdateDateConfirmOpen(true)
+    } else {
+      runAfterSave(modeSave, toastText)
+    }
+  }
+
+  const pendingAfterSaveRef = useRef<{
+    modeSave: 'close' | 'new' | null
+    toastText: string
+  } | null>(null)
+
+  const updateUptodateMutation = useMutation({
+    mutationFn: async (day: string) => {
+      console.log('[MEMO-UPDATE-DATE] start: caseNo=', caseNo, 'day=', day,
+        'payload=', JSON.stringify({ case_uptodate_date: day }))
+      const result = await updateCase(caseNo, { case_uptodate_date: day })
+      console.log('[MEMO-UPDATE-DATE] done: returned case_uptodate_date=',
+        (result as any)?.case_uptodate_date ?? null)
+      return result
+    },
+    onSuccess: (updatedRow) => {
+      invalidateCaseQueries()
+      const pending = pendingAfterSaveRef.current
+      const expectedDate = pendingUpdateDateRef.current
+      pendingAfterSaveRef.current = null
+      pendingUpdateDateRef.current = null
+      setUpdateDateConfirmOpen(false)
+      const returned = (updatedRow as any)?.case_uptodate_date ?? null
+      if (
+        returned &&
+        expectedDate &&
+        toISODay(returned) === toISODay(expectedDate)
+      ) {
+        toast.success(
+          `案件跟进日期已同步更新为 ${toISODay(expectedDate) || expectedDate}`
+        )
+      } else if (updatedRow) {
+        toast.warning(
+          `跟进日期写入返回值与期望不一致：期望 ${toISODay(expectedDate) || expectedDate || '—'}，实际返回 ${toISODay(returned) || String(returned) || '空'}`
+        )
+      }
+      runAfterSave(pending?.modeSave ?? null, pending?.toastText ?? '保存完成')
+    },
+    onError: (err: Error) => {
+      console.error('[MEMO-UPDATE-DATE] error:', err)
+      toast.error(`更新跟进日期失败: ${err.message}`)
+      const pending = pendingAfterSaveRef.current
+      pendingAfterSaveRef.current = null
+      pendingUpdateDateRef.current = null
+      setUpdateDateConfirmOpen(false)
+      runAfterSave(pending?.modeSave ?? null, pending?.toastText ?? '保存完成')
+    },
+  })
+
+  const handleConfirmUpdateDate = () => {
+    const day = pendingUpdateDateRef.current
+    if (!day) {
+      setUpdateDateConfirmOpen(false)
+      return
+    }
+    updateUptodateMutation.mutate(day)
+  }
+
+  const handleCancelUpdateDate = () => {
+    const pending = pendingAfterSaveRef.current
+    pendingAfterSaveRef.current = null
+    pendingUpdateDateRef.current = null
+    setUpdateDateConfirmOpen(false)
+    runAfterSave(pending?.modeSave ?? null, pending?.toastText ?? '保存完成')
+  }
+
   const createMutation = useMutation({
     mutationFn: () =>
       createCaseMemo({
@@ -252,19 +435,7 @@ export function CasesMemoDialog({
             Array.isArray(q.queryKey) &&
             q.queryKey[0] === 'case-memo-list-by-page-case-ids',
         })
-        const modeSave = saveModeRef.current
-        saveModeRef.current = null
-        if (modeSave === 'close') {
-          toast.success('备忘已保存')
-          if (mode === 'page') {
-            onSuccess?.()
-          } else {
-            onOpenChange?.(false)
-          }
-        } else if (modeSave === 'new') {
-          toast.success('备忘已保存，可继续新增')
-          clearForm()
-        }
+        handleAfterSaveSuccess('备忘已保存')
       } else {
         saveModeRef.current = null
         toast.error('保存失败，请稍后重试')
@@ -293,14 +464,7 @@ export function CasesMemoDialog({
             Array.isArray(q.queryKey) &&
             q.queryKey[0] === 'case-memo-list-by-page-case-ids',
         })
-        saveModeRef.current = null
-        toast.success('备忘已更新')
-        clearForm()
-        if (mode === 'page') {
-          onSuccess?.()
-        } else {
-          onOpenChange?.(false)
-        }
+        handleAfterSaveSuccess('备忘已更新')
       } else {
         saveModeRef.current = null
         toast.error('更新失败，请稍后重试')
@@ -312,7 +476,10 @@ export function CasesMemoDialog({
     },
   })
 
-  const isSaving = createMutation.isPending || updateMutation.isPending
+  const isSaving =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    updateUptodateMutation.isPending
 
   const canSave =
     !isSaving &&
@@ -808,6 +975,36 @@ export function CasesMemoDialog({
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={updateDateConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !updateUptodateMutation.isPending) {
+            handleCancelUpdateDate()
+          }
+        }}
+        title='是否更新案件跟进日期'
+        confirmText='更新并保存'
+        cancelBtnText='仅保存备忘'
+        isLoading={updateUptodateMutation.isPending}
+        handleConfirm={handleConfirmUpdateDate}
+        desc={
+          <div className='space-y-2 text-[13px] leading-relaxed'>
+            <div>
+              当前备忘日期：
+              <span className='mx-1 rounded bg-amber-100/80 px-2 py-0.5 font-medium text-amber-900'>
+                {pendingUpdateDateRef.current ?? (toISODay(memoDate) || '—')}
+              </span>
+              晚于案件跟进日期：
+              <span className='mx-1 rounded bg-muted px-2 py-0.5 font-medium text-foreground/80'>
+                {toISODay(currentRow?.case_uptodate_date) || '（未设置）'}
+              </span>
+            </div>
+            <div className='text-muted-foreground'>
+              是否将案件跟进日期同步更新为备忘日期？
+            </div>
+          </div>
+        }
+      />
     </>
   )
 }
