@@ -314,6 +314,69 @@ export function getCasesDealColumns(params?: {
     return { items, fallback }
   }
 
+  function buildSuperintendentSegments(row: Case): {
+    items: { name: string }[]
+    fallback: string
+  } {
+    const idRaw = (row as any).case_superintendent_id
+    const nameRaw = row.case_superintendent
+    const items: { name: string }[] = []
+    const seenIds = new Set<string>()
+
+    if (idRaw != null && String(idRaw).trim() !== '') {
+      const ids = String(idRaw)
+        .split(/[,，]\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+      for (const id of ids) {
+        if (seenIds.has(id)) continue
+        seenIds.add(id)
+        const o = ownerIdEmailMap ? ownerIdEmailMap.get(id) : undefined
+        const n =
+          o && o.owner_name && String(o.owner_name).trim() !== ''
+            ? String(o.owner_name).trim()
+            : id
+        if (!n) continue
+        items.push({ name: n })
+      }
+    }
+
+    if (items.length === 0 && nameRaw && String(nameRaw).trim() !== '') {
+      const names = String(nameRaw)
+        .split(/[,，]\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+      const seenNames = new Set<string>()
+      for (const n of names) {
+        if (seenNames.has(n)) continue
+        seenNames.add(n)
+        items.push({ name: n })
+      }
+    }
+
+    let fallback = ''
+    if (nameRaw && String(nameRaw).trim() !== '') {
+      fallback = String(nameRaw).trim()
+    }
+    return { items, fallback }
+  }
+
+  function renderSuperintendentNode(row: Case): React.ReactNode {
+    const { items, fallback } = buildSuperintendentSegments(row)
+    if (items.length === 0) return fallback || '-'
+    return (
+      <div className='flex flex-col gap-y-1 max-w-full'>
+        {items.map((s, idx) => (
+          <div key={`${s.name}-${idx}`} className='flex items-center'>
+            <span className='truncate whitespace-nowrap text-[13px] text-foreground/80'>
+              {s.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   const J_HAND_SET = new Set(['J1', 'J2', 'J3', 'J10'])
 
   function renderServiceInchargeNode(row: Case): React.ReactNode {
@@ -1042,27 +1105,13 @@ export function getCasesDealColumns(params?: {
                     {kvRow(
                       '案件机务',
                       (() => {
-                        const rawId = (rowData as any)?.case_superintendent_id
-                        let name: string | null = null
-                        const n =
-                          typeof rawId === 'number'
-                            ? rawId
-                            : typeof rawId === 'string' && rawId.trim() !== ''
-                              ? Number(rawId)
-                              : Number.NaN
-                        if (Number.isFinite(n) && n > 0) {
-                          const hit = ownerIdEmailMap?.get(String(n))
-                          if (hit?.owner_name) name = hit.owner_name
-                        }
-                        if (!name) {
-                          const t = s(rowData.case_superintendent)
-                          if (t) name = t
-                        }
-                        return name ? (
-                          <LongText className='max-w-[480px] truncate'>
-                            {name}
-                          </LongText>
-                        ) : null
+                        const node = renderSuperintendentNode(rowData)
+                        if (node == null || node === '-') return null
+                        return (
+                          <div className='max-w-[480px]'>
+                            {node}
+                          </div>
+                        )
                       })()
                     )}
                     {kvRow(
@@ -1499,23 +1548,11 @@ export function getCasesDealColumns(params?: {
         <DataTableColumnHeader column={column} title='案件机务' />
       ),
       cell: ({ row }) => {
-        const superintendentId = (row.original as any).case_superintendent_id
-        let displayName: string | null = null
-        if (
-          superintendentId != null &&
-          superintendentId !== '' &&
-          ownerIdEmailMap
-        ) {
-          const found = ownerIdEmailMap.get(String(superintendentId))
-          if (found?.owner_name) {
-            displayName = found.owner_name
-          }
-        }
-        if (!displayName) {
-          const value = row.getValue('case_superintendent') as string | null
-          displayName = value
-        }
-        return <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
+        return (
+          <div className='max-w-40'>
+            {renderSuperintendentNode(row.original)}
+          </div>
+        )
       },
       meta: {
         label: '案件机务',
