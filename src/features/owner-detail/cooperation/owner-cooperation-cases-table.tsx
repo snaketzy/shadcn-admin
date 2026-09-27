@@ -371,30 +371,53 @@ export function OwnerCooperationCasesTable() {
           const superintendentId = (row.original as CaseForTable)
             .case_superintendent_id
           const superNum = looseNum(superintendentId)
-          let displayName: string | null = null
+          const rawText = (row.getValue('case_superintendent') as string | null) ?? null
+          const names: string[] = []
           if (superNum !== null && ownerIdEmailMap) {
             const found = ownerIdEmailMap.get(String(superNum))
-            if (found?.owner_name) {
-              displayName = found.owner_name
+            if (found?.owner_name) names.push(found.owner_name)
+          }
+          if (rawText) {
+            const parts = rawText
+              .split(/[，,、;；&\/|\s]+/)
+              .map((s) => s.trim())
+              .filter((s) => s.length > 0)
+            for (const p of parts) {
+              if (!names.includes(p)) names.push(p)
             }
           }
-          if (!displayName) {
-            const value = row.getValue('case_superintendent') as string | null
-            displayName = value
+          if (names.length === 0) names.push('-')
+          const isCurrentByText = (n: string) => {
+            const selfName = String(owner?.owner_name ?? '').trim()
+            return !!selfName && n.includes(selfName)
           }
-          const isCurrent = superNum !== null && superNum === ownerIdNum
+          const isCurrentById = superNum !== null && superNum === ownerIdNum
           return (
-            <div className='flex items-center gap-1.5'>
-              <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
-              {isCurrent && (
-                <Badge variant='secondary' className='h-5 px-1.5 text-[10px]'>
-                  当前
-                </Badge>
-              )}
+            <div className='flex flex-col gap-1.5'>
+              {names.map((n, idx) => {
+                const isCurrent =
+                  (idx === 0 && isCurrentById) || isCurrentByText(n)
+                return (
+                  <div
+                    key={`${n}-${idx}`}
+                    className='flex items-center gap-1.5 leading-tight'
+                  >
+                    <LongText className='max-w-56'>{n}</LongText>
+                    {isCurrent && (
+                      <Badge
+                        variant='secondary'
+                        className='h-5 shrink-0 px-1.5 text-[10px]'
+                      >
+                        当前
+                      </Badge>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )
         },
-        size: 140,
+        size: 220,
         enableSorting: false,
       },
       {
@@ -517,18 +540,26 @@ export function OwnerCooperationCasesTable() {
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        style={{ width: `${cell.column.getSize()}px` }}
-                        className='whitespace-nowrap'
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const colId = cell.column.id ?? ''
+                      const isSuperintendent = colId === 'case_superintendent'
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          style={{ width: `${cell.column.getSize()}px` }}
+                          className={cn(
+                            isSuperintendent
+                              ? 'whitespace-normal align-top'
+                              : 'whitespace-nowrap'
+                          )}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
                 ))
               ) : (
