@@ -53,6 +53,13 @@ const ROW_HEIGHT_CHILD = 32
 const ROW_HEIGHT_RECORD = 26
 const GROUP_PADDING_Y = 6
 
+const INQ_KEY_TO_SHORT_LABEL: Record<string, string> = {
+  Q1: '询价',
+  Q2: '报价',
+  Q3: '竞标',
+  Q4: '中标',
+}
+
 const INQ_KEY_TO_LABEL: Record<string, string> = {
   Q1: '案件询价',
   Q2: '案件报价',
@@ -376,24 +383,6 @@ export function CaseGanttChart() {
         c.case_inquiry_keyword ?? String(c.case_id)
       )}`
 
-      rows.push({
-        caseId: c.case_id,
-        rowKey: `p-${c.case_id}`,
-        type: 'parent',
-        label: caseTitle,
-        startDate: parentStart ? startOfDay(parentStart) : null,
-        endDate: parentEnd ? startOfDay(parentEnd) : null,
-        caseTitle,
-        vesselName: c.vessel_name,
-        caseLink: caseLink,
-        startLabel: parentStart ? ymdStr(parentStart) : '',
-        endLabel: parentEnd ? ymdStr(parentEnd) : '',
-        colorClass: 'bg-emerald-500/90 border-emerald-600 text-emerald-50',
-        isRecord: false,
-        indentLevel: 0,
-        rowHeight: ROW_HEIGHT_PARENT,
-      })
-
       const has = {
         Q1: (byKey.get('Q1')?.length ?? 0) > 0,
         Q2: (byKey.get('Q2')?.length ?? 0) > 0,
@@ -413,6 +402,16 @@ export function CaseGanttChart() {
         Q3: null,
         Q4: null,
       }
+      let childMin: Date | null = null
+      let childMax: Date | null = null
+      const updateChildRange = (s: Date | null, e: Date | null) => {
+        if (s) {
+          if (childMin == null || s < childMin) childMin = new Date(s)
+        }
+        if (e) {
+          if (childMax == null || e > childMax) childMax = new Date(e)
+        }
+      }
 
       for (const key of stageKeys) {
         if (!has[key]) continue
@@ -431,6 +430,8 @@ export function CaseGanttChart() {
           startS = q3s ?? s
           endE = e ?? s
         }
+        updateChildRange(startS ?? s ?? null, endE ?? e ?? null)
+        for (const { d } of list) updateChildRange(d, d)
         const aggKey = `${key.toLowerCase()}-agg-${c.case_id}`
         stageRowKeys[key] = aggKey
         rows.push({
@@ -485,6 +486,32 @@ export function CaseGanttChart() {
         }
       }
 
+      let parentS: Date | null = childMin
+      let parentE: Date | null = childMax
+      if (parentS == null)
+        parentS = parentStart ? startOfDay(parentStart) : null
+      if (parentE == null) parentE = parentEnd ? startOfDay(parentEnd) : null
+      expand(parentS)
+      expand(parentE)
+
+      rows.unshift({
+        caseId: c.case_id,
+        rowKey: `p-${c.case_id}`,
+        type: 'parent',
+        label: caseTitle,
+        startDate: parentS,
+        endDate: parentE,
+        caseTitle,
+        vesselName: c.vessel_name,
+        caseLink: caseLink,
+        startLabel: parentS ? ymdStr(parentS) : '',
+        endLabel: parentE ? ymdStr(parentE) : '',
+        colorClass: 'bg-emerald-500/90 border-emerald-600 text-emerald-50',
+        isRecord: false,
+        indentLevel: 0,
+        rowHeight: ROW_HEIGHT_PARENT,
+      })
+
       let totalH = 0
       for (const r of rows) {
         totalH +=
@@ -494,55 +521,33 @@ export function CaseGanttChart() {
       totalH += GROUP_PADDING_Y * 2
       for (let i = 0; i < rows.length; i++) rowCount += 1
 
-      const connectors: GanttConnector[] = []
-      for (let i = 0; i < stageKeys.length - 1; i++) {
-        const from = stageKeys[i]
-        const to = stageKeys[i + 1]
-        if (stageRowKeys[from] && stageRowKeys[to]) {
-          connectors.push({
-            fromRowKey: stageRowKeys[from]!,
-            toRowKey: stageRowKeys[to]!,
-            fromEdge: 'end',
-            toEdge: 'start',
-          })
-        }
-      }
-      if (stageRowKeys.Q1 && stageRowKeys.Q3 && !stageRowKeys.Q2) {
-        connectors.push({
-          fromRowKey: stageRowKeys.Q1!,
-          toRowKey: stageRowKeys.Q3!,
-          fromEdge: 'end',
-          toEdge: 'start',
-        })
-      }
-      if (stageRowKeys.Q2 && stageRowKeys.Q4 && !stageRowKeys.Q3) {
-        connectors.push({
-          fromRowKey: stageRowKeys.Q2!,
-          toRowKey: stageRowKeys.Q4!,
-          fromEdge: 'end',
-          toEdge: 'start',
-        })
-      }
-
       out.push({
         caseId: c.case_id,
         caseTitle,
         vesselName: c.vessel_name,
         rows,
         totalHeight: totalH,
-        connectors,
+        connectors: [],
       })
     }
     if (globalMin == null || globalMax == null) {
       const today = startOfDay(new Date())
-      globalMin = addDays(today, -7 * 4)
-      globalMax = addDays(today, 7 * 8)
+      globalMin = addDays(today, -7 * 8)
+      globalMax = addDays(today, 7 * 12)
     } else {
       const today = startOfDay(new Date())
       const minD = globalMin as Date
       const maxD = globalMax as Date
       if (today < minD) globalMin = new Date(today)
       if (today > maxD) globalMax = new Date(today)
+      globalMin = addDays(minD, -7 * 4)
+      globalMax = addDays(maxD, 7 * 8)
+    }
+    if (anchorDeltaDays !== 0) {
+      const shiftMin = addDays(globalMin as Date, anchorDeltaDays)
+      const shiftMax = addDays(globalMax as Date, anchorDeltaDays)
+      if (anchorDeltaDays < 0) globalMin = shiftMin
+      else globalMax = shiftMax
     }
     return {
       groups: out,
@@ -550,7 +555,7 @@ export function CaseGanttChart() {
       maxDate: startOfWeek(addDays(globalMax, 7)),
       totalRows: rowCount,
     }
-  }, [caseRows, inquiryMap, supplierIdNameMap])
+  }, [caseRows, inquiryMap, supplierIdNameMap, anchorDeltaDays])
 
   const weekHeaders = useMemo<
     Array<{ weekStart: Date; label: string; leftPx: number }>
@@ -607,7 +612,6 @@ export function CaseGanttChart() {
     LEFT_COL_WIDTH_DEFAULT
   )
   const [isDragging, setIsDragging] = useState(false)
-  useEffect(() => {}, [anchorDeltaDays])
 
   useEffect(() => {
     const handleMove = (e: MouseEvent | TouchEvent) => {
@@ -858,22 +862,6 @@ export function CaseGanttChart() {
                       </div>
                     </div>
 
-                    <svg width={0} height={0} className='absolute'>
-                      <defs>
-                        <marker
-                          id='gantt-arrow'
-                          viewBox='0 0 10 10'
-                          refX='8'
-                          refY='5'
-                          markerWidth='6'
-                          markerHeight='6'
-                          orient='auto-start-reverse'
-                        >
-                          <path d='M 0 0 L 10 5 L 0 10 z' fill='#94a3b8' />
-                        </marker>
-                      </defs>
-                    </svg>
-
                     {groups.map((g, gIdx) => {
                       const allRows = g.rows
                       const visibleRows = collapsedCaseIds.has(g.caseId)
@@ -998,16 +986,20 @@ export function CaseGanttChart() {
                                           : r.label}
                                       </Link>
                                     </TooltipTrigger>
-                                    <TooltipContent side='right' align='start'>
+                                    <TooltipContent
+                                      side='right'
+                                      align='start'
+                                      className='*:!text-white'
+                                    >
                                       <div className='max-w-[280px] text-xs leading-5'>
                                         <div>
-                                          <span className='text-muted-foreground'>
+                                          <span className='text-white/80'>
                                             船名：
                                           </span>
                                           {r.vesselName || '-'}
                                         </div>
                                         <div>
-                                          <span className='text-muted-foreground'>
+                                          <span className='text-white/80'>
                                             阶段：
                                           </span>
                                           {r.type === 'parent'
@@ -1020,7 +1012,7 @@ export function CaseGanttChart() {
                                         </div>
                                         {r.startLabel ? (
                                           <div>
-                                            <span className='text-muted-foreground'>
+                                            <span className='text-white/80'>
                                               起始：
                                             </span>
                                             {r.startLabel}
@@ -1029,7 +1021,7 @@ export function CaseGanttChart() {
                                         {r.endLabel &&
                                         r.endLabel !== r.startLabel ? (
                                           <div>
-                                            <span className='text-muted-foreground'>
+                                            <span className='text-white/80'>
                                               终止：
                                             </span>
                                             {r.endLabel}
@@ -1037,7 +1029,7 @@ export function CaseGanttChart() {
                                         ) : null}
                                         {r.recordRemark ? (
                                           <div>
-                                            <span className='text-muted-foreground'>
+                                            <span className='text-white/80'>
                                               备注：
                                             </span>
                                             {r.recordRemark}
@@ -1051,7 +1043,7 @@ export function CaseGanttChart() {
                             })}
                           </div>
                           <div
-                            className='relative'
+                            className='relative z-0 overflow-hidden'
                             style={{
                               width: weeksWidthPx,
                               minHeight: realHeight,
@@ -1096,54 +1088,6 @@ export function CaseGanttChart() {
                                 </div>
                               ) : null}
                             </div>
-
-                            <svg
-                              className='pointer-events-none absolute inset-0 z-[1]'
-                              width={weeksWidthPx}
-                              height={realHeight}
-                            >
-                              {g.connectors.map((conn, ci) => {
-                                const y1 = rowTopCenterMap.get(conn.fromRowKey)
-                                const y2 = rowTopCenterMap.get(conn.toRowKey)
-                                if (y1 == null || y2 == null) return null
-                                const fromRow = filteredRows.find(
-                                  (x) => x.rowKey === conn.fromRowKey
-                                )
-                                const toRow = filteredRows.find(
-                                  (x) => x.rowKey === conn.toRowKey
-                                )
-                                if (!fromRow || !toRow) return null
-                                if (
-                                  !fromRow.startDate ||
-                                  !fromRow.endDate ||
-                                  !toRow.startDate ||
-                                  !toRow.endDate
-                                )
-                                  return null
-                                const x1 =
-                                  leftPxForDate(fromRow.endDate) +
-                                  widthForRange(
-                                    fromRow.startDate,
-                                    fromRow.endDate
-                                  )
-                                const x2 = leftPxForDate(toRow.startDate)
-                                const midY = (y1 + y2) / 2
-                                const path = `M ${x1} ${y1} L ${x1 + 4} ${y1} L ${x1 + 4} ${midY} L ${Math.max(0, x2 - 6)} ${midY} L ${Math.max(0, x2 - 6)} ${y2} L ${Math.max(0, x2)} ${y2}`
-                                return (
-                                  <path
-                                    key={ci}
-                                    d={path}
-                                    fill='none'
-                                    stroke='#94a3b8'
-                                    strokeWidth={1.25}
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    markerEnd='url(#gantt-arrow)'
-                                    opacity={0.8}
-                                  />
-                                )
-                              })}
-                            </svg>
 
                             {filteredRows.map((r, ri) => {
                               if (r.startDate == null || r.endDate == null)
@@ -1195,7 +1139,77 @@ export function CaseGanttChart() {
                                           ? ` → ${r.endLabel}`
                                           : ''
                                       }`
+                              const clampedLeft = Math.max(0, left)
+                              const needCompactOutsideLabel =
+                                clampedLeft < (isParent ? 420 : 170) + 8
+                              const outsideLabelWidth = isParent
+                                ? needCompactOutsideLabel
+                                  ? 160
+                                  : Math.max(
+                                      120,
+                                      Math.min(420, clampedLeft - 8)
+                                    ) || 120
+                                : needCompactOutsideLabel
+                                  ? 150
+                                  : Math.max(
+                                      150,
+                                      Math.min(170, clampedLeft - 8)
+                                    ) || 150
+                              const shortLabel =
+                                !isParent && !isRecord
+                                  ? (INQ_KEY_TO_SHORT_LABEL[r.type] ?? '')
+                                  : ''
+                              const outsideLabelColor = isParent
+                                ? 'rgb(16, 185, 129)'
+                                : r.type === 'Q1'
+                                  ? 'rgb(14, 165, 233)'
+                                  : r.type === 'Q2'
+                                    ? 'rgb(217, 119, 6)'
+                                    : r.type === 'Q3'
+                                      ? 'rgb(124, 58, 237)'
+                                      : r.type === 'Q4'
+                                        ? 'rgb(234, 88, 12)'
+                                        : 'rgb(71, 85, 105)'
+                              const outsideLabelText = isParent
+                                ? needCompactOutsideLabel
+                                  ? r.startLabel && r.endLabel
+                                    ? `${r.startLabel} → ${r.endLabel}`
+                                    : barInnerText
+                                  : barInnerText
+                                : !isRecord
+                                  ? needCompactOutsideLabel
+                                    ? shortLabel &&
+                                      r.recordRemark &&
+                                      width > 180
+                                      ? `${shortLabel} · ${r.recordRemark}`
+                                      : shortLabel ||
+                                        (r.startLabel ?? '') +
+                                          (r.endLabel &&
+                                          r.endLabel !== r.startLabel
+                                            ? ` → ${r.endLabel}`
+                                            : '')
+                                    : shortLabel && barInnerText
+                                      ? `${shortLabel} · ${barInnerText}`
+                                      : shortLabel || barInnerText
+                                  : ''
                               const endX = left + width
+                              const rawOutsideLeft =
+                                clampedLeft - outsideLabelWidth - 8
+                              const hasRoomForOutside = rawOutsideLeft >= 0
+                              const outsideLeft = hasRoomForOutside
+                                ? rawOutsideLeft
+                                : 0
+                              const needMoveLabelOutside =
+                                isParent || (!isParent && !isRecord)
+                              const displayLabel = isRecord
+                                ? barInnerText
+                                : hasRoomForOutside
+                                  ? ''
+                                  : outsideLabelText
+                              const needRenderOutside =
+                                needMoveLabelOutside &&
+                                outsideLabelText &&
+                                hasRoomForOutside
                               return (
                                 <div
                                   key={r.rowKey}
@@ -1237,7 +1251,7 @@ export function CaseGanttChart() {
                                         }}
                                       >
                                         <span className='truncate font-medium'>
-                                          {barInnerText}
+                                          {displayLabel}
                                         </span>
                                       </Link>
                                     </TooltipTrigger>
@@ -1245,12 +1259,13 @@ export function CaseGanttChart() {
                                       side='top'
                                       align='start'
                                       alignOffset={-4}
+                                      className='*:!text-white'
                                     >
                                       <div className='max-w-[280px] text-xs leading-5'>
                                         <div className='font-semibold'>
                                           {r.caseTitle}
                                         </div>
-                                        <div className='text-muted-foreground'>
+                                        <div className='text-white/90'>
                                           {r.type === 'parent'
                                             ? '案件主链路'
                                             : isRecord
@@ -1277,6 +1292,26 @@ export function CaseGanttChart() {
                                       </div>
                                     </TooltipContent>
                                   </Tooltip>
+                                  {needRenderOutside ? (
+                                    <div
+                                      className='pointer-events-none absolute z-[4] flex items-center font-semibold select-none'
+                                      style={{
+                                        top: barTop,
+                                        height: barHeight,
+                                        left: outsideLeft,
+                                        width: outsideLabelWidth,
+                                        fontSize: isRecord ? 10.5 : 11.5,
+                                        lineHeight: 1.25,
+                                        textAlign: 'right',
+                                        justifyContent: 'flex-end',
+                                        color: outsideLabelColor,
+                                      }}
+                                    >
+                                      <span className='truncate'>
+                                        {outsideLabelText}
+                                      </span>
+                                    </div>
+                                  ) : null}
                                   {showDiamond ? (
                                     <Diamond
                                       className={cn(
@@ -1372,31 +1407,6 @@ export function CaseGanttChart() {
                     }}
                   />
                   <span>今日高亮列</span>
-                </div>
-                <div className='flex items-center gap-1.5'>
-                  <svg width='28' height='14' viewBox='0 0 28 14'>
-                    <defs>
-                      <marker
-                        id='legend-arrow'
-                        viewBox='0 0 10 10'
-                        refX='8'
-                        refY='5'
-                        markerWidth='5'
-                        markerHeight='5'
-                        orient='auto'
-                      >
-                        <path d='M 0 0 L 10 5 L 0 10 z' fill='#94a3b8' />
-                      </marker>
-                    </defs>
-                    <path
-                      d='M 2 4 L 12 4 L 12 10 L 22 10'
-                      fill='none'
-                      stroke='#94a3b8'
-                      strokeWidth='1.2'
-                      markerEnd='url(#legend-arrow)'
-                    />
-                  </svg>
-                  <span>阶段间流转箭头</span>
                 </div>
                 <div className='flex items-center gap-1.5'>
                   <ChevronDown className='size-3.5 text-slate-500' />
