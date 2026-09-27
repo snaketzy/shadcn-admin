@@ -974,7 +974,7 @@ export function CaseGanttChart() {
                             : ROW_HEIGHT_CHILD)
                       }
                       realHeight += GROUP_PADDING_Y * 2
-                      const rowTopCenterMap = computeRowTopMap(filteredRows)
+                      computeRowTopMap(filteredRows)
                       return (
                         <div
                           key={g.caseId}
