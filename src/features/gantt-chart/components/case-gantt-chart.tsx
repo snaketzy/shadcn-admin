@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
   BarChart3,
@@ -34,7 +34,6 @@ import {
   type Case,
   type CaseInquiry,
 } from '@/features/cases/api/client'
-import { CasesActionDialog } from '@/features/cases/components/cases-action-dialog'
 import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
@@ -215,7 +214,6 @@ interface GanttGroup {
 }
 
 export function CaseGanttChart() {
-  const queryClient = useQueryClient()
   const [anchorDeltaDays, setAnchorDeltaDays] = useState(0)
   const [collapsedCaseIds, setCollapsedCaseIds] = useState<Set<number>>(
     new Set()
@@ -623,34 +621,18 @@ export function CaseGanttChart() {
     LEFT_COL_WIDTH_DEFAULT
   )
   const [isDragging, setIsDragging] = useState(false)
-  const [editCaseOpen, setEditCaseOpen] = useState(false)
-  const [editingCaseRow, setEditingCaseRow] = useState<Case | null>(null)
+  const [, setMountTick] = useState(0)
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const didCenterScrollRef = useRef(false)
-
-  const caseByIdMap = useMemo(() => {
-    const m = new Map<number, Case>()
-    for (const c of caseRows) m.set(c.case_id, c)
-    return m
-  }, [caseRows])
-
-  const openEditCase = (caseId: number) => {
-    const c = caseByIdMap.get(caseId)
-    if (!c) return
-    setEditingCaseRow(c)
-    setEditCaseOpen(true)
-  }
   const centerScrollRafRef = useRef<number | null>(null)
   const centerScrollTimerRef = useRef<number | null>(null)
   const centerScrollTimer2Ref = useRef<number | null>(null)
   const centerScrollPollRef = useRef<number | null>(null)
 
-  const [, setMountTick] = useState(0)
-
   useEffect(() => {
-    const t1 = window.setTimeout(() => setMountTick((n: number) => n + 1), 0)
-    const t2 = window.setTimeout(() => setMountTick((n: number) => n + 1), 40)
-    const t3 = window.setTimeout(() => setMountTick((n: number) => n + 1), 120)
+    const t1 = window.setTimeout(() => setMountTick((n) => n + 1), 0)
+    const t2 = window.setTimeout(() => setMountTick((n) => n + 1), 40)
+    const t3 = window.setTimeout(() => setMountTick((n) => n + 1), 120)
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
@@ -866,7 +848,6 @@ export function CaseGanttChart() {
             </div>
           ) : (
             <TooltipProvider delayDuration={120}>
-              <></>
               <div className='rounded-lg border'>
                 <div
                   ref={scrollerRef}
@@ -993,7 +974,7 @@ export function CaseGanttChart() {
                             : ROW_HEIGHT_CHILD)
                       }
                       realHeight += GROUP_PADDING_Y * 2
-                      computeRowTopMap(filteredRows)
+                      const rowTopCenterMap = computeRowTopMap(filteredRows)
                       return (
                         <div
                           key={g.caseId}
@@ -1323,37 +1304,6 @@ export function CaseGanttChart() {
                                 needMoveLabelOutside &&
                                 outsideLabelText &&
                                 hasRoomForOutside
-                              const barCls = cn(
-                                'absolute cursor-pointer rounded-md border shadow-sm transition hover:shadow-md hover:brightness-110',
-                                r.colorClass ?? 'bg-slate-500 text-white'
-                              )
-                              const parentBarStyle: React.CSSProperties = {
-                                left: Math.max(0, left),
-                                top: barTop,
-                                width,
-                                height: barHeight,
-                                padding: '2px 8px',
-                                fontSize: 11.5,
-                                lineHeight: 1.25,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                zIndex: 2,
-                                textAlign: 'left',
-                              }
-                              const nonParentBarStyle: React.CSSProperties = {
-                                left: Math.max(0, left),
-                                top: barTop,
-                                width,
-                                height: barHeight,
-                                padding: isRecord ? '1px 6px' : '2px 8px',
-                                fontSize: isRecord ? 10.5 : 11.5,
-                                lineHeight: 1.25,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                zIndex: 2,
-                              }
                               return (
                                 <div
                                   key={r.rowKey}
@@ -1367,35 +1317,37 @@ export function CaseGanttChart() {
                                 >
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      {isParent ? (
-                                        <button
-                                          type='button'
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openEditCase(r.caseId)
-                                          }}
-                                          className={barCls}
-                                          style={parentBarStyle}
-                                        >
-                                          <span className='truncate font-medium'>
-                                            {displayLabel}
-                                          </span>
-                                        </button>
-                                      ) : (
-                                        <Link
-                                          to='/case_list'
-                                          search={{
-                                            caseInquiryKeyword:
-                                              r.caseTitle || undefined,
-                                          }}
-                                          className={barCls}
-                                          style={nonParentBarStyle}
-                                        >
-                                          <span className='truncate font-medium'>
-                                            {displayLabel}
-                                          </span>
-                                        </Link>
-                                      )}
+                                      <Link
+                                        to='/case_list'
+                                        search={{
+                                          caseInquiryKeyword:
+                                            r.caseTitle || undefined,
+                                        }}
+                                        className={cn(
+                                          'absolute cursor-pointer rounded-md border shadow-sm transition hover:shadow-md hover:brightness-110',
+                                          r.colorClass ??
+                                            'bg-slate-500 text-white'
+                                        )}
+                                        style={{
+                                          left: Math.max(0, left),
+                                          top: barTop,
+                                          width,
+                                          height: barHeight,
+                                          padding: isRecord
+                                            ? '1px 6px'
+                                            : '2px 8px',
+                                          fontSize: isRecord ? 10.5 : 11.5,
+                                          lineHeight: 1.25,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          zIndex: 2,
+                                        }}
+                                      >
+                                        <span className='truncate font-medium'>
+                                          {displayLabel}
+                                        </span>
+                                      </Link>
                                     </TooltipTrigger>
                                     <TooltipContent
                                       side='top'
@@ -1561,29 +1513,6 @@ export function CaseGanttChart() {
               </div>
             </TooltipProvider>
           )}
-          <CasesActionDialog
-            key={
-              editingCaseRow
-                ? `gantt-edit-case-${editingCaseRow.case_id}`
-                : 'gantt-edit-empty'
-            }
-            open={editCaseOpen}
-            onOpenChange={(v) => {
-              if (!v) {
-                setEditCaseOpen(false)
-                setTimeout(() => setEditingCaseRow(null), 320)
-              } else {
-                setEditCaseOpen(true)
-              }
-            }}
-            currentRow={editingCaseRow ?? undefined}
-            mode='dialog'
-            onSuccess={() => {
-              queryClient?.invalidateQueries?.({
-                queryKey: ['case-paginated'],
-              })
-            }}
-          />
         </CardContent>
       </Card>
     </div>
