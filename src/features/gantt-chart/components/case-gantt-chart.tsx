@@ -68,25 +68,30 @@ const INQ_KEY_TO_LABEL: Record<string, string> = {
 }
 
 const INQ_KEY_TO_COLOR: Record<string, string> = {
-  Q1: 'bg-sky-500/90 border-sky-600 text-sky-50',
-  Q2: 'bg-amber-500/90 border-amber-600 text-amber-50',
-  Q3: 'bg-violet-500/90 border-violet-600 text-violet-50',
-  Q4: 'bg-orange-500/90 border-orange-600 text-orange-50',
+  Q1: 'bg-[#0ea5e9] border-[#0284c7] text-white',
+  Q2: 'bg-[#CC87F8] border-[#A065D0] text-white',
+  Q3: 'bg-[#7c3aed] border-[#5b21b6] text-white',
+  Q4: 'bg-[#0fb0b5] border-[#0a8488] text-white',
 }
 
 const INQ_KEY_TO_COLOR_SOFT: Record<string, string> = {
-  Q1: 'bg-sky-400/80 border-sky-500 text-sky-50',
-  Q2: 'bg-amber-400/80 border-amber-500 text-amber-50',
-  Q3: 'bg-violet-400/80 border-violet-500 text-violet-50',
-  Q4: 'bg-orange-400/80 border-orange-500 text-orange-50',
+  Q1: 'bg-[#38bdf8]/90 border-[#0284c7] text-white',
+  Q2: 'bg-[#CC87F8]/90 border-[#A065D0] text-white',
+  Q3: 'bg-[#8b5cf6]/85 border-[#5b21b6] text-white',
+  Q4: 'bg-[#0fb0b5]/95 border-[#0a8488] text-white',
 }
 
 const INQ_KEY_TO_DIAMOND: Record<string, string> = {
-  Q4: 'text-orange-500 fill-orange-100',
-  Q3: 'text-violet-500 fill-violet-100',
-  Q2: 'text-amber-500 fill-amber-100',
-  Q1: 'text-sky-500 fill-sky-100',
+  Q4: 'text-[#0fb0b5] fill-[#B8F3F5]',
+  Q3: 'text-[#7c3aed] fill-violet-100',
+  Q2: 'text-[#A065D0] fill-[#EAD5FB]',
+  Q1: 'text-[#0ea5e9] fill-sky-100',
 }
+
+const PARENT_HAS_AWARD_BAR_CLASS = 'bg-[#10b981] border-[#059669] text-white'
+const PARENT_NO_AWARD_BAR_CLASS = 'bg-[#e17100] border-[#b55a00] text-white'
+const PARENT_HAS_AWARD_OUTSIDE_COLOR = '#10b981'
+const PARENT_NO_AWARD_OUTSIDE_COLOR = '#e17100'
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
@@ -189,6 +194,7 @@ interface GanttRow {
   showDiamond?: boolean
   rowHeight?: number
   indentLevel?: number
+  hasQ4Award?: boolean
 }
 
 interface GanttConnector {
@@ -506,10 +512,13 @@ export function CaseGanttChart() {
         caseLink: caseLink,
         startLabel: parentS ? ymdStr(parentS) : '',
         endLabel: parentE ? ymdStr(parentE) : '',
-        colorClass: 'bg-emerald-500/90 border-emerald-600 text-emerald-50',
+        colorClass: has.Q4
+          ? PARENT_HAS_AWARD_BAR_CLASS
+          : PARENT_NO_AWARD_BAR_CLASS,
         isRecord: false,
         indentLevel: 0,
         rowHeight: ROW_HEIGHT_PARENT,
+        hasQ4Award: !!has.Q4,
       })
 
       let totalH = 0
@@ -1243,15 +1252,17 @@ export function CaseGanttChart() {
                                   ? (INQ_KEY_TO_SHORT_LABEL[r.type] ?? '')
                                   : ''
                               const outsideLabelColor = isParent
-                                ? 'rgb(16, 185, 129)'
+                                ? r.hasQ4Award
+                                  ? PARENT_HAS_AWARD_OUTSIDE_COLOR
+                                  : PARENT_NO_AWARD_OUTSIDE_COLOR
                                 : r.type === 'Q1'
-                                  ? 'rgb(14, 165, 233)'
+                                  ? '#0ea5e9'
                                   : r.type === 'Q2'
-                                    ? 'rgb(217, 119, 6)'
+                                    ? '#CC87F8'
                                     : r.type === 'Q3'
-                                      ? 'rgb(124, 58, 237)'
+                                      ? '#7c3aed'
                                       : r.type === 'Q4'
-                                        ? 'rgb(234, 88, 12)'
+                                        ? '#0fb0b5'
                                         : 'rgb(71, 85, 105)'
                               const outsideLabelText = isParent
                                 ? needCompactOutsideLabel
@@ -1454,28 +1465,32 @@ export function CaseGanttChart() {
               </div>
               <div className='mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground'>
                 <LegendSwatch
-                  className='bg-emerald-500'
-                  label='案件主链路（询价日期 → 跟进日期）'
+                  className='bg-[#10b981]'
+                  label='已中标（有中标记录）'
                 />
                 <LegendSwatch
-                  className='bg-sky-500'
+                  className='bg-[#e17100]'
+                  label='跟进中（无中标记录）'
+                />
+                <LegendSwatch
+                  className='bg-[#0ea5e9]'
                   label='案件询价（阶段聚合 + 逐记录）'
                 />
                 <LegendSwatch
-                  className='bg-amber-500'
+                  className='bg-[#CC87F8]'
                   label='案件报价（阶段聚合 + 逐记录）'
                 />
                 <LegendSwatch
-                  className='bg-violet-500'
+                  className='bg-[#7c3aed]'
                   label='案件竞标（阶段聚合 + 逐记录）'
                 />
                 <LegendSwatch
-                  className='bg-orange-500'
+                  className='bg-[#0fb0b5]'
                   label='案件中标（最早竞标→中标 + 🔷 里程碑）'
                 />
                 <div className='flex items-center gap-1.5'>
                   <Diamond
-                    className='size-3.5 fill-orange-100 text-orange-500'
+                    className='size-3.5 fill-[#B8F3F5] text-[#0fb0b5]'
                     strokeWidth={2}
                   />
                   <span>中标里程碑</span>
