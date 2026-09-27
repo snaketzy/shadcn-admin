@@ -325,7 +325,7 @@ export function SuperintendentMultiPickerDialog({
       })
       return
     }
-    const _ = firstId
+    void firstId
     setSelectedIds((prev) => {
       const next = new Set(prev)
       for (const o of filtered) next.add(String(o.owner_id ?? ''))

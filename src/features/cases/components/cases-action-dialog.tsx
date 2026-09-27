@@ -122,10 +122,6 @@ import {
   type OwnerPickerResult,
 } from '@/features/owners/components/owner-picker-dialog'
 import {
-  SuperintendentPickerDialog,
-  type SuperintendentPickerResult,
-} from '@/features/owners/components/superintendent-picker-dialog'
-import {
   SuperintendentMultiPickerDialog,
   type SuperintendentMultiPickerResult,
 } from '@/features/owners/components/superintendent-multi-picker-dialog'
@@ -1011,14 +1007,6 @@ export function CasesActionDialog({
     })
   }, [ownerRows])
 
-  const superintendentNameMap = useMemo(() => {
-    const m = new Map<string, Owner>()
-    for (const o of superintendentRows) {
-      if (o.owner_name) m.set(String(o.owner_name), o)
-    }
-    return m
-  }, [superintendentRows])
-
   const superintendentIdMap = useMemo(() => {
     const m = new Map<string, Owner>()
     for (const o of superintendentRows) {
@@ -1029,77 +1017,9 @@ export function CasesActionDialog({
     return m
   }, [superintendentRows])
 
-  const resolveSuperintendentDisplay = useCallback(
-    (
-      name: string | null | undefined,
-      ownerId?: string | number | null | undefined
-    ): {
-      name: string
-      email: string
-      phone: string
-      team: string
-      department: string
-      rank: string
-    } => {
-      const idStr =
-        ownerId != null && ownerId !== '' && !Number.isNaN(Number(ownerId))
-          ? String(ownerId)
-          : ''
-      if (idStr) {
-        const o = superintendentIdMap.get(idStr)
-        if (o) {
-          return {
-            name: o.owner_name ?? '',
-            email: o.owner_email ?? '',
-            phone: o.owner_phone ?? '',
-            team: resolveOwnerTeamLabel(o.owner_team),
-            department: resolveOwnerDeptLabel(o.owner_department),
-            rank: resolveOwnerRankLabel(o.owner_rank),
-          }
-        }
-      }
-      const n = name ?? ''
-      if (!n)
-        return {
-          name: '',
-          email: '',
-          phone: '',
-          team: '',
-          department: '',
-          rank: '',
-        }
-      const o = superintendentNameMap.get(n)
-      if (o) {
-        return {
-          name: o.owner_name ?? '',
-          email: o.owner_email ?? '',
-          phone: o.owner_phone ?? '',
-          team: resolveOwnerTeamLabel(o.owner_team),
-          department: resolveOwnerDeptLabel(o.owner_department),
-          rank: resolveOwnerRankLabel(o.owner_rank),
-        }
-      }
-      return {
-        name: n,
-        email: '',
-        phone: '',
-        team: '',
-        department: '',
-        rank: '',
-      }
-    },
-    [
-      superintendentNameMap,
-      superintendentIdMap,
-      resolveOwnerTeamLabel,
-      resolveOwnerDeptLabel,
-      resolveOwnerRankLabel,
-    ]
-  )
-
   const resolveSuperintendentMultiDisplays = useCallback(
     (
-      _nameCsv: string | null | undefined,
+      _nameCsv: string | number | Array<string | number> | null | undefined,
       idCsv: string | number | Array<string | number> | null | undefined
     ): Array<{
       name: string
@@ -1770,17 +1690,6 @@ export function CasesActionDialog({
     formCaseSuperintendentId,
     resolveSuperintendentMultiDisplays,
   ])
-
-  const superintendentDisplay =
-    superintendentMultiDisplays[0] ??
-    {
-      name: '',
-      email: '',
-      phone: '',
-      team: '',
-      department: '',
-      rank: '',
-    }
 
   const shipyardContactDisplay = useMemo(() => {
     return resolveShipyardContactDisplay(formShipyardBusiness ?? '')
