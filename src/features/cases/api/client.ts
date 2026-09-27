@@ -50,14 +50,11 @@ export interface Case {
   case_uptodate_date: string | null
   case_should_handle_today: string | null
   owner_following: string | null
+  owner_following_id?: number | null
   shipyard_business: string | null
   case_agent: string | null
   case_superintendent: string | null
-  case_superintendent_id?:
-    | string
-    | number
-    | Array<string | number>
-    | null
+  case_superintendent_id?: number | null
   case_surveyor: string | null
   case_delivery_or_service_incharge: string | null
   case_delivery_or_service_incharge_id?:

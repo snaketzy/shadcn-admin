@@ -101,10 +101,28 @@ function formatDateAsHyphen(raw: unknown): string {
   return str
 }
 
-type CaseForTable = Case & {
-  owner_following_id?: number | null
-  case_superintendent_id?: number | null
+function looseNum(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === '') return null
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) ? raw : null
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+    const n = Number(trimmed)
+    return Number.isFinite(n) ? n : null
+  }
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const n = looseNum(item)
+      if (n !== null) return n
+    }
+    return null
+  }
+  return null
 }
+
+type CaseForTable = Case
 
 function useProgressDict() {
   return useQuery({
@@ -191,14 +209,20 @@ export function OwnerCooperationCasesTable() {
 
   const filteredRows = useMemo(() => {
     if (!owner || !Number.isFinite(ownerIdNum) || ownerIdNum <= 0) return []
+    const selfName = String(owner?.owner_name ?? '').trim()
     return (allCases as CaseForTable[]).filter((c) => {
-      const followId = c.owner_following_id
-      const superId = c.case_superintendent_id
-      const matchFollow =
-        followId != null && Number.isFinite(followId) && Number(followId) === ownerIdNum
-      const matchSuper =
-        superId != null && Number.isFinite(superId) && Number(superId) === ownerIdNum
-      return matchFollow || matchSuper
+      const followN = looseNum(c.owner_following_id)
+      const superN = looseNum(c.case_superintendent_id)
+      const matchFollowId = followN !== null && followN === ownerIdNum
+      const matchSuperId = superN !== null && superN === ownerIdNum
+      let matchText = false
+      if (selfName) {
+        const followText = String(c.owner_following ?? '')
+        const superText = String(c.case_superintendent ?? '')
+        matchText =
+          followText.includes(selfName) || superText.includes(selfName)
+      }
+      return matchFollowId || matchSuperId || matchText
     })
   }, [allCases, owner, ownerIdNum])
 
@@ -322,8 +346,8 @@ export function OwnerCooperationCasesTable() {
         cell: ({ row }) => {
           const value = row.getValue('owner_following') as string | null
           const id = (row.original as CaseForTable).owner_following_id
-          const isCurrent =
-            id != null && Number(id) === ownerIdNum
+          const idNum = looseNum(id)
+          const isCurrent = idNum !== null && idNum === ownerIdNum
           return (
             <div className='flex items-center gap-1.5'>
               <span>{value ?? '-'}</span>
@@ -346,13 +370,10 @@ export function OwnerCooperationCasesTable() {
         cell: ({ row }) => {
           const superintendentId = (row.original as CaseForTable)
             .case_superintendent_id
+          const superNum = looseNum(superintendentId)
           let displayName: string | null = null
-          if (
-            superintendentId != null &&
-            !Number.isNaN(superintendentId) &&
-            ownerIdEmailMap
-          ) {
-            const found = ownerIdEmailMap.get(String(superintendentId))
+          if (superNum !== null && ownerIdEmailMap) {
+            const found = ownerIdEmailMap.get(String(superNum))
             if (found?.owner_name) {
               displayName = found.owner_name
             }
@@ -361,7 +382,17 @@ export function OwnerCooperationCasesTable() {
             const value = row.getValue('case_superintendent') as string | null
             displayName = value
           }
-          return <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
+          const isCurrent = superNum !== null && superNum === ownerIdNum
+          return (
+            <div className='flex items-center gap-1.5'>
+              <LongText className='max-w-40'>{displayName ?? '-'}</LongText>
+              {isCurrent && (
+                <Badge variant='secondary' className='h-5 px-1.5 text-[10px]'>
+                  当前
+                </Badge>
+              )}
+            </div>
+          )
         },
         size: 140,
         enableSorting: false,
