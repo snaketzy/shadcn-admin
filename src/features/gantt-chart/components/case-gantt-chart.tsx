@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
@@ -612,6 +612,88 @@ export function CaseGanttChart() {
     LEFT_COL_WIDTH_DEFAULT
   )
   const [isDragging, setIsDragging] = useState(false)
+  const [, setMountTick] = useState(0)
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
+  const didCenterScrollRef = useRef(false)
+  const centerScrollRafRef = useRef<number | null>(null)
+  const centerScrollTimerRef = useRef<number | null>(null)
+  const centerScrollTimer2Ref = useRef<number | null>(null)
+  const centerScrollPollRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const t1 = window.setTimeout(() => setMountTick((n) => n + 1), 0)
+    const t2 = window.setTimeout(() => setMountTick((n) => n + 1), 40)
+    const t3 = window.setTimeout(() => setMountTick((n) => n + 1), 120)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (todayLine == null) return
+    if (didCenterScrollRef.current) return
+    const todayLineNow = todayLine
+    const computeAndRun = () => {
+      const el =
+        scrollerRef.current ??
+        (document.querySelector('.gantt-root-wrapper') as HTMLElement | null)
+      if (!el) return false
+      const dv = Math.max(0, el.clientWidth - leftColWidth)
+      if (dv <= 0 || el.clientWidth < 60 || el.scrollWidth < 200) return false
+      const maxSl = Math.max(0, el.scrollWidth - el.clientWidth)
+      const targetSl = Math.max(
+        0,
+        Math.min(maxSl, todayLineNow - dv / 2 + DAY_WIDTH / 2)
+      )
+      try {
+        el.scrollLeft = targetSl
+      } catch {}
+      try {
+        el.scrollTo?.({ left: targetSl, behavior: 'auto' })
+      } catch {}
+      return Math.abs(el.scrollLeft - targetSl) <= 1
+    }
+    const poll = () => {
+      const ok = computeAndRun()
+      if (!ok && !didCenterScrollRef.current) {
+        centerScrollPollRef.current = window.setTimeout(poll, 20)
+      } else if (ok) {
+        didCenterScrollRef.current = true
+      }
+    }
+    centerScrollRafRef.current = requestAnimationFrame(() => {
+      poll()
+    })
+    centerScrollTimerRef.current = window.setTimeout(() => {
+      if (didCenterScrollRef.current) return
+      computeAndRun()
+    }, 140)
+    centerScrollTimer2Ref.current = window.setTimeout(() => {
+      if (didCenterScrollRef.current) {
+        const ok = computeAndRun()
+        if (ok) didCenterScrollRef.current = true
+      } else {
+        computeAndRun()
+        didCenterScrollRef.current = true
+      }
+    }, 380)
+    return () => {
+      if (centerScrollRafRef.current != null)
+        cancelAnimationFrame(centerScrollRafRef.current)
+      if (centerScrollPollRef.current != null)
+        clearTimeout(centerScrollPollRef.current)
+      if (centerScrollTimerRef.current != null)
+        clearTimeout(centerScrollTimerRef.current)
+      if (centerScrollTimer2Ref.current != null)
+        clearTimeout(centerScrollTimer2Ref.current)
+      centerScrollRafRef.current = null
+      centerScrollPollRef.current = null
+      centerScrollTimerRef.current = null
+      centerScrollTimer2Ref.current = null
+    }
+  }, [todayLine, leftColWidth])
 
   useEffect(() => {
     const handleMove = (e: MouseEvent | TouchEvent) => {
@@ -759,6 +841,7 @@ export function CaseGanttChart() {
             <TooltipProvider delayDuration={120}>
               <div className='rounded-lg border'>
                 <div
+                  ref={scrollerRef}
                   className='gantt-root-wrapper overflow-auto'
                   style={
                     isDragging
