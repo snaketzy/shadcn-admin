@@ -74,6 +74,7 @@ import {
   checkDuplicateOrderNumber,
   ensureCaseOwnerFollowingIdColumn,
   ensureCaseDeliveryServiceInchargeIdColumn,
+  ensureCaseSuperintendentIdColumn,
   ensureCaseListSchema,
 } from './src/service/connection/case-list-service'
 import {
@@ -1098,6 +1099,7 @@ export async function handleCaseListApi(
     await ensureCaseListSchema()
     await ensureCaseOwnerFollowingIdColumn()
     await ensureCaseDeliveryServiceInchargeIdColumn()
+    await ensureCaseSuperintendentIdColumn()
     await ensureCaseMemoTable()
     if (subPath === '/' || subPath === '') {
       if (method === 'GET') {
@@ -1201,8 +1203,8 @@ export async function handleCaseListApi(
           owner_following_id: toOptNumOrNull(body.owner_following_id),
           shipyard_business: toOptStr(body.shipyard_business),
           case_agent: toOptStr(body.case_agent),
-          case_superintendent: toOptStr(body.case_superintendent),
-          case_superintendent_id: toOptNumOrNull(body.case_superintendent_id),
+          case_superintendent: toOptCsvNames(body.case_superintendent),
+          case_superintendent_id: toOptStr(body.case_superintendent_id),
           case_surveyor: toOptStr(body.case_surveyor),
           case_delivery_or_service_incharge: toOptCsvNames(
             body.case_delivery_or_service_incharge
@@ -1367,8 +1369,8 @@ export async function handleCaseListApi(
         putOptNumOrNull('owner_following_id')
         putOptStr('shipyard_business')
         putOptStr('case_agent')
-        putOptStr('case_superintendent')
-        putOptNumOrNull('case_superintendent_id')
+        putOptCsvNames('case_superintendent')
+        putOptStr('case_superintendent_id')
         putOptStr('case_surveyor')
         putOptCsvNames('case_delivery_or_service_incharge')
         putOptStr('case_delivery_or_service_incharge_id')

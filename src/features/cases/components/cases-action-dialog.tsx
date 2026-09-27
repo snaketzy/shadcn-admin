@@ -126,6 +126,10 @@ import {
   type SuperintendentPickerResult,
 } from '@/features/owners/components/superintendent-picker-dialog'
 import {
+  SuperintendentMultiPickerDialog,
+  type SuperintendentMultiPickerResult,
+} from '@/features/owners/components/superintendent-multi-picker-dialog'
+import {
   fetchSupplierAll,
   type Supplier,
 } from '@/features/suppliers/api/client'
@@ -353,15 +357,19 @@ const formSchema = z.object({
     .catch(''),
   shipyard_business: z.string().optional().catch(''),
   case_agent: z.string().optional().catch(''),
-  case_superintendent: z.string().optional().catch(''),
-  case_superintendent_id: z
-    .preprocess((v) => {
-      if (v === null || v === undefined || v === '') return ''
-      const n = Number(v)
-      return Number.isNaN(n) ? '' : String(n)
-    }, z.string().optional().catch(''))
+  case_superintendent: z
+    .union([z.string(), z.array(z.string())])
     .optional()
     .catch(''),
+  case_superintendent_id: z
+    .union([
+      z.string(),
+      z.number(),
+      z.array(z.union([z.string(), z.number()])),
+    ])
+    .nullable()
+    .optional()
+    .catch(null),
   case_surveyor: z.string().optional().catch(''),
   case_delivery_or_service_incharge: z
     .union([z.string(), z.array(z.string())])
@@ -1089,6 +1097,92 @@ export function CasesActionDialog({
     ]
   )
 
+  const resolveSuperintendentMultiDisplays = useCallback(
+    (
+      _nameCsv: string | null | undefined,
+      idCsv: string | number | Array<string | number> | null | undefined
+    ): Array<{
+      name: string
+      email: string
+      phone: string
+      team: string
+      department: string
+      rank: string
+    }> => {
+      const toIdsArr = (
+        raw:
+          | string
+          | number
+          | Array<string | number>
+          | null
+          | undefined
+      ): string[] => {
+        if (raw === null || raw === undefined) return []
+        if (Array.isArray(raw)) {
+          return raw
+            .map((v) => String(v ?? '').trim())
+            .filter((s) => s !== '')
+        }
+        const s = String(raw).trim()
+        if (!s) return []
+        return s
+          .split(/[,，]\s*/)
+          .map((p) => p.trim())
+          .filter((p) => p !== '')
+      }
+      const ids = toIdsArr(idCsv)
+      const out: Array<{
+        name: string
+        email: string
+        phone: string
+        team: string
+        department: string
+        rank: string
+      }> = []
+      const addedOwnerIds = new Set<string>()
+      for (const id of ids) {
+        const o = superintendentIdMap.get(id)
+        if (o) {
+          const oid = o.owner_id != null ? String(o.owner_id) : ''
+          if (oid && addedOwnerIds.has(oid)) continue
+          if (oid) addedOwnerIds.add(oid)
+          else {
+            const key = `id:${id}`
+            if (addedOwnerIds.has(key)) continue
+            addedOwnerIds.add(key)
+          }
+          out.push({
+            name: o.owner_name ?? '',
+            email: o.owner_email ?? '',
+            phone: o.owner_phone ?? '',
+            team: resolveOwnerTeamLabel(o.owner_team),
+            department: resolveOwnerDeptLabel(o.owner_department),
+            rank: resolveOwnerRankLabel(o.owner_rank),
+          })
+        } else {
+          const key = `id:${id}`
+          if (addedOwnerIds.has(key)) continue
+          addedOwnerIds.add(key)
+          out.push({
+            name: id,
+            email: '',
+            phone: '',
+            team: '',
+            department: '',
+            rank: '',
+          })
+        }
+      }
+      return out
+    },
+    [
+      superintendentIdMap,
+      resolveOwnerTeamLabel,
+      resolveOwnerDeptLabel,
+      resolveOwnerRankLabel,
+    ]
+  )
+
   const superintendentDeptLabel = useMemo(() => {
     const f1 = ownerDeptKeyMap.get('F1') || 'F1'
     const f4 = ownerDeptKeyMap.get('F4') || 'F4'
@@ -1531,10 +1625,9 @@ export function CasesActionDialog({
             case_superintendent: currentRow.case_superintendent ?? '',
             case_superintendent_id:
               (currentRow as any).case_superintendent_id != null &&
-              (currentRow as any).case_superintendent_id !== 0 &&
-              !Number.isNaN(Number((currentRow as any).case_superintendent_id))
+              (currentRow as any).case_superintendent_id !== ''
                 ? String((currentRow as any).case_superintendent_id)
-                : '',
+                : null,
             case_surveyor: currentRow.case_surveyor ?? '',
             case_delivery_or_service_incharge:
               currentRow.case_delivery_or_service_incharge ?? '',
@@ -1667,16 +1760,27 @@ export function CasesActionDialog({
     return resolveAgentContactDisplay(formCaseAgent ?? '')
   }, [formCaseAgent, resolveAgentContactDisplay])
 
-  const superintendentDisplay = useMemo(() => {
-    return resolveSuperintendentDisplay(
+  const superintendentMultiDisplays = useMemo(() => {
+    return resolveSuperintendentMultiDisplays(
       formCaseSuperintendent ?? '',
       formCaseSuperintendentId ?? ''
     )
   }, [
     formCaseSuperintendent,
     formCaseSuperintendentId,
-    resolveSuperintendentDisplay,
+    resolveSuperintendentMultiDisplays,
   ])
+
+  const superintendentDisplay =
+    superintendentMultiDisplays[0] ??
+    {
+      name: '',
+      email: '',
+      phone: '',
+      team: '',
+      department: '',
+      rank: '',
+    }
 
   const shipyardContactDisplay = useMemo(() => {
     return resolveShipyardContactDisplay(formShipyardBusiness ?? '')
@@ -2018,10 +2122,9 @@ export function CasesActionDialog({
       case_superintendent: row.case_superintendent ?? '',
       case_superintendent_id:
         (row as any).case_superintendent_id != null &&
-        (row as any).case_superintendent_id !== 0 &&
-        !Number.isNaN(Number((row as any).case_superintendent_id))
+        (row as any).case_superintendent_id !== ''
           ? String((row as any).case_superintendent_id)
-          : '',
+          : null,
       case_surveyor: row.case_surveyor ?? '',
       case_delivery_or_service_incharge:
         row.case_delivery_or_service_incharge ?? '',
@@ -2480,19 +2583,27 @@ export function CasesActionDialog({
   }, [form])
 
   const handleSuperintendentPicked = useCallback(
-    (r: SuperintendentPickerResult) => {
-      form.setValue('case_superintendent', r.owner_name, {
-        shouldDirty: true,
-        shouldValidate: false,
-      })
+    (r: SuperintendentMultiPickerResult) => {
+      const idCsv =
+        r.owner_ids && r.owner_ids.length > 0
+          ? r.owner_ids.map(String).join(',')
+          : ''
+      const nameCn =
+        r.owner_names && r.owner_names.length > 0
+          ? r.owner_names.join('，')
+          : ''
       form.setValue(
         'case_superintendent_id',
-        r.owner_id != null ? String(r.owner_id) : '',
+        idCsv === '' ? null : idCsv,
         {
           shouldDirty: true,
           shouldValidate: false,
         }
       )
+      form.setValue('case_superintendent', nameCn, {
+        shouldDirty: true,
+        shouldValidate: false,
+      })
     },
     [form]
   )
@@ -2502,7 +2613,7 @@ export function CasesActionDialog({
       shouldDirty: true,
       shouldValidate: false,
     })
-    form.setValue('case_superintendent_id', '', {
+    form.setValue('case_superintendent_id', null, {
       shouldDirty: true,
       shouldValidate: false,
     })
@@ -3100,13 +3211,30 @@ export function CasesActionDialog({
             : null,
         shipyard_business: toOptStr(values.shipyard_business),
         case_agent: toOptStr(values.case_agent),
-        case_superintendent: toOptStr(values.case_superintendent),
-        case_superintendent_id:
-          values.case_superintendent_id != null &&
-          values.case_superintendent_id !== '' &&
-          !Number.isNaN(Number(values.case_superintendent_id))
-            ? Number(values.case_superintendent_id)
-            : null,
+        case_superintendent: (() => {
+          const v = values.case_superintendent
+          if (v === null || v === undefined || v === '') return undefined
+          if (Array.isArray(v)) {
+            const out = v
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out.join('，') : undefined
+          }
+          const s = String(v).trim()
+          return s === '' ? undefined : s
+        })(),
+        case_superintendent_id: (() => {
+          const v = values.case_superintendent_id
+          if (v === null || v === undefined || v === '') return undefined
+          if (Array.isArray(v)) {
+            const out = v
+              .map((s) => String(s ?? '').trim())
+              .filter((s) => s !== '')
+            return out.length > 0 ? out.join(',') : undefined
+          }
+          const s = String(v).trim()
+          return s === '' ? undefined : s
+        })(),
         case_surveyor: toOptStr(values.case_surveyor),
         case_delivery_or_service_incharge: (() => {
           const v = values.case_delivery_or_service_incharge
@@ -4346,36 +4474,49 @@ export function CasesActionDialog({
                         </div>
                       </div>
                     </FormControl>
-                    {(superintendentDisplay.email ||
-                      superintendentDisplay.phone ||
-                      superintendentDisplay.team ||
-                      superintendentDisplay.department ||
-                      superintendentDisplay.rank) && (
-                      <div className='mt-1 flex flex-nowrap gap-x-3 text-xs whitespace-nowrap text-muted-foreground/80'>
-                        {superintendentDisplay.email && (
-                          <div>邮箱：{superintendentDisplay.email}</div>
-                        )}
-                        {superintendentDisplay.phone && (
-                          <div>电话：{superintendentDisplay.phone}</div>
-                        )}
-                        {superintendentDisplay.team && (
-                          <div>小组：{superintendentDisplay.team}</div>
-                        )}
-                        {superintendentDisplay.department && (
-                          <div>部门：{superintendentDisplay.department}</div>
-                        )}
-                        {superintendentDisplay.rank && (
-                          <div>职级：{superintendentDisplay.rank}</div>
-                        )}
+                    {superintendentMultiDisplays.some(
+                      (s) =>
+                        s.email || s.phone || s.team || s.department || s.rank
+                    ) && (
+                      <div className='mt-1 space-y-1 text-xs whitespace-nowrap text-muted-foreground/80'>
+                        {superintendentMultiDisplays
+                          .filter(
+                            (s) =>
+                              s.email ||
+                              s.phone ||
+                              s.team ||
+                              s.department ||
+                              s.rank
+                          )
+                          .map((s, idx) => (
+                            <div
+                              key={`superintendent-meta-${idx}-${s.name}`}
+                              className='flex flex-nowrap gap-x-3'
+                            >
+                              {s.name && (
+                                <span className='font-medium text-foreground/70'>
+                                  {s.name}：
+                                </span>
+                              )}
+                              {s.email && <div>邮箱：{s.email}</div>}
+                              {s.phone && <div>电话：{s.phone}</div>}
+                              {s.team && <div>小组：{s.team}</div>}
+                              {s.department && <div>部门：{s.department}</div>}
+                              {s.rank && <div>职级：{s.rank}</div>}
+                            </div>
+                          ))}
                       </div>
                     )}
                     {field.value &&
-                      !superintendentDisplay.email &&
-                      !superintendentDisplay.phone &&
-                      !superintendentDisplay.team &&
-                      !superintendentDisplay.department &&
-                      !superintendentDisplay.rank &&
-                      superintendentDisplay.name && (
+                      superintendentMultiDisplays.length > 0 &&
+                      !superintendentMultiDisplays.some(
+                        (s) =>
+                          s.email ||
+                          s.phone ||
+                          s.team ||
+                          s.department ||
+                          s.rank
+                      ) && (
                         <p className='mt-1 text-xs text-muted-foreground/80'>
                           案件机务：{field.value}（未找到对应机务人员，
                           {superintendentDeptLabel}）
@@ -5413,11 +5554,13 @@ export function CasesActionDialog({
         onSelect={handleOwnerPicked}
       />
 
-      <SuperintendentPickerDialog
+      <SuperintendentMultiPickerDialog
         open={superintendentPickerOpen}
         onOpenChange={setSuperintendentPickerOpen}
-        initialSelectedId={form.getValues('case_superintendent_id') || null}
-        initialSelectedName={form.getValues('case_superintendent') || undefined}
+        initialSelectedIds={form.getValues('case_superintendent_id') || null}
+        initialSelectedNames={
+          form.getValues('case_superintendent') || undefined
+        }
         departmentLabel={superintendentDeptLabel}
         onSelect={handleSuperintendentPicked}
       />

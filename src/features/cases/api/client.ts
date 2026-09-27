@@ -53,7 +53,11 @@ export interface Case {
   shipyard_business: string | null
   case_agent: string | null
   case_superintendent: string | null
-  case_superintendent_id?: number | null
+  case_superintendent_id?:
+    | string
+    | number
+    | Array<string | number>
+    | null
   case_surveyor: string | null
   case_delivery_or_service_incharge: string | null
   case_delivery_or_service_incharge_id?:
@@ -280,8 +284,8 @@ export async function createCase(payload: {
   owner_following?: string | null
   shipyard_business?: string | null
   case_agent?: string | null
-  case_superintendent?: string | null
-  case_superintendent_id?: number | string | null
+  case_superintendent?: string | Array<string> | null
+  case_superintendent_id?: number | string | Array<number | string> | null
   case_surveyor?: string | null
   case_delivery_or_service_incharge?: string | null
   case_delivery_or_service_incharge_id?:

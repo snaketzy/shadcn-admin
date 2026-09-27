@@ -59,6 +59,51 @@ export function toServiceInchargeNameCsv(
   return parts.length > 0 ? parts.join('，') : null
 }
 
+export function toSuperintendentIdCsv(
+  raw:
+    | string
+    | number
+    | Array<string | number | null | undefined>
+    | null
+    | undefined
+): string | null {
+  if (raw === null || raw === undefined) return null
+  if (Array.isArray(raw)) {
+    const out = raw
+      .map((v) => String(v ?? '').trim())
+      .filter((s) => s !== '')
+    return out.length > 0 ? out.join(',') : null
+  }
+  const s = String(raw).trim()
+  if (s === '') return null
+  const parts = s
+    .split(/[,，]\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p !== '')
+  return parts.length > 0 ? parts.join(',') : null
+}
+
+export function toSuperintendentNameCsv(
+  raw:
+    | string
+    | Array<string | null | undefined>
+    | null
+    | undefined
+): string | null {
+  if (raw === null || raw === undefined) return null
+  if (Array.isArray(raw)) {
+    const out = raw.map((v) => String(v ?? '').trim()).filter((s) => s !== '')
+    return out.length > 0 ? out.join('，') : null
+  }
+  const s = String(raw).trim()
+  if (s === '') return null
+  const parts = s
+    .split(/[,，]\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p !== '')
+  return parts.length > 0 ? parts.join('，') : null
+}
+
 export interface CaseListRow {
   case_id: number
   vessel_name: string | null
@@ -611,12 +656,8 @@ export async function createCaseList(data: {
         : null,
       data.shipyard_business ?? null,
       data.case_agent ?? null,
-      data.case_superintendent ?? null,
-      data.case_superintendent_id != null &&
-      data.case_superintendent_id !== '' &&
-      !Number.isNaN(Number(data.case_superintendent_id))
-        ? Number(data.case_superintendent_id)
-        : null,
+      toSuperintendentNameCsv(data.case_superintendent),
+      toSuperintendentIdCsv(data.case_superintendent_id),
       data.case_surveyor ?? null,
       toServiceInchargeNameCsv(data.case_delivery_or_service_incharge),
       toServiceInchargeIdCsv(data.case_delivery_or_service_incharge_id),
@@ -744,12 +785,20 @@ export async function updateCaseList(
     if (key in data) {
       sets.push(`\`${key}\` = ?`)
       const v = (data as any)[key]
-      if (key === 'owner_following_id' || key === 'case_superintendent_id') {
+      if (key === 'owner_following_id') {
         if (v == null || v === '' || Number.isNaN(Number(v))) {
           params.push(null)
         } else {
           params.push(Number(v))
         }
+        continue
+      }
+      if (key === 'case_superintendent_id') {
+        params.push(toSuperintendentIdCsv(v))
+        continue
+      }
+      if (key === 'case_superintendent') {
+        params.push(toSuperintendentNameCsv(v))
         continue
       }
       if (key === 'case_delivery_or_service_incharge_id') {
@@ -964,6 +1013,48 @@ export async function ensureCaseOwnerFollowingIdColumn(): Promise<void> {
 }
 
 let _ensureCaseDeliveryServiceInchargeIdPromise: Promise<void> | null = null
+let _ensureCaseSuperintendentIdPromise: Promise<void> | null = null
+
+export async function ensureCaseSuperintendentIdColumn(): Promise<void> {
+  if (_ensureCaseSuperintendentIdPromise)
+    return _ensureCaseSuperintendentIdPromise
+  _ensureCaseSuperintendentIdPromise = (async () => {
+    const TABLE_NAME = 'case_list'
+    const COL_NAME = 'case_superintendent_id'
+    try {
+      const info = await describeTable(TABLE_NAME)
+      const col: TableColumn | undefined = info.columns.find(
+        (c) => c.field === COL_NAME
+      )
+      if (!col) {
+        await execute(
+          `ALTER TABLE \`${TABLE_NAME}\` ADD COLUMN \`${COL_NAME}\` VARCHAR(512) NULL COMMENT '机务主管多选ID列表（逗号分隔，对应 owner_list.owner_id）' AFTER \`case_superintendent\``
+        )
+      } else {
+        const t = String(col.type || '').toLowerCase()
+        if (!t.startsWith('varchar') && !t.startsWith('text')) {
+          await execute(
+            `ALTER TABLE \`${TABLE_NAME}\` MODIFY COLUMN \`${COL_NAME}\` VARCHAR(512) NULL COMMENT '机务主管多选ID列表（逗号分隔，对应 owner_list.owner_id）'`
+          )
+        }
+      }
+      try {
+        await execute(
+          `UPDATE \`${TABLE_NAME}\` c
+           INNER JOIN \`owner_list\` o ON TRIM(COALESCE(c.case_superintendent, '')) = TRIM(COALESCE(o.owner_name, ''))
+           SET c.\`${COL_NAME}\` = CAST(o.owner_id AS CHAR)
+           WHERE c.case_superintendent IS NOT NULL AND TRIM(c.case_superintendent) <> '' AND (c.\`${COL_NAME}\` IS NULL OR TRIM(CAST(c.\`${COL_NAME}\` AS CHAR)) = '')`
+        )
+      } catch (e) {
+        // ignore backfill errors
+      }
+    } catch (e) {
+      _ensureCaseSuperintendentIdPromise = null
+      throw e
+    }
+  })()
+  return _ensureCaseSuperintendentIdPromise
+}
 
 export async function ensureCaseDeliveryServiceInchargeIdColumn(): Promise<void> {
   if (_ensureCaseDeliveryServiceInchargeIdPromise)
@@ -1023,8 +1114,8 @@ export async function ensureCaseListSchema(): Promise<void> {
             \`owner_following_id\` INT NULL COMMENT '船东联系人ID（对应 owner_list.owner_id）',
             \`shipyard_business\` VARCHAR(128) NULL COMMENT '船厂经营',
             \`case_agent\` VARCHAR(128) NULL COMMENT '代理',
-            \`case_superintendent\` VARCHAR(128) NULL COMMENT '机务主管',
-            \`case_superintendent_id\` INT NULL COMMENT '机务主管ID（对应 owner_list.owner_id）',
+            \`case_superintendent\` VARCHAR(512) NULL COMMENT '机务主管（姓名多选中文逗号分隔）',
+            \`case_superintendent_id\` VARCHAR(512) NULL COMMENT '机务主管多选ID列表（逗号分隔，对应 owner_list.owner_id）',
             \`case_surveyor\` VARCHAR(128) NULL COMMENT '验船师',
             \`case_delivery_or_service_incharge\` VARCHAR(512) NULL COMMENT '服务负责人（姓名多选逗号分隔）',
             \`case_delivery_or_service_incharge_id\` VARCHAR(512) NULL COMMENT '服务负责人多选ID列表（对应 contact_list.contact_id）',
@@ -1144,7 +1235,8 @@ export async function ensureCaseListSchema(): Promise<void> {
         },
         {
           col: 'case_superintendent_id',
-          def: "INT NULL COMMENT '机务主管ID（对应 owner_list.owner_id）'",
+          def:
+            "VARCHAR(512) NULL COMMENT '机务主管多选ID列表（逗号分隔，对应 owner_list.owner_id）'",
           after: 'AFTER case_superintendent',
         },
         {
