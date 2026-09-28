@@ -38,6 +38,7 @@ import {
   fetchCaseDictByKeyPrefix,
   type CaseDict,
 } from '@/features/dictionaries/api/client'
+import { fetchOwnerAll, type Owner } from '@/features/owners/api/client'
 import {
   fetchSupplierAll,
   type Supplier,
@@ -195,6 +196,8 @@ interface GanttRow {
   rowHeight?: number
   indentLevel?: number
   hasQ4Award?: boolean
+  ownerFollowing?: string | null
+  ownerEmail?: string | null
 }
 
 interface GanttConnector {
@@ -213,7 +216,37 @@ interface GanttGroup {
   connectors: GanttConnector[]
 }
 
-export function CaseGanttChart() {
+export type GanttChartMode = 'today' | 'waiting_confirm'
+
+interface CaseGanttChartProps {
+  mode?: GanttChartMode
+}
+
+function getWaitingForConfirmDictKeys(dictR: CaseDict[]): string[] {
+  const out: string[] = []
+  for (const o of dictR) {
+    const k = String(o.dict_key ?? '')
+      .trim()
+      .toUpperCase()
+    const v = String(o.dict_value ?? '')
+      .trim()
+      .toUpperCase()
+    const normalized = v.replace(/\s+/g, '')
+    const isWaiting =
+      v.includes('WAITING FOR CONFIRM') ||
+      normalized.includes('WAITINGFORCONFIRM') ||
+      v.includes('待确认') ||
+      v.includes('等待确认') ||
+      /^R?6[:：\-._\s]/.test(k) ||
+      /^R?6\b/.test(k) ||
+      k === 'R6' ||
+      k === '6'
+    if (isWaiting) out.push(String(o.dict_key ?? ''))
+  }
+  return out
+}
+
+export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
   const [anchorDeltaDays, setAnchorDeltaDays] = useState(0)
   const [collapsedCaseIds, setCollapsedCaseIds] = useState<Set<number>>(
     new Set()
@@ -234,9 +267,21 @@ export function CaseGanttChart() {
     staleTime: 60000,
   })
 
+  const { data: dictR = [] } = useQuery({
+    queryKey: ['case-dict-prefix-R-gantt-chart'],
+    queryFn: () => fetchCaseDictByKeyPrefix('R'),
+    staleTime: 60000,
+  })
+
   const { data: supplierRows = [] } = useQuery({
     queryKey: ['gantt-supplier-all'],
     queryFn: () => fetchSupplierAll(),
+    staleTime: 60000 * 30,
+  })
+
+  const { data: ownerRows = [] } = useQuery({
+    queryKey: ['gantt-owner-all'],
+    queryFn: () => fetchOwnerAll(),
     staleTime: 60000 * 30,
   })
 
@@ -253,9 +298,35 @@ export function CaseGanttChart() {
     return m
   }, [supplierRows])
 
+  const ownerIdEmailMap = useMemo<Map<number, string>>(() => {
+    const m = new Map<number, string>()
+    for (const o of ownerRows as Owner[]) {
+      const id = Number((o as any).owner_id)
+      if (!Number.isFinite(id) || id <= 0) continue
+      const email = String((o as any).owner_email ?? '').trim()
+      if (email) m.set(id, email)
+    }
+    return m
+  }, [ownerRows])
+
+  const ownerNameEmailMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    for (const o of ownerRows as Owner[]) {
+      const name = String((o as any).owner_name ?? '').trim()
+      const email = String((o as any).owner_email ?? '').trim()
+      if (name && email) m.set(name.toUpperCase(), email)
+    }
+    return m
+  }, [ownerRows])
+
   const handleTodayYesValues = useMemo(
     () => getHandleTodayYesDictValues(dictB),
     [dictB]
+  )
+
+  const waitingConfirmValues = useMemo(
+    () => getWaitingForConfirmDictKeys(dictR),
+    [dictR]
   )
 
   const {
@@ -264,16 +335,29 @@ export function CaseGanttChart() {
     error: casesError,
     refetch: refetchCases,
   } = useQuery({
-    queryKey: ['gantt-case-today-list-paginated', handleTodayYesValues],
-    queryFn: () =>
-      fetchCasePaginated({
+    queryKey:
+      mode === 'waiting_confirm'
+        ? ['gantt-case-waiting-list-paginated', waitingConfirmValues]
+        : ['gantt-case-today-list-paginated', handleTodayYesValues],
+    queryFn: () => {
+      if (mode === 'waiting_confirm') {
+        return fetchCasePaginated({
+          page: 1,
+          pageSize: 2000,
+          caseProgress:
+            waitingConfirmValues.length > 0 ? waitingConfirmValues : undefined,
+        })
+      }
+      return fetchCasePaginated({
         page: 1,
         pageSize: 2000,
         caseShouldHandleToday:
           handleTodayYesValues.length > 0 ? handleTodayYesValues : undefined,
-      }),
+      })
+    },
     staleTime: 30000,
-    enabled: handleTodayYesValues.length > 0,
+    enabled:
+      mode === 'waiting_confirm' ? true : handleTodayYesValues.length > 0,
   })
 
   const caseRows: Case[] = (pageData?.rows as Case[]) ?? []
@@ -323,6 +407,28 @@ export function CaseGanttChart() {
             : Number.NaN
       if (!Number.isFinite(n) || n <= 0) return ''
       return supplierIdNameMap.get(n) ?? ''
+    }
+    const resolveOwnerEmail = (
+      ownerFollowingId: unknown,
+      ownerFollowingName: unknown
+    ): string => {
+      let id =
+        typeof ownerFollowingId === 'number'
+          ? ownerFollowingId
+          : typeof ownerFollowingId === 'string' &&
+              ownerFollowingId.trim() !== ''
+            ? Number(ownerFollowingId)
+            : Number.NaN
+      if (Number.isFinite(id) && id > 0) {
+        const e = ownerIdEmailMap.get(id)
+        if (e) return e
+      }
+      const name = String(ownerFollowingName ?? '').trim()
+      if (name) {
+        const e = ownerNameEmailMap.get(name.toUpperCase())
+        if (e) return e
+      }
+      return ''
     }
     for (const c of caseRows) {
       const caseTitle =
@@ -519,6 +625,8 @@ export function CaseGanttChart() {
         indentLevel: 0,
         rowHeight: ROW_HEIGHT_PARENT,
         hasQ4Award: !!has.Q4,
+        ownerFollowing: c.owner_following,
+        ownerEmail: resolveOwnerEmail(c.owner_following_id, c.owner_following),
       })
 
       let totalH = 0
@@ -763,20 +871,38 @@ export function CaseGanttChart() {
         <CardHeader className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
           <div>
             <div className='flex items-center gap-2'>
-              <GanttChartIcon className='size-5 text-emerald-600' />
-              <CardTitle className='text-xl'>跟进中案件甘特图</CardTitle>
+              <GanttChartIcon
+                className={cn(
+                  'size-5',
+                  mode === 'waiting_confirm'
+                    ? 'text-violet-600'
+                    : 'text-emerald-600'
+                )}
+              />
+              <CardTitle className='text-xl'>
+                {mode === 'waiting_confirm'
+                  ? '待确认甘特图'
+                  : '跟进中案件甘特图'}
+              </CardTitle>
             </div>
             <CardDescription className='mt-1'>
-              数据源 =
-              「当日处理案件」列表。横坐标：日期（按周）。每个案件为一组：父级（询价日期
-              → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计{' '}
-              <span className='font-semibold text-emerald-700'>
+              {mode === 'waiting_confirm'
+                ? '数据源 = 案件进度「Waiting for confirm / 待确认」列表。横坐标：日期（按周）。每个案件为一组：父级（询价日期 → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计 '
+                : '数据源 = 「当日处理案件」列表。横坐标：日期（按周）。每个案件为一组：父级（询价日期 → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计 '}
+              <span
+                className={cn(
+                  'font-semibold',
+                  mode === 'waiting_confirm'
+                    ? 'text-violet-700'
+                    : 'text-emerald-700'
+                )}
+              >
                 {caseCount}
-              </span>{' '}
-              条跟进中案件，
-              <span className='font-semibold text-slate-700'>
-                {totalRows}
-              </span>{' '}
+              </span>
+              {mode === 'waiting_confirm'
+                ? ' 条待确认案件，'
+                : ' 条跟进中案件，'}
+              <span className='font-semibold text-slate-700'>{totalRows}</span>{' '}
               行甘特。 父级可 <ChevronRightFlat className='inline size-3' />{' '}
               折叠。
             </CardDescription>
@@ -784,9 +910,17 @@ export function CaseGanttChart() {
           <div className='flex flex-wrap items-center gap-2'>
             <Badge
               variant='outline'
-              className='flex items-center gap-1.5 border-dashed border-emerald-500/60 text-emerald-700'
+              className={cn(
+                'flex items-center gap-1.5 border-dashed',
+                mode === 'waiting_confirm'
+                  ? 'border-violet-500/60 text-violet-700'
+                  : 'border-emerald-500/60 text-emerald-700'
+              )}
             >
-              <BarChart3 className='size-3.5' /> 数据源：当日处理案件
+              <BarChart3 className='size-3.5' />{' '}
+              {mode === 'waiting_confirm'
+                ? '数据源：待确认 (Waiting for confirm)'
+                : '数据源：当日处理案件'}
             </Badge>
             <Button
               size='sm'
@@ -1058,25 +1192,33 @@ export function CaseGanttChart() {
                                   )}
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Link
-                                        to='/case_list'
-                                        search={{
-                                          caseInquiryKeyword:
-                                            r.caseTitle || undefined,
-                                        }}
-                                        className={cn(
-                                          'truncate text-left hover:text-emerald-700 hover:underline',
-                                          r.type === 'parent'
-                                            ? 'text-[13px] font-semibold'
-                                            : r.isRecord
+                                      {r.type === 'parent' ? (
+                                        <span
+                                          className={cn(
+                                            'cursor-default truncate text-left text-[13px] font-semibold'
+                                          )}
+                                        >
+                                          {r.type === 'parent' && r.vesselName
+                                            ? `${r.vesselName} // ${r.label}`
+                                            : r.label}
+                                        </span>
+                                      ) : (
+                                        <Link
+                                          to='/case_list'
+                                          search={{
+                                            caseInquiryKeyword:
+                                              r.caseTitle || undefined,
+                                          }}
+                                          className={cn(
+                                            'truncate text-left hover:text-emerald-700 hover:underline',
+                                            r.isRecord
                                               ? 'text-[11.5px] font-normal'
                                               : 'text-[12.5px] font-medium'
-                                        )}
-                                      >
-                                        {r.type === 'parent' && r.vesselName
-                                          ? `${r.vesselName} // ${r.label}`
-                                          : r.label}
-                                      </Link>
+                                          )}
+                                        >
+                                          {r.label}
+                                        </Link>
+                                      )}
                                     </TooltipTrigger>
                                     <TooltipContent
                                       side='right'
@@ -1420,6 +1562,20 @@ export function CaseGanttChart() {
                                         strokeWidth: 2,
                                       }}
                                     />
+                                  ) : null}
+                                  {isParent && r.ownerFollowing ? (
+                                    <div
+                                      className='pointer-events-none absolute z-[4] flex items-center text-[13px] font-medium whitespace-nowrap select-none'
+                                      style={{
+                                        top: barTop,
+                                        height: barHeight,
+                                        left: endX + 12,
+                                        color: outsideLabelColor,
+                                      }}
+                                    >
+                                      联系人：{r.ownerFollowing}
+                                      {r.ownerEmail ? ` <${r.ownerEmail}>` : ''}
+                                    </div>
                                   ) : null}
                                 </div>
                               )
