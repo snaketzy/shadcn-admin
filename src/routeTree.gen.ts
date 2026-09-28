@@ -38,6 +38,7 @@ import { Route as AuthenticatedContact_listIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedDictionariesIndexRouteImport } from './routes/_authenticated/dictionaries/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedGantt_chart_test1IndexRouteImport } from './routes/_authenticated/gantt_chart_test1/index'
+import { Route as AuthenticatedGantt_chart_test2IndexRouteImport } from './routes/_authenticated/gantt_chart_test2/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
 import { Route as AuthenticatedOwner_detailOwnerIdRouteRouteImport } from './routes/_authenticated/owner_detail/$ownerId/route'
 import { Route as AuthenticatedOwner_listIndexRouteImport } from './routes/_authenticated/owner_list/index'
@@ -219,6 +220,12 @@ const AuthenticatedGantt_chart_test1IndexRoute =
     path: '/gantt_chart_test1/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGantt_chart_test2IndexRoute =
+  AuthenticatedGantt_chart_test2IndexRouteImport.update({
+    id: '/gantt_chart_test2/',
+    path: '/gantt_chart_test2/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHelpCenterIndexRoute =
   AuthenticatedHelpCenterIndexRouteImport.update({
     id: '/help-center/',
@@ -374,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
   '/gantt_chart_test1/': typeof AuthenticatedGantt_chart_test1IndexRoute
+  '/gantt_chart_test2/': typeof AuthenticatedGantt_chart_test2IndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list/': typeof AuthenticatedOwner_listIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -420,6 +428,7 @@ export interface FileRoutesByTo {
   '/contact_list': typeof AuthenticatedContact_listIndexRoute
   '/dictionaries': typeof AuthenticatedDictionariesIndexRoute
   '/gantt_chart_test1': typeof AuthenticatedGantt_chart_test1IndexRoute
+  '/gantt_chart_test2': typeof AuthenticatedGantt_chart_test2IndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list': typeof AuthenticatedOwner_listIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -472,6 +481,7 @@ export interface FileRoutesById {
   '/_authenticated/contact_list/': typeof AuthenticatedContact_listIndexRoute
   '/_authenticated/dictionaries/': typeof AuthenticatedDictionariesIndexRoute
   '/_authenticated/gantt_chart_test1/': typeof AuthenticatedGantt_chart_test1IndexRoute
+  '/_authenticated/gantt_chart_test2/': typeof AuthenticatedGantt_chart_test2IndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/owner_list/': typeof AuthenticatedOwner_listIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -524,6 +534,7 @@ export interface FileRouteTypes {
     | '/contact_list/'
     | '/dictionaries/'
     | '/gantt_chart_test1/'
+    | '/gantt_chart_test2/'
     | '/help-center/'
     | '/owner_list/'
     | '/settings/'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/contact_list'
     | '/dictionaries'
     | '/gantt_chart_test1'
+    | '/gantt_chart_test2'
     | '/help-center'
     | '/owner_list'
     | '/settings'
@@ -621,6 +633,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contact_list/'
     | '/_authenticated/dictionaries/'
     | '/_authenticated/gantt_chart_test1/'
+    | '/_authenticated/gantt_chart_test2/'
     | '/_authenticated/help-center/'
     | '/_authenticated/owner_list/'
     | '/_authenticated/settings/'
@@ -854,6 +867,13 @@ declare module '@tanstack/react-router' {
       path: '/gantt_chart_test1'
       fullPath: '/gantt_chart_test1/'
       preLoaderRoute: typeof AuthenticatedGantt_chart_test1IndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gantt_chart_test2/': {
+      id: '/_authenticated/gantt_chart_test2/'
+      path: '/gantt_chart_test2'
+      fullPath: '/gantt_chart_test2/'
+      preLoaderRoute: typeof AuthenticatedGantt_chart_test2IndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/help-center/': {
@@ -1103,6 +1123,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContact_listIndexRoute: typeof AuthenticatedContact_listIndexRoute
   AuthenticatedDictionariesIndexRoute: typeof AuthenticatedDictionariesIndexRoute
   AuthenticatedGantt_chart_test1IndexRoute: typeof AuthenticatedGantt_chart_test1IndexRoute
+  AuthenticatedGantt_chart_test2IndexRoute: typeof AuthenticatedGantt_chart_test2IndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedOwner_listIndexRoute: typeof AuthenticatedOwner_listIndexRoute
   AuthenticatedSupplier_listIndexRoute: typeof AuthenticatedSupplier_listIndexRoute
@@ -1140,6 +1161,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDictionariesIndexRoute: AuthenticatedDictionariesIndexRoute,
   AuthenticatedGantt_chart_test1IndexRoute:
     AuthenticatedGantt_chart_test1IndexRoute,
+  AuthenticatedGantt_chart_test2IndexRoute:
+    AuthenticatedGantt_chart_test2IndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedOwner_listIndexRoute: AuthenticatedOwner_listIndexRoute,
   AuthenticatedSupplier_listIndexRoute: AuthenticatedSupplier_listIndexRoute,
