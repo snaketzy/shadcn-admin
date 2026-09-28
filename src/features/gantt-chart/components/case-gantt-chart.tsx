@@ -1219,19 +1219,66 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                               className={cn(
                                                 'h-5 w-5 shrink-0 rounded p-0 text-slate-500 hover:bg-slate-200/70 hover:text-slate-700'
                                               )}
-                                              onClick={async (e) => {
+                                            onClick={(e) => {
                                                 e.stopPropagation()
-                                                try {
-                                                  await navigator.clipboard.writeText(
-                                                    r.label
-                                                  )
-                                                  toast.success(
-                                                    `已复制案件编号：${r.label}`
-                                                  )
-                                                } catch {
-                                                  toast.error(
-                                                    '复制失败，请手动复制'
-                                                  )
+                                                const value = r.label
+                                                const okMsg = `已复制案件编号：${value}`
+                                                const failMsg = '复制失败，请手动复制'
+                                                const legacyCopy = (text: string) => {
+                                                  try {
+                                                    const ta = document.createElement(
+                                                      'textarea'
+                                                    )
+                                                    ta.value = text
+                                                    ta.setAttribute(
+                                                      'readonly',
+                                                      ''
+                                                    )
+                                                    ta.style.position =
+                                                      'absolute'
+                                                    ta.style.left = '-9999px'
+                                                    document.body.appendChild(ta)
+                                                    ta.select()
+                                                    const ok =
+                                                      document.execCommand(
+                                                        'copy'
+                                                      )
+                                                    document.body.removeChild(
+                                                      ta
+                                                    )
+                                                    if (ok) {
+                                                      toast.success(okMsg)
+                                                      return true
+                                                    }
+                                                    return false
+                                                  } catch {
+                                                    return false
+                                                  }
+                                                }
+                                                if (
+                                                  navigator.clipboard &&
+                                                  typeof navigator.clipboard
+                                                    .writeText === 'function'
+                                                ) {
+                                                  navigator.clipboard
+                                                    .writeText(value)
+                                                    .then(
+                                                      () =>
+                                                        toast.success(okMsg),
+                                                      () => {
+                                                        if (!legacyCopy(value))
+                                                          toast.error(
+                                                            failMsg
+                                                          )
+                                                      }
+                                                    )
+                                                    .catch(() => {
+                                                      if (!legacyCopy(value))
+                                                        toast.error(failMsg)
+                                                    })
+                                                } else {
+                                                  if (!legacyCopy(value))
+                                                    toast.error(failMsg)
                                                 }
                                               }}
                                               aria-label={`复制案件编号 ${r.label}`}
