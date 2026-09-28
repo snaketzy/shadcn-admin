@@ -6,11 +6,13 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Copy,
   GanttChart as GanttChartIcon,
   Diamond,
   RefreshCw,
   ChevronRight as ChevronRightFlat,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -1196,15 +1198,47 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         {r.type === 'parent' ? (
-                                          <span
-                                            className={cn(
-                                              'cursor-default truncate text-left text-[13px] font-semibold'
-                                            )}
-                                          >
-                                            {r.type === 'parent' && r.vesselName
-                                              ? `${r.vesselName} // ${r.label}`
-                                              : r.label}
-                                          </span>
+                                          <div className='flex min-w-0 flex-1 items-center gap-1'>
+                                            {r.vesselName ? (
+                                              <span className='shrink-0 truncate text-left text-[13px] font-semibold'>
+                                                {r.vesselName} //{' '}
+                                              </span>
+                                            ) : null}
+                                            <span
+                                              className={cn(
+                                                'min-w-0 flex-1 truncate text-left text-[13px] font-semibold'
+                                              )}
+                                              title={r.label}
+                                            >
+                                              {r.label}
+                                            </span>
+                                            <Button
+                                              type='button'
+                                              size='icon'
+                                              variant='ghost'
+                                              className={cn(
+                                                'h-5 w-5 shrink-0 rounded p-0 text-slate-500 hover:bg-slate-200/70 hover:text-slate-700'
+                                              )}
+                                              onClick={async (e) => {
+                                                e.stopPropagation()
+                                                try {
+                                                  await navigator.clipboard.writeText(
+                                                    r.label
+                                                  )
+                                                  toast.success(
+                                                    `已复制案件编号：${r.label}`
+                                                  )
+                                                } catch {
+                                                  toast.error(
+                                                    '复制失败，请手动复制'
+                                                  )
+                                                }
+                                              }}
+                                              aria-label={`复制案件编号 ${r.label}`}
+                                            >
+                                              <Copy className='size-3.5' />
+                                            </Button>
+                                          </div>
                                         ) : (
                                           <Link
                                             to='/case_list'
