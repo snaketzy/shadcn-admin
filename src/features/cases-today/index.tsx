@@ -12,7 +12,7 @@ import { CasesTodayTable } from './components/cases-today-table'
 export function CasesToday() {
   useEffect(() => {
     const originalTitle = document.title
-    document.title = `${originalTitle} - 当天处理案件列表`
+    document.title = `${originalTitle} - 需处理案件`
     return () => {
       document.title = originalTitle
     }
