@@ -61,7 +61,7 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: '跟进中案件甘特图',
+          title: '需处理甘特图',
           url: '/gantt_chart_test1',
           icon: GanttChart,
         },
@@ -79,7 +79,7 @@ export const sidebarData: SidebarData = {
               url: '/case_list',
             },
             {
-              title: '当天处理案件列表',
+              title: '需处理案件',
               url: '/case_today_list',
             },
             {

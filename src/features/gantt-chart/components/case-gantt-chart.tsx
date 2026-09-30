@@ -884,7 +884,7 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
               <CardTitle className='text-xl'>
                 {mode === 'waiting_confirm'
                   ? '待确认甘特图'
-                  : '跟进中案件甘特图'}
+                  : '需处理甘特图'}
               </CardTitle>
             </div>
             <CardDescription className='mt-1'>
@@ -903,7 +903,7 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
               </span>
               {mode === 'waiting_confirm'
                 ? ' 条待确认案件，'
-                : ' 条跟进中案件，'}
+                : ' 条需处理案件，'}
               <span className='font-semibold text-slate-700'>{totalRows}</span>{' '}
               行甘特。 父级可 <ChevronRightFlat className='inline size-3' />{' '}
               折叠。
