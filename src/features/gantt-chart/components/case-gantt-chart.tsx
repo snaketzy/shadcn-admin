@@ -89,6 +89,9 @@ const INQ_KEY_TO_DIAMOND: Record<string, string> = {
   Q3: 'text-[#7c3aed] fill-violet-100',
   Q2: 'text-[#A065D0] fill-[#EAD5FB]',
   Q1: 'text-[#0ea5e9] fill-sky-100',
+  ETA: 'text-[#e17100] fill-[#FFE4C2]',
+  ETB: 'text-[#1d4ed8] fill-[#DBEAFE]',
+  ETD: 'text-[#0d9488] fill-[#CCFBF1]',
 }
 
 const PARENT_HAS_AWARD_BAR_CLASS = 'bg-[#10b981] border-[#059669] text-white'
@@ -175,7 +178,7 @@ function inqKeyUpper(t: unknown): string {
     .toUpperCase()
 }
 
-type GanttRowType = 'parent' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
+type GanttRowType = 'parent' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'ETA' | 'ETB' | 'ETD'
 
 interface GanttRow {
   caseId: number
@@ -636,6 +639,93 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
             showDiamond: key === 'Q4',
           })
         }
+      }
+
+      const etaRaw = String(c.case_eta_cargo_ready_date ?? '').trim()
+      const etaD = etaRaw
+        ? startOfDay(parseYmdOrNull(etaRaw) ?? new Date(NaN))
+        : null
+      if (etaD && !Number.isNaN(etaD.getTime())) {
+        expand(etaD)
+        if (childMin == null || etaD < childMin) childMin = new Date(etaD)
+        if (childMax == null || etaD > childMax) childMax = new Date(etaD)
+        rows.push({
+          caseId: c.case_id,
+          rowKey: `eta-${c.case_id}`,
+          type: 'ETA',
+          label: `船舶到港时间 · ${ymdStr(etaD)}`,
+          startDate: etaD,
+          endDate: etaD,
+          caseTitle,
+          vesselName: c.vessel_name,
+          caseLink,
+          startLabel: ymdStr(etaD),
+          endLabel: '',
+          colorClass: 'bg-[#e17100]/20 border-[#e17100]/50 text-[#e17100]',
+          isRecord: false,
+          indentLevel: 1,
+          rowHeight: ROW_HEIGHT_CHILD,
+          showDiamond: true,
+          recordRemark: `船舶到港时间：${ymdStr(etaD)}`,
+        })
+      }
+
+      const etbRaw = String(c.case_etb_cargo_departure_date ?? '').trim()
+      const etbD = etbRaw
+        ? startOfDay(parseYmdOrNull(etbRaw) ?? new Date(NaN))
+        : null
+      if (etbD && !Number.isNaN(etbD.getTime())) {
+        expand(etbD)
+        if (childMin == null || etbD < childMin) childMin = new Date(etbD)
+        if (childMax == null || etbD > childMax) childMax = new Date(etbD)
+        rows.push({
+          caseId: c.case_id,
+          rowKey: `etb-${c.case_id}`,
+          type: 'ETB',
+          label: `船舶靠港时间 · ${ymdStr(etbD)}`,
+          startDate: etbD,
+          endDate: etbD,
+          caseTitle,
+          vesselName: c.vessel_name,
+          caseLink,
+          startLabel: ymdStr(etbD),
+          endLabel: '',
+          colorClass: 'bg-[#1d4ed8]/20 border-[#1d4ed8]/50 text-[#1d4ed8]',
+          isRecord: false,
+          indentLevel: 1,
+          rowHeight: ROW_HEIGHT_CHILD,
+          showDiamond: true,
+          recordRemark: `船舶靠港时间：${ymdStr(etbD)}`,
+        })
+      }
+
+      const etdRaw = String(c.case_etd_cargo_delivery_date ?? '').trim()
+      const etdD = etdRaw
+        ? startOfDay(parseYmdOrNull(etdRaw) ?? new Date(NaN))
+        : null
+      if (etdD && !Number.isNaN(etdD.getTime())) {
+        expand(etdD)
+        if (childMin == null || etdD < childMin) childMin = new Date(etdD)
+        if (childMax == null || etdD > childMax) childMax = new Date(etdD)
+        rows.push({
+          caseId: c.case_id,
+          rowKey: `etd-${c.case_id}`,
+          type: 'ETD',
+          label: `船舶开航时间 · ${ymdStr(etdD)}`,
+          startDate: etdD,
+          endDate: etdD,
+          caseTitle,
+          vesselName: c.vessel_name,
+          caseLink,
+          startLabel: ymdStr(etdD),
+          endLabel: '',
+          colorClass: 'bg-[#0d9488]/20 border-[#0d9488]/50 text-[#0d9488]',
+          isRecord: false,
+          indentLevel: 1,
+          rowHeight: ROW_HEIGHT_CHILD,
+          showDiamond: true,
+          recordRemark: `船舶开航时间：${ymdStr(etdD)}`,
+        })
       }
 
       let parentS: Date | null = childMin
@@ -1227,9 +1317,15 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                       'flex w-full items-center gap-1.5',
                                       r.type === 'parent'
                                         ? 'bg-slate-100/70 font-semibold text-slate-800'
-                                        : r.isRecord
-                                          ? 'text-slate-500'
-                                          : 'text-slate-700',
+                                        : r.type === 'ETA'
+                                          ? 'font-medium text-[#e17100]'
+                                          : r.type === 'ETB'
+                                            ? 'font-medium text-[#1d4ed8]'
+                                            : r.type === 'ETD'
+                                              ? 'font-medium text-[#0d9488]'
+                                              : r.isRecord
+                                                ? 'text-slate-500'
+                                                : 'text-slate-700',
                                       isFirst && 'pt-[6px]',
                                       isLast && 'pb-[6px]'
                                     )}
@@ -1501,6 +1597,74 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                     ROW_HEIGHT_CHILD
                                 }
                                 const actualTop = cumY
+
+                                if (
+                                  r.type === 'ETA' ||
+                                  r.type === 'ETB' ||
+                                  r.type === 'ETD'
+                                ) {
+                                  const size = 20
+                                  const centerLeft =
+                                    left + DAY_WIDTH / 2 - size / 2
+                                  const centerTop = actualTop + (h - size) / 2
+                                  const diamondCls =
+                                    INQ_KEY_TO_DIAMOND[r.type] ??
+                                    INQ_KEY_TO_DIAMOND.ETA
+                                  const subLabelCn =
+                                    r.type === 'ETA'
+                                      ? '船舶到港时间'
+                                      : r.type === 'ETB'
+                                        ? '船舶靠港时间'
+                                        : '船舶开航时间'
+                                  return (
+                                    <div
+                                      key={r.rowKey}
+                                      className='absolute'
+                                      style={{
+                                        left: 0,
+                                        top: 0,
+                                        width: weeksWidthPx,
+                                        height: realHeight,
+                                      }}
+                                    >
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Diamond
+                                            className={cn(
+                                              'absolute z-[3] cursor-pointer drop-shadow-md',
+                                              diamondCls
+                                            )}
+                                            style={{
+                                              left: Math.max(0, centerLeft),
+                                              top: centerTop,
+                                              width: size,
+                                              height: size,
+                                              strokeWidth: 2.2,
+                                            }}
+                                          />
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                          side='top'
+                                          align='start'
+                                          alignOffset={-4}
+                                          className='*:!text-white'
+                                        >
+                                          <div className='max-w-[280px] text-xs leading-5'>
+                                            <div className='font-semibold'>
+                                              {r.caseTitle}
+                                            </div>
+                                            <div className='text-white/90'>
+                                              {subLabelCn} ·{' '}
+                                              {r.vesselName || '无船名'}
+                                            </div>
+                                            <div>{r.startLabel}</div>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  )
+                                }
+
                                 const isParent = r.type === 'parent'
                                 const isRecord = !!r.isRecord
                                 const barHeight = isParent
@@ -1811,6 +1975,27 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                       strokeWidth={2}
                     />
                     <span>中标里程碑</span>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <Diamond
+                      className='size-4 fill-[#FFE4C2] text-[#e17100]'
+                      strokeWidth={2.2}
+                    />
+                    <span>船舶到港里程碑</span>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <Diamond
+                      className='size-4 fill-[#DBEAFE] text-[#1d4ed8]'
+                      strokeWidth={2.2}
+                    />
+                    <span>船舶靠港里程碑</span>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <Diamond
+                      className='size-4 fill-[#CCFBF1] text-[#0d9488]'
+                      strokeWidth={2.2}
+                    />
+                    <span>船舶开航里程碑</span>
                   </div>
                   <div className='flex items-center gap-1.5'>
                     <span
