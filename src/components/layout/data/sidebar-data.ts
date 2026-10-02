@@ -71,6 +71,11 @@ export const sidebarData: SidebarData = {
           icon: GanttChart,
         },
         {
+          title: '坞修甘特图',
+          url: '/gantt_chart_test3',
+          icon: GanttChart,
+        },
+        {
           title: '案件列表',
           icon: FileText,
           items: [
