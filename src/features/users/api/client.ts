@@ -81,6 +81,18 @@ export async function fetchVesselAll(): Promise<Vessel[]> {
   return res.data.data ?? []
 }
 
+export async function fetchVesselDetail(
+  vesselId: number
+): Promise<Vessel | null> {
+  try {
+    const res = await api.get<ApiEnvelope<Vessel>>(`/vessel-list/${vesselId}`)
+    return res.data.data ?? null
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
+}
+
 export async function fetchVesselPaginated(params: {
   page?: number
   pageSize?: number
@@ -95,13 +107,30 @@ export async function fetchVesselPaginated(params: {
     params,
   })
   return (
-    res.data.data ?? { rows: [], total: 0, page: params.page ?? 1, pageSize: params.pageSize ?? 50 }
+    res.data.data ?? {
+      rows: [],
+      total: 0,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 50,
+    }
   )
 }
 
 export async function fetchVesselGroups(): Promise<VesselGroupsResponse> {
-  const res = await api.get<ApiEnvelope<VesselGroupsResponse>>('/vessel-list/groups')
-  return res.data.data ?? { teams: [], flags: [], classes: [], inchargeDict: [], fleetManagerDict: [], flagDict: [], classDict: [] }
+  const res = await api.get<ApiEnvelope<VesselGroupsResponse>>(
+    '/vessel-list/groups'
+  )
+  return (
+    res.data.data ?? {
+      teams: [],
+      flags: [],
+      classes: [],
+      inchargeDict: [],
+      fleetManagerDict: [],
+      flagDict: [],
+      classDict: [],
+    }
+  )
 }
 
 export async function createVessel(payload: {
@@ -139,7 +168,10 @@ export async function updateVessel(
     vessel_fleet_manager?: string | null
   }
 ): Promise<Vessel> {
-  const res = await api.put<ApiEnvelope<Vessel>>(`/vessel-list/${vesselId}`, payload)
+  const res = await api.put<ApiEnvelope<Vessel>>(
+    `/vessel-list/${vesselId}`,
+    payload
+  )
   return res.data.data
 }
 

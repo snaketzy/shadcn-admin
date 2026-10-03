@@ -207,6 +207,42 @@ export function OwnerCooperationCasesTable() {
     return p
   }
 
+  const { data: inchargeERowsData = [] } = useQuery({
+    queryKey: ['case-dict-prefix-E-cooperation'],
+    queryFn: () => fetchCaseDictByKeyPrefix('E'),
+    staleTime: 60 * 1000,
+  })
+
+  const inchargeEMap = useMemo<Map<string, string>>(() => {
+    const m = new Map<string, string>()
+    const list = (inchargeERowsData as CaseDict[]) ?? []
+    for (const d of list) {
+      const k = String(d.dict_key ?? '')
+      const v = String(d.dict_value ?? d.dict_key ?? '')
+      if (k) m.set(k.toUpperCase(), v)
+    }
+    return m
+  }, [inchargeERowsData])
+
+  const resolveInchargeELabel = (raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === '') return ''
+    const p = String(raw).trim()
+    if (!p) return ''
+    const hit = inchargeEMap.get(p.toUpperCase())
+    if (hit) return hit
+    return p
+  }
+
+  const splitCsvKeys = (raw: unknown): string[] => {
+    if (raw === null || raw === undefined) return []
+    const s = String(raw)
+    if (!s || s.trim() === '') return []
+    return s
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+  }
+
   const filteredRows = useMemo(() => {
     if (!owner || !Number.isFinite(ownerIdNum) || ownerIdNum <= 0) return []
     const selfName = String(owner?.owner_name ?? '').trim()
@@ -290,10 +326,25 @@ export function OwnerCooperationCasesTable() {
         ),
         cell: ({ row }) => {
           const value = row.getValue('case_inquiry_keyword') as string | null
+          const caseId = String(row.original.case_id ?? '')
+          if (!caseId || caseId === '') {
+            return (
+              <LongText className='max-w-56 truncate'>
+                {value ?? '-'}
+              </LongText>
+            )
+          }
           return (
-            <LongText className='max-w-56 truncate'>
-              {value ?? '-'}
-            </LongText>
+            <Link
+              to='/case_edit/$caseId'
+              params={{ caseId }}
+              className='inline-flex max-w-56 items-center align-middle font-medium hover:underline'
+              title={value ?? ''}
+            >
+              <LongText className='max-w-56 truncate'>
+                {value ?? '-'}
+              </LongText>
+            </Link>
           )
         },
         size: 240,
@@ -421,6 +472,32 @@ export function OwnerCooperationCasesTable() {
         enableSorting: false,
       },
       {
+        accessorKey: 'case_incharge',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title='案件负责人' />
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue('case_incharge') as string | null
+          const keys = splitCsvKeys(value)
+          if (keys.length === 0) return <div>-</div>
+          return (
+            <div className='flex flex-wrap gap-1.5'>
+              {keys.map((k) => (
+                <Badge
+                  key={k}
+                  variant='outline'
+                  className={cn(getBadgeColor(k))}
+                >
+                  {resolveInchargeELabel(k)}
+                </Badge>
+              ))}
+            </div>
+          )
+        },
+        size: 180,
+        enableSorting: false,
+      },
+      {
         accessorKey: 'case_inquiry_date',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='询价日期' />
@@ -449,7 +526,7 @@ export function OwnerCooperationCasesTable() {
         size: 120,
       },
     ],
-    [progressMap, ownerIdNum, inqTypeAMap, ownerIdEmailMap]
+    [progressMap, ownerIdNum, inqTypeAMap, inchargeEMap, ownerIdEmailMap]
   )
 
   const pagination = useMemo(
@@ -542,13 +619,15 @@ export function OwnerCooperationCasesTable() {
                   >
                     {row.getVisibleCells().map((cell) => {
                       const colId = cell.column.id ?? ''
-                      const isSuperintendent = colId === 'case_superintendent'
+                      const needWrap =
+                        colId === 'case_superintendent' ||
+                        colId === 'case_incharge'
                       return (
                         <TableCell
                           key={cell.id}
                           style={{ width: `${cell.column.getSize()}px` }}
                           className={cn(
-                            isSuperintendent
+                            needWrap
                               ? 'whitespace-normal align-top'
                               : 'whitespace-nowrap'
                           )}

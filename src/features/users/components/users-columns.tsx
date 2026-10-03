@@ -1,4 +1,5 @@
 import { type ColumnDef } from '@tanstack/react-table'
+import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -77,9 +78,20 @@ export function getUsersColumns(
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='船名' />
     ),
-    cell: ({ row }) => (
-      <LongText className='max-w-50 ps-3'>{row.getValue('vessel_name')}</LongText>
-    ),
+    cell: ({ row }) => {
+      const value = row.getValue('vessel_name') as string | null
+      const vesselId = String(row.original.vessel_id)
+      return (
+        <Link
+          to='/vessel_detail/$vesselId'
+          params={{ vesselId }}
+          className='inline-flex max-w-50 items-center truncate align-middle ps-3 font-medium hover:underline'
+          title={value ?? ''}
+        >
+          <LongText className='max-w-50 truncate'>{value}</LongText>
+        </Link>
+      )
+    },
     meta: {
       className: cn(
         'sticky left-12 z-20 w-[220px] min-w-[220px] bg-background ps-0.5',
