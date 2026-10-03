@@ -61,19 +61,22 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: '需处理甘特图',
-          url: '/gantt_chart_test1',
+          title: '甘特图',
           icon: GanttChart,
-        },
-        {
-          title: '待确认甘特图',
-          url: '/gantt_chart_test2',
-          icon: GanttChart,
-        },
-        {
-          title: '坞修甘特图',
-          url: '/gantt_chart_test3',
-          icon: GanttChart,
+          items: [
+            {
+              title: '需处理甘特图',
+              url: '/gantt_chart_test1',
+            },
+            {
+              title: '待确认甘特图',
+              url: '/gantt_chart_test2',
+            },
+            {
+              title: '坞修甘特图',
+              url: '/gantt_chart_test3',
+            },
+          ],
         },
         {
           title: '案件列表',
