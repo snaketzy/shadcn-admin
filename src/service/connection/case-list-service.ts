@@ -1370,3 +1370,49 @@ export async function ensureCaseListSchema(): Promise<void> {
   })()
   return _ensureCaseListSchemaPromise
 }
+
+export interface MonthlyStatisticRow {
+  month: number
+  progressKey: string
+  count: number
+}
+
+export async function getMonthlyProgressStatistics(
+  year: number,
+  ownerTeam: string
+): Promise<MonthlyStatisticRow[]> {
+  const sql = `
+    SELECT
+      MONTH(c.case_inquiry_date) AS month,
+      CAST(c.case_progress AS CHAR) AS progressKey,
+      COUNT(*) AS count
+    FROM \`case_list\` c
+    LEFT JOIN \`owner_list\` o ON c.owner_following_id = o.owner_id
+    WHERE
+      c.case_inquiry_date IS NOT NULL
+      AND YEAR(c.case_inquiry_date) = ?
+      AND (
+        TRIM(o.owner_team) = ?
+        OR TRIM(o.owner_team) LIKE CONCAT('%', ?, '%')
+        OR TRIM(COALESCE(c.owner_following, '')) IN (
+          SELECT TRIM(owner_name) FROM \`owner_list\`
+            WHERE TRIM(owner_team) = ? OR TRIM(owner_team) LIKE CONCAT('%', ?, '%')
+        )
+      )
+    GROUP BY MONTH(c.case_inquiry_date), CAST(c.case_progress AS CHAR)
+    ORDER BY month, progressKey
+  `
+  const params: ExecuteValues[] = [
+    year,
+    ownerTeam,
+    ownerTeam,
+    ownerTeam,
+    ownerTeam,
+  ]
+  const rows = await query<Array<{ month: number; progressKey: string; count: number }>>(sql, params)
+  return rows.map((r) => ({
+    month: Number(r.month),
+    progressKey: String(r.progressKey ?? ''),
+    count: Number(r.count ?? 0),
+  }))
+}

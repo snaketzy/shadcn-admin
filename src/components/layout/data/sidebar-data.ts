@@ -25,6 +25,7 @@ import {
   GalleryVerticalEnd,
   BookOpen,
   FileText,
+  BarChart3,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -59,6 +60,11 @@ export const sidebarData: SidebarData = {
           title: '工作台',
           url: '/',
           icon: LayoutDashboard,
+        },
+        {
+          title: '案件统计',
+          url: '/statistic_chart_1',
+          icon: BarChart3,
         },
         {
           title: '甘特图',

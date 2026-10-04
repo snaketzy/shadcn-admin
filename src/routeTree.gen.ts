@@ -48,6 +48,7 @@ import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
+import { Route as AuthenticatedStatistic_chart_1IndexRouteImport } from './routes/_authenticated/statistic_chart_1/index'
 import { Route as AuthenticatedSupplier_detailSupplierIdRouteRouteImport } from './routes/_authenticated/supplier_detail/$supplierId/route'
 import { Route as AuthenticatedSupplier_listIndexRouteImport } from './routes/_authenticated/supplier_list/index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
@@ -284,6 +285,12 @@ const AuthenticatedSettingsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedStatistic_chart_1IndexRoute =
+  AuthenticatedStatistic_chart_1IndexRouteImport.update({
+    id: '/statistic_chart_1/',
+    path: '/statistic_chart_1/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSupplier_detailSupplierIdRouteRoute =
   AuthenticatedSupplier_detailSupplierIdRouteRouteImport.update({
     id: '/supplier_detail/$supplierId',
@@ -415,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list/': typeof AuthenticatedOwner_listIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/statistic_chart_1/': typeof AuthenticatedStatistic_chart_1IndexRoute
   '/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
@@ -465,6 +473,7 @@ export interface FileRoutesByTo {
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/owner_list': typeof AuthenticatedOwner_listIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/statistic_chart_1': typeof AuthenticatedStatistic_chart_1IndexRoute
   '/supplier_list': typeof AuthenticatedSupplier_listIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/vessel_list': typeof AuthenticatedVessel_listIndexRoute
@@ -522,6 +531,7 @@ export interface FileRoutesById {
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/owner_list/': typeof AuthenticatedOwner_listIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/statistic_chart_1/': typeof AuthenticatedStatistic_chart_1IndexRoute
   '/_authenticated/supplier_list/': typeof AuthenticatedSupplier_listIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/vessel_list/': typeof AuthenticatedVessel_listIndexRoute
@@ -579,6 +589,7 @@ export interface FileRouteTypes {
     | '/help-center/'
     | '/owner_list/'
     | '/settings/'
+    | '/statistic_chart_1/'
     | '/supplier_list/'
     | '/tasks/'
     | '/vessel_list/'
@@ -629,6 +640,7 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/owner_list'
     | '/settings'
+    | '/statistic_chart_1'
     | '/supplier_list'
     | '/tasks'
     | '/vessel_list'
@@ -685,6 +697,7 @@ export interface FileRouteTypes {
     | '/_authenticated/help-center/'
     | '/_authenticated/owner_list/'
     | '/_authenticated/settings/'
+    | '/_authenticated/statistic_chart_1/'
     | '/_authenticated/supplier_list/'
     | '/_authenticated/tasks/'
     | '/_authenticated/vessel_list/'
@@ -989,6 +1002,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/statistic_chart_1/': {
+      id: '/_authenticated/statistic_chart_1/'
+      path: '/statistic_chart_1'
+      fullPath: '/statistic_chart_1/'
+      preLoaderRoute: typeof AuthenticatedStatistic_chart_1IndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/supplier_detail/$supplierId': {
       id: '/_authenticated/supplier_detail/$supplierId'
       path: '/supplier_detail/$supplierId'
@@ -1224,6 +1244,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGantt_chart_test3IndexRoute: typeof AuthenticatedGantt_chart_test3IndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedOwner_listIndexRoute: typeof AuthenticatedOwner_listIndexRoute
+  AuthenticatedStatistic_chart_1IndexRoute: typeof AuthenticatedStatistic_chart_1IndexRoute
   AuthenticatedSupplier_listIndexRoute: typeof AuthenticatedSupplier_listIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedVessel_listIndexRoute: typeof AuthenticatedVessel_listIndexRoute
@@ -1267,6 +1288,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedGantt_chart_test3IndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedOwner_listIndexRoute: AuthenticatedOwner_listIndexRoute,
+  AuthenticatedStatistic_chart_1IndexRoute:
+    AuthenticatedStatistic_chart_1IndexRoute,
   AuthenticatedSupplier_listIndexRoute: AuthenticatedSupplier_listIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedVessel_listIndexRoute: AuthenticatedVessel_listIndexRoute,
