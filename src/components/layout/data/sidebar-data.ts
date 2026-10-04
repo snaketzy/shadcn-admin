@@ -62,7 +62,7 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: '案件统计',
+          title: '年度案件统计',
           url: '/statistic_chart_1',
           icon: BarChart3,
         },
