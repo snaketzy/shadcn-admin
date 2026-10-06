@@ -1381,34 +1381,22 @@ export async function getMonthlyProgressStatistics(
   year: number,
   ownerTeam: string
 ): Promise<MonthlyStatisticRow[]> {
+  const team = ownerTeam.startsWith('G') ? ownerTeam : `G${ownerTeam}`
   const sql = `
     SELECT
       MONTH(c.case_inquiry_date) AS month,
       CAST(c.case_progress AS CHAR) AS progressKey,
       COUNT(*) AS count
     FROM \`case_list\` c
-    LEFT JOIN \`owner_list\` o ON c.owner_following_id = o.owner_id
+    INNER JOIN \`owner_list\` o ON c.owner_following_id = o.owner_id
     WHERE
       c.case_inquiry_date IS NOT NULL
       AND YEAR(c.case_inquiry_date) = ?
-      AND (
-        TRIM(o.owner_team) = ?
-        OR TRIM(o.owner_team) LIKE CONCAT('%', ?, '%')
-        OR TRIM(COALESCE(c.owner_following, '')) IN (
-          SELECT TRIM(owner_name) FROM \`owner_list\`
-            WHERE TRIM(owner_team) = ? OR TRIM(owner_team) LIKE CONCAT('%', ?, '%')
-        )
-      )
+      AND TRIM(o.owner_team) = ?
     GROUP BY MONTH(c.case_inquiry_date), CAST(c.case_progress AS CHAR)
     ORDER BY month, progressKey
   `
-  const params: ExecuteValues[] = [
-    year,
-    ownerTeam,
-    ownerTeam,
-    ownerTeam,
-    ownerTeam,
-  ]
+  const params: ExecuteValues[] = [year, team]
   const rows = await query<Array<{ month: number; progressKey: string; count: number }>>(sql, params)
   return rows.map((r) => ({
     month: Number(r.month),
