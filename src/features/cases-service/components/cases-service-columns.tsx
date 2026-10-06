@@ -829,8 +829,8 @@ export function getCasesServiceColumns(params?: {
           : []
         const groupInquirySuppliers = (
           dataKeyMatcher: (rawType: string | null | undefined) => boolean
-        ): { supplier: string; date: string; typeLabel: string }[] => {
-          const out: { supplier: string; date: string; typeLabel: string }[] =
+        ): { supplier: string; date: string; typeLabel: string; memo: string }[] => {
+          const out: { supplier: string; date: string; typeLabel: string; memo: string }[] =
             []
           for (const r of inquiries) {
             const rawType = r.case_inquiry_type
@@ -841,6 +841,7 @@ export function getCasesServiceColumns(params?: {
               supplier: supplier || '未指定供应商',
               date: s(r.case_inquired_date),
               typeLabel,
+              memo: r.remark ? String(r.remark).trim() : '',
             })
           }
           return out
@@ -890,7 +891,7 @@ export function getCasesServiceColumns(params?: {
         }
         const buildInquirySection = (
           title: string,
-          rows: { supplier: string; date: string; typeLabel: string }[],
+          rows: { supplier: string; date: string; typeLabel: string; memo: string }[],
           accent: string
         ) => {
           if (rows.length === 0) return null
@@ -936,10 +937,13 @@ export function getCasesServiceColumns(params?: {
                 {rows.map((r, idx) => (
                   <li
                     key={idx}
-                    className='grid grid-cols-[1fr_auto] items-start gap-2 text-[13px] text-slate-900'
+                    className='grid grid-cols-[1fr_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-0.5 text-[13px] text-slate-900'
                   >
-                    <LongText className='max-w-[420px] truncate font-medium text-slate-900'>
+                    <LongText className='max-w-[300px] truncate font-medium text-slate-900'>
                       {r.supplier}
+                    </LongText>
+                    <LongText className='max-w-full truncate text-xs text-muted-foreground/80'>
+                      {r.memo || <span className='opacity-0'>-</span>}
                     </LongText>
                     <span className='shrink-0 text-xs text-slate-600'>
                       {r.date}
