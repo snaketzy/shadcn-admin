@@ -254,16 +254,16 @@ function getWaitingForConfirmDictKeys(dictR: CaseDict[]): string[] {
 function getDryDockingDictKeys(dictA: CaseDict[]): string[] {
   const out: string[] = []
   for (const o of dictA) {
-    const lbl = (o.label ?? o.dict_value ?? '').toString()
+    const lbl = (o.dict_value ?? '').toString()
     const lblUp = lbl.trim()
     const lblUpper = lblUp.toUpperCase()
-    const val = String(o.value ?? o.dict_key ?? '')
+    const val = String(o.dict_key ?? '')
     const valUp = val.trim().toUpperCase()
     const match =
       lblUpper.includes('DRY-DOCKING') ||
       lblUp.includes('坞修') ||
       valUp.includes('A-DRY')
-    if (match) out.push(String(o.value ?? o.dict_key ?? ''))
+    if (match) out.push(String(o.dict_key ?? ''))
   }
   return out
 }
@@ -647,8 +647,10 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
         : null
       if (etaD && !Number.isNaN(etaD.getTime())) {
         expand(etaD)
-        if (childMin == null || etaD < childMin) childMin = new Date(etaD)
-        if (childMax == null || etaD > childMax) childMax = new Date(etaD)
+        if (childMin == null || etaD < (childMin as Date))
+          childMin = new Date(etaD)
+        if (childMax == null || etaD > (childMax as Date))
+          childMax = new Date(etaD)
         rows.push({
           caseId: c.case_id,
           rowKey: `eta-${c.case_id}`,
@@ -676,8 +678,10 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
         : null
       if (etbD && !Number.isNaN(etbD.getTime())) {
         expand(etbD)
-        if (childMin == null || etbD < childMin) childMin = new Date(etbD)
-        if (childMax == null || etbD > childMax) childMax = new Date(etbD)
+        if (childMin == null || etbD < (childMin as Date))
+          childMin = new Date(etbD)
+        if (childMax == null || etbD > (childMax as Date))
+          childMax = new Date(etbD)
         rows.push({
           caseId: c.case_id,
           rowKey: `etb-${c.case_id}`,
@@ -705,8 +709,10 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
         : null
       if (etdD && !Number.isNaN(etdD.getTime())) {
         expand(etdD)
-        if (childMin == null || etdD < childMin) childMin = new Date(etdD)
-        if (childMax == null || etdD > childMax) childMax = new Date(etdD)
+        if (childMin == null || etdD < (childMin as Date))
+          childMin = new Date(etdD)
+        if (childMax == null || etdD > (childMax as Date))
+          childMax = new Date(etdD)
         rows.push({
           caseId: c.case_id,
           rowKey: `etd-${c.case_id}`,
