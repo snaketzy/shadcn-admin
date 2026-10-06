@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Bar,
@@ -134,33 +134,6 @@ export function CaseProgressMonthlyStackedChart(
     return { chartData: cData, maxTotal: max }
   }, [data])
 
-  function renderTotalLabel(arg: {
-    x?: number
-    y?: number
-    width?: number
-    height?: number
-    value?: number | string
-    index?: number
-    payload?: any
-  }) {
-    const total = Number(arg?.payload?.total ?? 0)
-    if (!total || total <= 0) return null
-    const x = Number(arg?.x ?? 0)
-    const y = Number(arg?.y ?? 0)
-    return (
-      <text
-        x={x}
-        y={y - 4}
-        textAnchor='middle'
-        fill='#ef4444'
-        fontSize={18}
-        fontWeight={700}
-      >
-        {total}
-      </text>
-    )
-  }
-
   return (
     <div className='flex w-full flex-col gap-3 rounded-md border bg-background p-4'>
       <div className='flex items-center justify-between'>
@@ -208,7 +181,7 @@ export function CaseProgressMonthlyStackedChart(
                 fill={p.color}
                 isAnimationActive={false}
               >
-                {chartData.map((row, i) => (
+                {chartData.map((_row, i) => (
                   <Cell key={`c-${i}`} fill={p.color} />
                 ))}
               </Bar>

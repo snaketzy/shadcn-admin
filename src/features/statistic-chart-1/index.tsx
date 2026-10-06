@@ -26,9 +26,8 @@ export function StatisticChart1Page() {
         <Select
           value={String(year)}
           onValueChange={(v) => setYear(Number(v))}
-          className='w-[200px]'
         >
-          <SelectTrigger>
+          <SelectTrigger className='w-[200px]'>
             <SelectValue placeholder='选择年份' />
           </SelectTrigger>
           <SelectContent>

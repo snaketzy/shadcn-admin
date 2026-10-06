@@ -479,7 +479,7 @@ export function VesselCooperationCasesTable({ vesselId }: Props) {
             </TableBody>
           </table>
         </div>
-        <DataTablePagination table={table} pageSizes={[25, 50, 100, 200]} />
+        <DataTablePagination table={table} />
       </div>
     </div>
   )
