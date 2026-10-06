@@ -25,6 +25,7 @@ import {
   GalleryVerticalEnd,
   BookOpen,
   FileText,
+  BarChart3,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -61,14 +62,27 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: '需处理甘特图',
-          url: '/gantt_chart_test1',
-          icon: GanttChart,
+          title: '年度案件统计',
+          url: '/statistic_chart_1',
+          icon: BarChart3,
         },
         {
-          title: '待确认甘特图',
-          url: '/gantt_chart_test2',
+          title: '甘特图',
           icon: GanttChart,
+          items: [
+            {
+              title: '需处理甘特图',
+              url: '/gantt_chart_test1',
+            },
+            {
+              title: '待确认甘特图',
+              url: '/gantt_chart_test2',
+            },
+            {
+              title: '坞修甘特图',
+              url: '/gantt_chart_test3',
+            },
+          ],
         },
         {
           title: '案件列表',

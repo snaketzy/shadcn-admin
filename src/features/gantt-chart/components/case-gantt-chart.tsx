@@ -89,6 +89,9 @@ const INQ_KEY_TO_DIAMOND: Record<string, string> = {
   Q3: 'text-[#7c3aed] fill-violet-100',
   Q2: 'text-[#A065D0] fill-[#EAD5FB]',
   Q1: 'text-[#0ea5e9] fill-sky-100',
+  ETA: 'text-[#e17100] fill-[#FFE4C2]',
+  ETB: 'text-[#1d4ed8] fill-[#DBEAFE]',
+  ETD: 'text-[#0d9488] fill-[#CCFBF1]',
 }
 
 const PARENT_HAS_AWARD_BAR_CLASS = 'bg-[#10b981] border-[#059669] text-white'
@@ -175,7 +178,7 @@ function inqKeyUpper(t: unknown): string {
     .toUpperCase()
 }
 
-type GanttRowType = 'parent' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
+type GanttRowType = 'parent' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'ETA' | 'ETB' | 'ETD'
 
 interface GanttRow {
   caseId: number
@@ -218,7 +221,7 @@ interface GanttGroup {
   connectors: GanttConnector[]
 }
 
-export type GanttChartMode = 'today' | 'waiting_confirm'
+export type GanttChartMode = 'today' | 'waiting_confirm' | 'drydocking'
 
 interface CaseGanttChartProps {
   mode?: GanttChartMode
@@ -248,6 +251,23 @@ function getWaitingForConfirmDictKeys(dictR: CaseDict[]): string[] {
   return out
 }
 
+function getDryDockingDictKeys(dictA: CaseDict[]): string[] {
+  const out: string[] = []
+  for (const o of dictA) {
+    const lbl = (o.label ?? o.dict_value ?? '').toString()
+    const lblUp = lbl.trim()
+    const lblUpper = lblUp.toUpperCase()
+    const val = String(o.value ?? o.dict_key ?? '')
+    const valUp = val.trim().toUpperCase()
+    const match =
+      lblUpper.includes('DRY-DOCKING') ||
+      lblUp.includes('坞修') ||
+      valUp.includes('A-DRY')
+    if (match) out.push(String(o.value ?? o.dict_key ?? ''))
+  }
+  return out
+}
+
 export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
   const [anchorDeltaDays, setAnchorDeltaDays] = useState(0)
   const [collapsedCaseIds, setCollapsedCaseIds] = useState<Set<number>>(
@@ -273,6 +293,13 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
     queryKey: ['case-dict-prefix-R-gantt-chart'],
     queryFn: () => fetchCaseDictByKeyPrefix('R'),
     staleTime: 60000,
+  })
+
+  const { data: dictA = [] } = useQuery({
+    queryKey: ['case-dict-prefix-A-gantt-chart-drydocking'],
+    queryFn: () => fetchCaseDictByKeyPrefix('A'),
+    staleTime: 60000,
+    enabled: mode === 'drydocking',
   })
 
   const { data: supplierRows = [] } = useQuery({
@@ -331,6 +358,8 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
     [dictR]
   )
 
+  const dryDockingValues = useMemo(() => getDryDockingDictKeys(dictA), [dictA])
+
   const {
     data: pageData,
     isLoading: casesLoading,
@@ -340,7 +369,9 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
     queryKey:
       mode === 'waiting_confirm'
         ? ['gantt-case-waiting-list-paginated', waitingConfirmValues]
-        : ['gantt-case-today-list-paginated', handleTodayYesValues],
+        : mode === 'drydocking'
+          ? ['gantt-case-drydocking-list-paginated', dryDockingValues]
+          : ['gantt-case-today-list-paginated', handleTodayYesValues],
     queryFn: () => {
       if (mode === 'waiting_confirm') {
         return fetchCasePaginated({
@@ -348,6 +379,14 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
           pageSize: 2000,
           caseProgress:
             waitingConfirmValues.length > 0 ? waitingConfirmValues : undefined,
+        })
+      }
+      if (mode === 'drydocking') {
+        return fetchCasePaginated({
+          page: 1,
+          pageSize: 2000,
+          caseInquiryType:
+            dryDockingValues.length > 0 ? dryDockingValues : undefined,
         })
       }
       return fetchCasePaginated({
@@ -359,7 +398,9 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
     },
     staleTime: 30000,
     enabled:
-      mode === 'waiting_confirm' ? true : handleTodayYesValues.length > 0,
+      mode === 'waiting_confirm' || mode === 'drydocking'
+        ? true
+        : handleTodayYesValues.length > 0,
   })
 
   const caseRows: Case[] = (pageData?.rows as Case[]) ?? []
@@ -598,6 +639,93 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
             showDiamond: key === 'Q4',
           })
         }
+      }
+
+      const etaRaw = String(c.case_eta_cargo_ready_date ?? '').trim()
+      const etaD = etaRaw
+        ? startOfDay(parseYmdOrNull(etaRaw) ?? new Date(NaN))
+        : null
+      if (etaD && !Number.isNaN(etaD.getTime())) {
+        expand(etaD)
+        if (childMin == null || etaD < childMin) childMin = new Date(etaD)
+        if (childMax == null || etaD > childMax) childMax = new Date(etaD)
+        rows.push({
+          caseId: c.case_id,
+          rowKey: `eta-${c.case_id}`,
+          type: 'ETA',
+          label: `船舶到港时间 · ${ymdStr(etaD)}`,
+          startDate: etaD,
+          endDate: etaD,
+          caseTitle,
+          vesselName: c.vessel_name,
+          caseLink,
+          startLabel: ymdStr(etaD),
+          endLabel: '',
+          colorClass: 'bg-[#e17100]/20 border-[#e17100]/50 text-[#e17100]',
+          isRecord: false,
+          indentLevel: 1,
+          rowHeight: ROW_HEIGHT_CHILD,
+          showDiamond: true,
+          recordRemark: `船舶到港时间：${ymdStr(etaD)}`,
+        })
+      }
+
+      const etbRaw = String(c.case_etb_cargo_departure_date ?? '').trim()
+      const etbD = etbRaw
+        ? startOfDay(parseYmdOrNull(etbRaw) ?? new Date(NaN))
+        : null
+      if (etbD && !Number.isNaN(etbD.getTime())) {
+        expand(etbD)
+        if (childMin == null || etbD < childMin) childMin = new Date(etbD)
+        if (childMax == null || etbD > childMax) childMax = new Date(etbD)
+        rows.push({
+          caseId: c.case_id,
+          rowKey: `etb-${c.case_id}`,
+          type: 'ETB',
+          label: `船舶靠港时间 · ${ymdStr(etbD)}`,
+          startDate: etbD,
+          endDate: etbD,
+          caseTitle,
+          vesselName: c.vessel_name,
+          caseLink,
+          startLabel: ymdStr(etbD),
+          endLabel: '',
+          colorClass: 'bg-[#1d4ed8]/20 border-[#1d4ed8]/50 text-[#1d4ed8]',
+          isRecord: false,
+          indentLevel: 1,
+          rowHeight: ROW_HEIGHT_CHILD,
+          showDiamond: true,
+          recordRemark: `船舶靠港时间：${ymdStr(etbD)}`,
+        })
+      }
+
+      const etdRaw = String(c.case_etd_cargo_delivery_date ?? '').trim()
+      const etdD = etdRaw
+        ? startOfDay(parseYmdOrNull(etdRaw) ?? new Date(NaN))
+        : null
+      if (etdD && !Number.isNaN(etdD.getTime())) {
+        expand(etdD)
+        if (childMin == null || etdD < childMin) childMin = new Date(etdD)
+        if (childMax == null || etdD > childMax) childMax = new Date(etdD)
+        rows.push({
+          caseId: c.case_id,
+          rowKey: `etd-${c.case_id}`,
+          type: 'ETD',
+          label: `船舶开航时间 · ${ymdStr(etdD)}`,
+          startDate: etdD,
+          endDate: etdD,
+          caseTitle,
+          vesselName: c.vessel_name,
+          caseLink,
+          startLabel: ymdStr(etdD),
+          endLabel: '',
+          colorClass: 'bg-[#0d9488]/20 border-[#0d9488]/50 text-[#0d9488]',
+          isRecord: false,
+          indentLevel: 1,
+          rowHeight: ROW_HEIGHT_CHILD,
+          showDiamond: true,
+          recordRemark: `船舶开航时间：${ymdStr(etdD)}`,
+        })
       }
 
       let parentS: Date | null = childMin
@@ -878,32 +1006,42 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                   'size-5',
                   mode === 'waiting_confirm'
                     ? 'text-violet-600'
-                    : 'text-emerald-600'
+                    : mode === 'drydocking'
+                      ? 'text-orange-700'
+                      : 'text-emerald-600'
                 )}
               />
               <CardTitle className='text-xl'>
                 {mode === 'waiting_confirm'
                   ? '待确认甘特图'
-                  : '需处理甘特图'}
+                  : mode === 'drydocking'
+                    ? '坞修甘特图'
+                    : '需处理甘特图'}
               </CardTitle>
             </div>
             <CardDescription className='mt-1'>
               {mode === 'waiting_confirm'
                 ? '数据源 = 案件进度「Waiting for confirm / 待确认」列表。横坐标：日期（按周）。每个案件为一组：父级（询价日期 → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计 '
-                : '数据源 = 「当日处理案件」列表。横坐标：日期（按周）。每个案件为一组：父级（询价日期 → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计 '}
+                : mode === 'drydocking'
+                  ? '数据源 = 「坞修案件列表」数据。横坐标：日期（按周）。每个案件为一组：父级（询价日期 → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计 '
+                  : '数据源 = 「当日处理案件」列表。横坐标：日期（按周）。每个案件为一组：父级（询价日期 → 跟进日期） + 子级（询价 / 报价 / 竞标 / 中标）。 当前共计 '}
               <span
                 className={cn(
                   'font-semibold',
                   mode === 'waiting_confirm'
                     ? 'text-violet-700'
-                    : 'text-emerald-700'
+                    : mode === 'drydocking'
+                      ? 'text-orange-800'
+                      : 'text-emerald-700'
                 )}
               >
                 {caseCount}
               </span>
               {mode === 'waiting_confirm'
                 ? ' 条待确认案件，'
-                : ' 条需处理案件，'}
+                : mode === 'drydocking'
+                  ? ' 条坞修案件，'
+                  : ' 条需处理案件，'}
               <span className='font-semibold text-slate-700'>{totalRows}</span>{' '}
               行甘特。 父级可 <ChevronRightFlat className='inline size-3' />{' '}
               折叠。
@@ -916,13 +1054,17 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                 'flex items-center gap-1.5 border-dashed',
                 mode === 'waiting_confirm'
                   ? 'border-violet-500/60 text-violet-700'
-                  : 'border-emerald-500/60 text-emerald-700'
+                  : mode === 'drydocking'
+                    ? 'border-orange-500/60 text-orange-700'
+                    : 'border-emerald-500/60 text-emerald-700'
               )}
             >
               <BarChart3 className='size-3.5' />{' '}
               {mode === 'waiting_confirm'
                 ? '数据源：待确认 (Waiting for confirm)'
-                : '数据源：当日处理案件'}
+                : mode === 'drydocking'
+                  ? '数据源：坞修案件列表'
+                  : '数据源：当日处理案件'}
             </Badge>
             <Button
               size='sm'
@@ -975,11 +1117,29 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
             <div className='flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground'>
               <GanttChartIcon className='size-10 opacity-40' />
               <div className='text-sm'>
-                暂无「当日处理案件」，请先在案件列表里把需要处理的案件打上
-                <span className='mx-1 rounded bg-emerald-100 px-1 py-0.5 font-medium text-emerald-800'>
-                  当日需处理
-                </span>
-                标记。
+                {mode === 'waiting_confirm'
+                  ? '暂无「待确认案件」，请先在案件列表里把案件进度标记为 '
+                  : mode === 'drydocking'
+                    ? '暂无「坞修案件」，请先在案件列表里把案件类型打 '
+                    : '暂无「当日处理案件」，请先在案件列表里把需要处理的案件打上'}
+                {mode === 'waiting_confirm' ? (
+                  <span className='mx-1 rounded bg-violet-100 px-1 py-0.5 font-medium text-violet-800'>
+                    Waiting for confirm
+                  </span>
+                ) : mode === 'drydocking' ? (
+                  <span className='mx-1 rounded bg-orange-100 px-1 py-0.5 font-medium text-orange-800'>
+                    坞修 / DRY-DOCKING
+                  </span>
+                ) : (
+                  <span className='mx-1 rounded bg-emerald-100 px-1 py-0.5 font-medium text-emerald-800'>
+                    当日需处理
+                  </span>
+                )}
+                {mode === 'waiting_confirm'
+                  ? '。'
+                  : mode === 'drydocking'
+                    ? ' 标记。'
+                    : ' 标记。'}
               </div>
             </div>
           ) : (
@@ -1157,9 +1317,15 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                       'flex w-full items-center gap-1.5',
                                       r.type === 'parent'
                                         ? 'bg-slate-100/70 font-semibold text-slate-800'
-                                        : r.isRecord
-                                          ? 'text-slate-500'
-                                          : 'text-slate-700',
+                                        : r.type === 'ETA'
+                                          ? 'font-medium text-[#e17100]'
+                                          : r.type === 'ETB'
+                                            ? 'font-medium text-[#1d4ed8]'
+                                            : r.type === 'ETD'
+                                              ? 'font-medium text-[#0d9488]'
+                                              : r.isRecord
+                                                ? 'text-slate-500'
+                                                : 'text-slate-700',
                                       isFirst && 'pt-[6px]',
                                       isLast && 'pb-[6px]'
                                     )}
@@ -1219,16 +1385,20 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                               className={cn(
                                                 'h-5 w-5 shrink-0 rounded p-0 text-slate-500 hover:bg-slate-200/70 hover:text-slate-700'
                                               )}
-                                            onClick={(e) => {
+                                              onClick={(e) => {
                                                 e.stopPropagation()
                                                 const value = r.label
                                                 const okMsg = `已复制案件编号：${value}`
-                                                const failMsg = '复制失败，请手动复制'
-                                                const legacyCopy = (text: string) => {
+                                                const failMsg =
+                                                  '复制失败，请手动复制'
+                                                const legacyCopy = (
+                                                  text: string
+                                                ) => {
                                                   try {
-                                                    const ta = document.createElement(
-                                                      'textarea'
-                                                    )
+                                                    const ta =
+                                                      document.createElement(
+                                                        'textarea'
+                                                      )
                                                     ta.value = text
                                                     ta.setAttribute(
                                                       'readonly',
@@ -1237,7 +1407,9 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                                     ta.style.position =
                                                       'absolute'
                                                     ta.style.left = '-9999px'
-                                                    document.body.appendChild(ta)
+                                                    document.body.appendChild(
+                                                      ta
+                                                    )
                                                     ta.select()
                                                     const ok =
                                                       document.execCommand(
@@ -1267,9 +1439,7 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                                         toast.success(okMsg),
                                                       () => {
                                                         if (!legacyCopy(value))
-                                                          toast.error(
-                                                            failMsg
-                                                          )
+                                                          toast.error(failMsg)
                                                       }
                                                     )
                                                     .catch(() => {
@@ -1427,6 +1597,74 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                                     ROW_HEIGHT_CHILD
                                 }
                                 const actualTop = cumY
+
+                                if (
+                                  r.type === 'ETA' ||
+                                  r.type === 'ETB' ||
+                                  r.type === 'ETD'
+                                ) {
+                                  const size = 20
+                                  const centerLeft =
+                                    left + DAY_WIDTH / 2 - size / 2
+                                  const centerTop = actualTop + (h - size) / 2
+                                  const diamondCls =
+                                    INQ_KEY_TO_DIAMOND[r.type] ??
+                                    INQ_KEY_TO_DIAMOND.ETA
+                                  const subLabelCn =
+                                    r.type === 'ETA'
+                                      ? '船舶到港时间'
+                                      : r.type === 'ETB'
+                                        ? '船舶靠港时间'
+                                        : '船舶开航时间'
+                                  return (
+                                    <div
+                                      key={r.rowKey}
+                                      className='absolute'
+                                      style={{
+                                        left: 0,
+                                        top: 0,
+                                        width: weeksWidthPx,
+                                        height: realHeight,
+                                      }}
+                                    >
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Diamond
+                                            className={cn(
+                                              'absolute z-[3] cursor-pointer drop-shadow-md',
+                                              diamondCls
+                                            )}
+                                            style={{
+                                              left: Math.max(0, centerLeft),
+                                              top: centerTop,
+                                              width: size,
+                                              height: size,
+                                              strokeWidth: 2.2,
+                                            }}
+                                          />
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                          side='top'
+                                          align='start'
+                                          alignOffset={-4}
+                                          className='*:!text-white'
+                                        >
+                                          <div className='max-w-[280px] text-xs leading-5'>
+                                            <div className='font-semibold'>
+                                              {r.caseTitle}
+                                            </div>
+                                            <div className='text-white/90'>
+                                              {subLabelCn} ·{' '}
+                                              {r.vesselName || '无船名'}
+                                            </div>
+                                            <div>{r.startLabel}</div>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  )
+                                }
+
                                 const isParent = r.type === 'parent'
                                 const isRecord = !!r.isRecord
                                 const barHeight = isParent
@@ -1737,6 +1975,27 @@ export function CaseGanttChart({ mode = 'today' }: CaseGanttChartProps) {
                       strokeWidth={2}
                     />
                     <span>中标里程碑</span>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <Diamond
+                      className='size-4 fill-[#FFE4C2] text-[#e17100]'
+                      strokeWidth={2.2}
+                    />
+                    <span>船舶到港里程碑</span>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <Diamond
+                      className='size-4 fill-[#DBEAFE] text-[#1d4ed8]'
+                      strokeWidth={2.2}
+                    />
+                    <span>船舶靠港里程碑</span>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <Diamond
+                      className='size-4 fill-[#CCFBF1] text-[#0d9488]'
+                      strokeWidth={2.2}
+                    />
+                    <span>船舶开航里程碑</span>
                   </div>
                   <div className='flex items-center gap-1.5'>
                     <span

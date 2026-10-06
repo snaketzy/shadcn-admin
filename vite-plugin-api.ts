@@ -76,6 +76,7 @@ import {
   ensureCaseDeliveryServiceInchargeIdColumn,
   ensureCaseSuperintendentIdColumn,
   ensureCaseListSchema,
+  getMonthlyProgressStatistics,
 } from './src/service/connection/case-list-service'
 import {
   createCaseInquiryListBulk,
@@ -1257,6 +1258,16 @@ export async function handleCaseListApi(
       if (method === 'GET') {
         const groups = await getCaseListGroups()
         sendJson(res, 200, { success: true, data: groups })
+        return true
+      }
+    }
+
+    if (subPath === '/monthly-progress-statistics') {
+      if (method === 'GET') {
+        const year = Number(searchParams.get('year') ?? new Date().getFullYear())
+        const ownerTeam = toOptStr(searchParams.get('ownerTeam')) ?? '1'
+        const rows = await getMonthlyProgressStatistics(year, ownerTeam)
+        sendJson(res, 200, { success: true, data: rows })
         return true
       }
     }
