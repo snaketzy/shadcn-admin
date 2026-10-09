@@ -365,10 +365,10 @@ export function getCasesDealColumns(params?: {
     const { items, fallback } = buildSuperintendentSegments(row)
     if (items.length === 0) return fallback || '-'
     return (
-      <div className='flex flex-col gap-y-1 max-w-full'>
+      <div className='flex max-w-full flex-col gap-y-1'>
         {items.map((s, idx) => (
           <div key={`${s.name}-${idx}`} className='flex items-center'>
-            <span className='truncate whitespace-nowrap text-[13px] text-foreground/80'>
+            <span className='truncate text-[13px] whitespace-nowrap text-foreground/80'>
               {s.name}
             </span>
           </div>
@@ -687,9 +687,6 @@ export function getCasesDealColumns(params?: {
                             <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
                               {safeMemoStr((memo as any).case_memo_content) && (
                                 <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
-                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
-                                    内容
-                                  </div>
                                   <div className='max-w-none text-[13px] leading-7'>
                                     {safeMemoStr(
                                       (memo as any).case_memo_content
@@ -858,7 +855,9 @@ export function getCasesDealColumns(params?: {
           return out
         }
         const dataKey = (t: unknown): string =>
-          String(t ?? '').trim().toUpperCase()
+          String(t ?? '')
+            .trim()
+            .toUpperCase()
         const inquiryGroups = {
           询价: groupInquirySuppliers((t) => dataKey(t) === 'Q1'),
           报价: groupInquirySuppliers((t) => dataKey(t) === 'Q2'),
@@ -1125,11 +1124,7 @@ export function getCasesDealColumns(params?: {
                       (() => {
                         const node = renderSuperintendentNode(rowData)
                         if (node == null || node === '-') return null
-                        return (
-                          <div className='max-w-[480px]'>
-                            {node}
-                          </div>
-                        )
+                        return <div className='max-w-[480px]'>{node}</div>
                       })()
                     )}
                     {kvRow(
@@ -1437,9 +1432,7 @@ export function getCasesDealColumns(params?: {
     {
       id: 'days_since_followup',
       accessorFn: (row) => {
-        const formatted = formatDateAsHyphen(
-          (row as any).case_uptodate_date
-        )
+        const formatted = formatDateAsHyphen((row as any).case_uptodate_date)
         if (!formatted) return null
         const today = getTodayHyphen()
         const todayDate = new Date(today)
@@ -1458,14 +1451,11 @@ export function getCasesDealColumns(params?: {
         if (diffDays == null) return <div className='text-center'>-</div>
         let colorClass = ''
         if (diffDays <= 1) {
-          colorClass =
-            'text-emerald-600 dark:text-emerald-400 font-medium'
+          colorClass = 'text-emerald-600 dark:text-emerald-400 font-medium'
         } else if (diffDays <= 3) {
-          colorClass =
-            'text-blue-600 dark:text-blue-400 font-medium'
+          colorClass = 'text-blue-600 dark:text-blue-400 font-medium'
         } else if (diffDays <= 7) {
-          colorClass =
-            'text-amber-600 dark:text-amber-400 font-medium'
+          colorClass = 'text-amber-600 dark:text-amber-400 font-medium'
         } else {
           colorClass = 'text-rose-600 dark:text-rose-400 font-medium'
         }
@@ -1624,7 +1614,7 @@ export function getCasesDealColumns(params?: {
           string | null
         const formatted = formatDateAsHyphen(value)
         return (
-          <div className='text-purple-600 dark:text-purple-400 font-medium'>
+          <div className='font-medium text-purple-600 dark:text-purple-400'>
             {formatted || '-'}
           </div>
         )
@@ -1941,11 +1931,13 @@ export function getCasesDealColumns(params?: {
         if (!Number.isFinite(cid) || cid <= 0) return result
         const inquiries =
           getCaseIdInquiriesMap != null
-            ? getCaseIdInquiriesMap()?.get(cid) ?? []
+            ? (getCaseIdInquiriesMap()?.get(cid) ?? [])
             : []
         for (const r of inquiries) {
           const rawType = (r as any)?.case_inquiry_type
-          const typeKey = String(rawType ?? '').trim().toUpperCase()
+          const typeKey = String(rawType ?? '')
+            .trim()
+            .toUpperCase()
           const typeLabel = typeKey
             ? (inquiryTypeQKeyToLabel?.get(typeKey) ?? String(rawType ?? ''))
             : ''
@@ -1982,7 +1974,9 @@ export function getCasesDealColumns(params?: {
               .filter(Boolean)
           : []
         if (fArr.length === 0) return true
-        const rowArr: string[] = Array.isArray(row.getValue('award_supplier_ids'))
+        const rowArr: string[] = Array.isArray(
+          row.getValue('award_supplier_ids')
+        )
           ? (row.getValue('award_supplier_ids') as unknown[])
               .map((v) => String(v ?? '').trim())
               .filter(Boolean)

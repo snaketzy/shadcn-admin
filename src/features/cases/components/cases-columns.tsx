@@ -331,8 +331,7 @@ export function getCasesColumns(params?: {
       for (const id of ids) {
         if (seenIds.has(id)) continue
         const o = ownerIdEmailMap ? ownerIdEmailMap.get(id) : undefined
-        const n =
-          o && o.owner_name ? String(o.owner_name).trim() : id
+        const n = o && o.owner_name ? String(o.owner_name).trim() : id
         if (!n) continue
         seenIds.add(id)
         items.push({ name: n })
@@ -366,7 +365,7 @@ export function getCasesColumns(params?: {
       <div className='flex max-w-full flex-col items-stretch gap-y-1'>
         {items.map((s, idx) => (
           <div key={`${s.name}-${idx}`} className='flex items-center'>
-            <span className='max-w-full truncate whitespace-nowrap text-[13px] text-foreground/80'>
+            <span className='max-w-full truncate text-[13px] whitespace-nowrap text-foreground/80'>
               {s.name}
             </span>
           </div>
@@ -685,9 +684,6 @@ export function getCasesColumns(params?: {
                             <div className='mt-2 space-y-1 px-1 text-[13px] leading-relaxed text-amber-950/90'>
                               {safeMemoStr((memo as any).case_memo_content) && (
                                 <div className='rounded-md bg-white/80 p-2 break-words whitespace-pre-wrap ring-1 ring-amber-200/60'>
-                                  <div className='mb-0.5 text-[11px] tracking-wide text-amber-700/80 uppercase'>
-                                    内容
-                                  </div>
                                   <div className='max-w-none text-[13px] leading-7'>
                                     {safeMemoStr(
                                       (memo as any).case_memo_content
@@ -1125,9 +1121,7 @@ export function getCasesColumns(params?: {
                       (() => {
                         const node = renderSuperintendentNode(rowData)
                         if (node == null || node === '-') return null
-                        return (
-                          <div className='max-w-[480px]'>{node}</div>
-                        )
+                        return <div className='max-w-[480px]'>{node}</div>
                       })()
                     )}
                     {kvRow(
@@ -1572,7 +1566,11 @@ export function getCasesColumns(params?: {
         <DataTableColumnHeader column={column} title='案件机务' />
       ),
       cell: ({ row }) => {
-        return <div className='max-w-40'>{renderSuperintendentNode(row.original)}</div>
+        return (
+          <div className='max-w-40'>
+            {renderSuperintendentNode(row.original)}
+          </div>
+        )
       },
       meta: {
         label: '案件机务',
