@@ -8,6 +8,7 @@ export interface LogListRow {
   log_field_name: string | null
   log_filed_old_value: string | null
   log_field_new_value: string | null
+  log_date: string | null
 }
 
 export type LogOp = 'INSERT' | 'UPDATE' | 'DELETE'
@@ -35,10 +36,11 @@ export async function writeAuditLogs(records: {
   log_field_name: string
   log_filed_old_value?: unknown
   log_field_new_value?: unknown
+  log_date?: string | Date | null
 }[]): Promise<void> {
   if (!records || records.length === 0) return
-  const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-  const params: (string | null)[] = []
+  const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?, COALESCE(?, NOW()))').join(', ')
+  const params: (string | Date | null)[] = []
   for (const r of records) {
     params.push(
       r.log_table_name ?? null,
@@ -46,13 +48,14 @@ export async function writeAuditLogs(records: {
       valueToStr(r.log_table_primary_key_value, 45),
       r.log_field_name ?? null,
       valueToStr(r.log_filed_old_value, 500),
-      valueToStr(r.log_field_new_value, 500)
+      valueToStr(r.log_field_new_value, 500),
+      r.log_date ?? null
     )
   }
   await execute(
     `INSERT INTO \`log_list\`
        (log_table_name, log_table_primary_key, log_table_primary_key_value,
-        log_field_name, log_filed_old_value, log_field_new_value)
+        log_field_name, log_filed_old_value, log_field_new_value, log_date)
      VALUES ${placeholders}`,
     params as any
   )
@@ -204,7 +207,8 @@ export async function getLogListPaginated(params: {
     query<LogListRow[]>(
       `SELECT log_id, log_table_name, log_table_primary_key,
               log_table_primary_key_value,
-              log_field_name, log_filed_old_value, log_field_new_value
+              log_field_name, log_filed_old_value, log_field_new_value,
+              log_date
          FROM \`log_list\`
         ORDER BY log_id DESC
         LIMIT ? OFFSET ?`,
@@ -212,9 +216,26 @@ export async function getLogListPaginated(params: {
     ),
   ])
   return {
-    rows: dataRows,
+    rows: dataRows.map((r) => ({
+      ...r,
+      log_date: formatDateTime(r.log_date),
+    })),
     total: countRows[0]?.total ?? 0,
     page,
     pageSize,
   }
+}
+
+function formatDateTime(v: unknown): string | null {
+  if (v === null || v === undefined || v === '') return null
+  if (v instanceof Date) {
+    const y = v.getFullYear()
+    const m = String(v.getMonth() + 1).padStart(2, '0')
+    const d = String(v.getDate()).padStart(2, '0')
+    const hh = String(v.getHours()).padStart(2, '0')
+    const mm = String(v.getMinutes()).padStart(2, '0')
+    const ss = String(v.getSeconds()).padStart(2, '0')
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`
+  }
+  return String(v).replace('T', ' ').split('.')[0]
 }
