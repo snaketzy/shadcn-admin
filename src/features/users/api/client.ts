@@ -74,6 +74,13 @@ export interface PaginatedResponse {
   pageSize: number
 }
 
+export interface VesselInchargeHistoryEntry {
+  log_id: number
+  log_filed_old_value: string | null
+  log_field_new_value: string | null
+  log_date: string | null
+}
+
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
 
 export async function fetchVesselAll(): Promise<Vessel[]> {
@@ -131,6 +138,15 @@ export async function fetchVesselGroups(): Promise<VesselGroupsResponse> {
       classDict: [],
     }
   )
+}
+
+export async function fetchVesselInchargeHistory(
+  vesselId: number
+): Promise<VesselInchargeHistoryEntry[]> {
+  const res = await api.get<ApiEnvelope<VesselInchargeHistoryEntry[]>>(
+    `/vessel-list/${vesselId}/incharge-history`
+  )
+  return res.data.data ?? []
 }
 
 export async function createVessel(payload: {
