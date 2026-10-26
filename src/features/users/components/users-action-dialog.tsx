@@ -31,9 +31,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { type Vessel } from '../data/schema'
-import { createVessel, updateVessel, fetchVesselGroups } from '../api/client'
+import {
+  createVessel,
+  updateVessel,
+  fetchVesselGroups,
+  fetchVesselInchargeHistory,
+} from '../api/client'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { GitBranch } from 'lucide-react'
 
 const formSchema = z.object({
   vessel_name: z.string().min(1, '船名是必填项。'),
@@ -91,6 +97,21 @@ export function UsersActionDialog({
     queryKey: ['vessel-list-groups'],
     queryFn: fetchVesselGroups,
   })
+
+  const { data: inchargeHistory = [], isLoading: inchargeHistoryLoading } =
+    useQuery({
+      queryKey: ['vessel-incharge-history', currentRow?.vessel_id],
+      queryFn: () => fetchVesselInchargeHistory(currentRow!.vessel_id),
+      enabled: open && isEdit && !!currentRow?.vessel_id,
+    })
+
+  const inchargeLabelOf = (v: string | null | undefined): string => {
+    if (v === null || v === undefined || v === '') return '未设置'
+    const hit = (groups?.inchargeDict ?? []).find(
+      (d) => String(d.dict_key).toUpperCase() === String(v).toUpperCase()
+    )
+    return hit?.dict_value ?? String(v)
+  }
 
   const form = useForm<VesselForm>({
     resolver: zodResolver(formSchema),
@@ -190,6 +211,7 @@ export function UsersActionDialog({
       toast.success('船只更新成功')
       queryClient.invalidateQueries({ queryKey: ['vessel-list'] })
       queryClient.invalidateQueries({ queryKey: ['vessel-list-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['vessel-incharge-history'] })
       form.reset()
       onOpenChange(false)
     },
@@ -550,6 +572,82 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {isEdit && (
+                <div className='col-span-2 mt-1 rounded-md border bg-muted/20 px-3 py-2.5'>
+                  <div className='mb-2 flex items-center gap-2'>
+                    <GitBranch className='size-3.5 text-muted-foreground' />
+                    <span className='text-sm font-medium'>负责人变更过程</span>
+                  </div>
+                  {inchargeHistoryLoading ? (
+                    <div className='py-3 text-center text-xs text-muted-foreground'>
+                      加载中...
+                    </div>
+                  ) : inchargeHistory.length === 0 ? (
+                    <div className='py-3 text-center text-xs text-muted-foreground'>
+                      暂无负责人变更记录
+                    </div>
+                  ) : (
+                    <div className='overflow-x-auto'>
+                      <div className='relative flex min-w-max items-stretch'>
+                        <div className='pointer-events-none absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border' />
+                        {inchargeHistory.map((entry, idx) => {
+                          const above = idx % 2 === 0
+                          const fromLabel = inchargeLabelOf(
+                            entry.log_filed_old_value
+                          )
+                          const toLabel = inchargeLabelOf(
+                            entry.log_field_new_value
+                          )
+                          return (
+                            <div
+                              key={entry.log_id}
+                              className='flex w-[172px] shrink-0 flex-col items-center'
+                            >
+                              <div className='flex h-[64px] w-full flex-col items-center justify-end'>
+                                {above && (
+                                  <>
+                                    <div className='w-[150px] rounded border bg-background px-2 py-1 text-center shadow-sm'>
+                                      <div className='text-[11px] leading-4 text-muted-foreground'>
+                                        {entry.log_date ?? '日期未知'}
+                                      </div>
+                                      <div
+                                        className='truncate text-xs font-medium'
+                                        title={`${fromLabel} → ${toLabel}`}
+                                      >
+                                        {fromLabel} → {toLabel}
+                                      </div>
+                                    </div>
+                                    <span className='h-3 w-px bg-border' />
+                                  </>
+                                )}
+                              </div>
+                              <span className='z-10 size-2.5 shrink-0 rounded-full border-2 border-primary bg-background' />
+                              <div className='flex h-[64px] w-full flex-col items-center justify-start'>
+                                {!above && (
+                                  <>
+                                    <span className='h-3 w-px bg-border' />
+                                    <div className='w-[150px] rounded border bg-background px-2 py-1 text-center shadow-sm'>
+                                      <div className='text-[11px] leading-4 text-muted-foreground'>
+                                        {entry.log_date ?? '日期未知'}
+                                      </div>
+                                      <div
+                                        className='truncate text-xs font-medium'
+                                        title={`${fromLabel} → ${toLabel}`}
+                                      >
+                                        {fromLabel} → {toLabel}
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </form>
           </Form>
         </div>

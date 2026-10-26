@@ -20,6 +20,7 @@ import {
   deleteVesselList,
   deleteVesselListBulk,
 } from './src/service/connection/vessel-list-service'
+import { getVesselInchargeHistory } from './src/service/connection/log-list-service'
 import {
   getAllOwnerList,
   getOwnerListById,
@@ -424,6 +425,16 @@ export async function handleVesselListApi(
         const ids = body?.ids ?? []
         const n = await deleteVesselListBulk(ids)
         sendJson(res, 200, { success: true, data: { deleted: n } })
+        return true
+      }
+    }
+
+    const historyMatch = subPath.match(/^\/(\d+)\/incharge-history$/)
+    if (historyMatch) {
+      if (method === 'GET') {
+        const vesselId = Number(historyMatch[1])
+        const rows = await getVesselInchargeHistory(vesselId)
+        sendJson(res, 200, { success: true, data: rows })
         return true
       }
     }

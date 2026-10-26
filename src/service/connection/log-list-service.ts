@@ -193,6 +193,38 @@ export async function auditUpdate<
   await writeAuditLogs(records)
 }
 
+export interface VesselInchargeHistoryEntry {
+  log_id: number
+  log_filed_old_value: string | null
+  log_field_new_value: string | null
+  log_date: string | null
+}
+
+export async function getVesselInchargeHistory(
+  vesselId: number
+): Promise<VesselInchargeHistoryEntry[]> {
+  const rows = await query<LogListRow[]>(
+    `SELECT log_id, log_table_name, log_table_primary_key,
+            log_table_primary_key_value,
+            log_field_name, log_filed_old_value, log_field_new_value,
+            log_date
+       FROM \`log_list\`
+      WHERE log_table_name = 'vessel_list'
+        AND log_table_primary_key_value = ?
+        AND log_field_name = 'vessel_incharge'
+        AND NOT (COALESCE(log_filed_old_value, '') = ''
+                 AND COALESCE(log_field_new_value, '') = '')
+      ORDER BY log_date ASC, log_id ASC`,
+    [String(vesselId)]
+  )
+  return rows.map((r) => ({
+    log_id: r.log_id,
+    log_filed_old_value: r.log_filed_old_value,
+    log_field_new_value: r.log_field_new_value,
+    log_date: formatDateTime(r.log_date),
+  }))
+}
+
 export async function getLogListPaginated(params: {
   page?: number
   pageSize?: number
