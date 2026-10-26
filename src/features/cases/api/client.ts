@@ -170,6 +170,7 @@ export async function fetchCasePaginated(params: {
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
   caseRemark?: string
+  caseMemo?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
   caseUptodateDateFrom?: string

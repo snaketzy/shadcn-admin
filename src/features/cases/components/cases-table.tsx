@@ -594,6 +594,8 @@ export function CasesTable(_: DataTableProps) {
     ''
   const urlCaseRemark: string =
     (search as unknown as { caseRemark?: string }).caseRemark ?? ''
+  const urlCaseMemo: string =
+    (search as unknown as { caseMemo?: string }).caseMemo ?? ''
   const urlInqDateFrom: string =
     (search as unknown as { caseInquiryDateFrom?: string })
       .caseInquiryDateFrom ?? ''
@@ -619,6 +621,10 @@ export function CasesTable(_: DataTableProps) {
     null
   )
 
+  const [editingCaseMemo, setEditingCaseMemo] = useState(urlCaseMemo)
+  const caseMemoComposingRef = useRef(false)
+  const caseMemoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [editingInqDateFrom, setEditingInqDateFrom] = useState(urlInqDateFrom)
   const [editingInqDateTo, setEditingInqDateTo] = useState(urlInqDateTo)
   const inqDateCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -640,6 +646,10 @@ export function CasesTable(_: DataTableProps) {
   useEffect(() => {
     if (editingCaseRemark !== urlCaseRemark) setEditingCaseRemark(urlCaseRemark)
   }, [urlCaseRemark])
+
+  useEffect(() => {
+    if (editingCaseMemo !== urlCaseMemo) setEditingCaseMemo(urlCaseMemo)
+  }, [urlCaseMemo])
 
   useEffect(() => {
     if (editingInqDateFrom !== urlInqDateFrom)
@@ -727,6 +737,41 @@ export function CasesTable(_: DataTableProps) {
     const trimmed = value.trim()
     setEditingCaseRemark(trimmed)
     scheduleCaseRemarkCommit(trimmed)
+  }
+
+  const scheduleCaseMemoCommit = useCallback(
+    (valueRaw: string) => {
+      if (caseMemoDebounceRef.current)
+        clearTimeout(caseMemoDebounceRef.current)
+      caseMemoDebounceRef.current = setTimeout(() => {
+        if (caseMemoComposingRef.current) return
+        const value = valueRaw.trim()
+        navigate({
+          search: (prev: any) => ({
+            ...(prev ?? {}),
+            caseMemo: value || undefined,
+            page: undefined,
+          }),
+        })
+      }, 300)
+    },
+    [navigate]
+  )
+
+  const onCaseMemoChange = (value: string) => {
+    setEditingCaseMemo(value)
+    scheduleCaseMemoCommit(value)
+  }
+
+  const onCaseMemoCompositionStart = () => {
+    caseMemoComposingRef.current = true
+  }
+
+  const onCaseMemoCompositionEnd = (value: string) => {
+    caseMemoComposingRef.current = false
+    const trimmed = value.trim()
+    setEditingCaseMemo(trimmed)
+    scheduleCaseMemoCommit(trimmed)
   }
 
   const pad2Inq = (n: number): string => (n < 10 ? `0${n}` : `${n}`)
@@ -935,6 +980,7 @@ export function CasesTable(_: DataTableProps) {
       urlVesselName,
       urlKeyword,
       urlCaseRemark,
+      urlCaseMemo,
       urlInqDateFrom,
       urlInqDateTo,
       urlFollowDateFrom,
@@ -961,6 +1007,7 @@ export function CasesTable(_: DataTableProps) {
           vesselNamesFilter.length > 0 ? vesselNamesFilter : undefined,
         caseInquiryKeyword: urlKeyword || undefined,
         caseRemark: urlCaseRemark || undefined,
+        caseMemo: urlCaseMemo || undefined,
         caseInquiryDateFrom: urlInqDateFrom || undefined,
         caseInquiryDateTo: urlInqDateTo || undefined,
         caseUptodateDateFrom: urlFollowDateFrom || undefined,
@@ -1091,6 +1138,7 @@ export function CasesTable(_: DataTableProps) {
         vesselNames: undefined,
         caseInquiryKeyword: undefined,
         caseRemark: undefined,
+        caseMemo: undefined,
         caseInquiryDateFrom: undefined,
         caseInquiryDateTo: undefined,
         caseUptodateDateFrom: undefined,
@@ -1148,6 +1196,7 @@ export function CasesTable(_: DataTableProps) {
     vesselNamesFilter.length > 0 ||
     editingKeyword.trim() !== '' ||
     editingCaseRemark.trim() !== '' ||
+    editingCaseMemo.trim() !== '' ||
     editingInqDateFrom.trim() !== '' ||
     editingInqDateTo.trim() !== '' ||
     editingFollowDateFrom.trim() !== '' ||
@@ -1624,6 +1673,16 @@ export function CasesTable(_: DataTableProps) {
             onCompositionStart={onCaseRemarkCompositionStart}
             onCompositionEnd={(e) =>
               onCaseRemarkCompositionEnd((e.target as HTMLInputElement).value)
+            }
+            className='h-8 w-45 lg:w-60'
+          />
+          <Input
+            placeholder='按案件备忘筛选...'
+            value={editingCaseMemo}
+            onChange={(e) => onCaseMemoChange(e.target.value)}
+            onCompositionStart={onCaseMemoCompositionStart}
+            onCompositionEnd={(e) =>
+              onCaseMemoCompositionEnd((e.target as HTMLInputElement).value)
             }
             className='h-8 w-45 lg:w-60'
           />

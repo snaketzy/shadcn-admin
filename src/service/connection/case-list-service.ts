@@ -371,6 +371,7 @@ export async function getCaseListPaginated(params: {
   serviceProjectActive?: boolean
   caseInquiryKeyword?: string
   caseRemark?: string
+  caseMemo?: string
   caseInquiryDateFrom?: string
   caseInquiryDateTo?: string
   caseUptodateDateFrom?: string
@@ -421,6 +422,17 @@ export async function getCaseListPaginated(params: {
   if (params.caseRemark && params.caseRemark.trim() !== '') {
     whereClauses.push('case_remark LIKE ?')
     whereParams.push(`%${params.caseRemark}%`)
+  }
+  if (params.caseMemo && params.caseMemo.trim() !== '') {
+    const memoKw = `%${params.caseMemo.trim()}%`
+    whereClauses.push(
+      `EXISTS (
+        SELECT 1 FROM case_memo_list m
+        WHERE m.case_id = case_list.case_id
+          AND (m.case_memo_content LIKE ? OR m.case_memo_remark LIKE ?)
+      )`
+    )
+    whereParams.push(memoKw, memoKw)
   }
   if (params.orderNumberHasValue) {
     whereClauses.push("order_number IS NOT NULL AND TRIM(order_number) <> ''")
