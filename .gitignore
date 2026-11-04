@@ -32,3 +32,6 @@ dist-ssr
 # Vitest artifacts (browser screenshots/attachments)
 **/__screenshots__/
 .vitest-attachments/
+assets/database_structure/2025年11月30日 经营表.xlsx
+assets/database_structure/经营表-20241231.xls
+assets/database_structure/需求管理表.xlsx
